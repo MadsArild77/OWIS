@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 GENERIC_STATIC_TITLES = {
     "about",
     "about us",
+    "about wind",
     "videos",
     "video",
     "photos",
@@ -17,6 +18,8 @@ GENERIC_STATIC_TITLES = {
     "data",
     "policy",
     "news",
+    "latest news",
+    "position and statements",
     "contact",
     "login",
     "sign in",
@@ -39,6 +42,8 @@ STATIC_PATH_MARKERS = {
     "/terms",
     "/login",
     "/register",
+    "/tag/",
+    "/category/",
 }
 
 NEWS_HINT_WORDS = {
@@ -57,6 +62,8 @@ NEWS_HINT_WORDS = {
     "turbine",
     "regulation",
     "policy update",
+    "gw",
+    "mw",
 }
 
 DATE_RE = re.compile(r"\b(20\d{2})\b|/20\d{2}/|\d{4}-\d{2}-\d{2}")
@@ -71,10 +78,15 @@ def _has_news_hints(text: str) -> bool:
     return any(hint in t for hint in NEWS_HINT_WORDS)
 
 
-def is_probable_news_item(url: str, title: str, summary: str = "") -> bool:
+def _word_count(text: str) -> int:
+    return len([w for w in re.split(r"\s+", _norm(text)) if w])
+
+
+def is_probable_news_item(url: str, title: str, summary: str = "", full_text: str = "") -> bool:
     u = _norm(url)
     t = _norm(title)
     s = _norm(summary)
+    f = _norm(full_text)
 
     if not u or not t:
         return False
@@ -85,24 +97,29 @@ def is_probable_news_item(url: str, title: str, summary: str = "") -> bool:
     if t in GENERIC_STATIC_TITLES:
         return False
 
+    if _word_count(t) <= 2 and not (_has_news_hints(t) or DATE_RE.search(t)):
+        return False
+
     if any(marker in path for marker in STATIC_PATH_MARKERS):
-        # Allow if there are strong news indicators.
         if not (_has_news_hints(t) or _has_news_hints(s) or DATE_RE.search(u)):
             return False
 
-    words = [w for w in re.split(r"\s+", t) if w]
-    if len(words) <= 2 and not (_has_news_hints(t) or DATE_RE.search(t)):
-        return False
-
     text_blob = f"{t} {s} {u}"
-    if _has_news_hints(text_blob):
+
+    # For scraped pages: require minimum body text quality.
+    if f:
+        if len(f) < 220:
+            return False
+        if _word_count(f) < 40:
+            return False
+
+    if _has_news_hints(text_blob) or _has_news_hints(f):
         return True
 
-    if DATE_RE.search(text_blob):
+    if DATE_RE.search(text_blob) or DATE_RE.search(f):
         return True
 
-    # Fallback: reasonably descriptive title and non-root path.
-    if len(t) >= 25 and len([p for p in path.split('/') if p]) >= 2:
+    if len(t) >= 35 and len([p for p in path.split('/') if p]) >= 2:
         return True
 
     return False

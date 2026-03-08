@@ -37,7 +37,12 @@ def fetch_rss_items_with_report() -> tuple[list[dict[str, Any]], list[dict[str, 
                 title = (entry.get("title") or "").strip()
                 summary = (entry.get("summary") or "").strip()
 
-                if not is_probable_news_item(url=url, title=title, summary=summary):
+                full_text = ""
+                if entry.get("content") and isinstance(entry.get("content"), list):
+                    content_parts = [str(x.get("value", "")) for x in entry.get("content", []) if isinstance(x, dict)]
+                    full_text = " ".join(content_parts)
+
+                if not is_probable_news_item(url=url, title=title, summary=summary, full_text=full_text):
                     filtered_count += 1
                     continue
 
