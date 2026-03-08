@@ -140,6 +140,10 @@ def rediscover_rss(payload: RediscoverRSSRequest):
 def source_health(payload: SourceHealthRequest):
     return {"items": source_health_report(only_enabled=payload.only_enabled)}
 
+@router.get("/sources/health-state")
+def source_health_state():
+    return {"items": repo.list_source_health_states()}
+
 
 @router.post("/run/fetch-process")
 def run_fetch_process():
@@ -194,3 +198,4 @@ def run_fetch_process():
         "source_report": source_report,
         "source_health": health_rows,
     }
+

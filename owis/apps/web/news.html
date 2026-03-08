@@ -54,6 +54,12 @@
     .sources-table th, .sources-table td { border-bottom: 1px solid var(--line); padding: 8px; text-align: left; }
     .row-actions button { margin: 0 4px 0 0; padding: 6px 10px; font-size: 0.8rem; }
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .health-dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle; border:1px solid #cbd5e1; }
+    .health-green { background:#16a34a; }
+    .health-yellow { background:#f59e0b; }
+    .health-red { background:#dc2626; }
+    .health-gray { background:#94a3b8; }
+    .badge-paywall { display:inline-block; margin-left:8px; padding:2px 8px; border-radius:999px; font-size:0.72rem; font-weight:700; background:#fee2e2; color:#991b1b; }
   </style>
 </head>
 <body>
@@ -111,7 +117,7 @@
       <table class="sources-table">
         <thead>
           <tr>
-            <th>#</th><th>Name</th><th>Type</th><th>URL</th><th>Enabled</th><th>Actions</th>
+            <th>#</th><th>Name</th><th>Type</th><th>URL</th><th>Health</th><th>Enabled</th><th>Actions</th>
           </tr>
         </thead>
         <tbody id="sourcesBody"></tbody>
@@ -136,6 +142,7 @@
 
   <script>
     let currentSources = [];
+    let healthStateBySource = {};
 
     async function getJson(path) {
       const res = await fetch(path);
@@ -159,22 +166,29 @@
       el.className = warn ? 'status warn' : 'status';
     }
 
+    function isPaywalled(item) {
+      const title = (item.title || '').toLowerCase();
+      const summary = (item.summary || '').toLowerCase();
+      return title.includes('[paywalled]') || summary.includes('paywalled');
+    }
+
     function renderCards(elId, items) {
       const root = document.getElementById(elId);
-      root.innerHTML = "";
+      root.innerHTML = '';
       if (!items.length) {
         root.innerHTML = '<p class="muted">No data yet. Run fetch + processing.</p>';
         return;
       }
 
       for (const item of items) {
-        const div = document.createElement("article");
-        div.className = "card";
+        const paywalled = isPaywalled(item);
+        const div = document.createElement('article');
+        div.className = 'card';
         div.innerHTML = `
-          <h3>${item.title}</h3>
-          <p class="muted">${item.summary || "No summary"}</p>
-          <div class="meta">Score: ${item.signal_score} | Source: ${item.source_name || "Unknown"}</div>
-          <div class="meta">Published: ${item.published_at || "Unknown"}</div>
+          <h3>${item.title}${paywalled ? '<span class="badge-paywall">Paywall</span>' : ''}</h3>
+          <p class="muted">${item.summary || 'No summary'}</p>
+          <div class="meta">Score: ${item.signal_score} | Source: ${item.source_name || 'Unknown'}</div>
+          <div class="meta">Published: ${item.published_at || 'Unknown'}</div>
           <div class="meta"><a href="${item.article_url}" target="_blank" rel="noopener noreferrer">Open source</a></div>
         `;
         root.appendChild(div);
@@ -190,17 +204,29 @@
       document.getElementById('editPriority').value = source.priority || 'medium';
     }
 
+    function healthDotClass(color) {
+      if (color === 'green') return 'health-dot health-green';
+      if (color === 'yellow') return 'health-dot health-yellow';
+      if (color === 'red') return 'health-dot health-red';
+      return 'health-dot health-gray';
+    }
+
     function renderSourcesTable() {
       const body = document.getElementById('sourcesBody');
       body.innerHTML = '';
 
       for (const s of currentSources) {
+        const health = healthStateBySource[s.name || ''] || {};
+        const color = health.health_color || 'gray';
+        const tooltip = health.last_error || (health.updated_at ? `Updated ${health.updated_at}` : 'No fetch history yet');
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${s.index}</td>
           <td>${s.name || ''}</td>
           <td>${s.type || ''}</td>
           <td>${s.url || ''}</td>
+          <td title="${tooltip.replace(/"/g, '&quot;')}"><span class="${healthDotClass(color)}"></span>${color}</td>
           <td><input type="checkbox" ${s.enabled ? 'checked' : ''} data-toggle-index="${s.index}" /></td>
           <td class="row-actions">
             <button data-edit-index="${s.index}" class="btn-secondary">Edit</button>
@@ -227,8 +253,21 @@
       });
     }
 
+    async function refreshHealthState() {
+      const result = await getJson('/api/news/sources/health-state');
+      const items = Array.isArray(result.items) ? result.items : [];
+      healthStateBySource = {};
+      for (const row of items) {
+        healthStateBySource[row.source_name] = row;
+      }
+    }
+
     async function refreshSources() {
-      currentSources = await getJson('/api/news/sources');
+      const [sources] = await Promise.all([
+        getJson('/api/news/sources'),
+        refreshHealthState(),
+      ]);
+      currentSources = Array.isArray(sources) ? sources : [];
       renderSourcesTable();
     }
 
@@ -305,7 +344,9 @@
       const sample = bad.slice(0, 2).map(x => `${x.source}:${x.status}${x.detail ? `(${x.detail})` : ''}`).join(' | ');
       const msg = `Health done. total=${items.length}, issues=${bad.length}${sample ? ` | sample: ${sample}` : ''}`;
       setStatus(msg, bad.length > 0);
+      await refreshSources();
     }
+
     async function runPipeline() {
       setStatus('Running fetch + processing ...');
       const result = await postJson('/api/news/run/fetch-process');
@@ -318,6 +359,7 @@
 
       setStatus(msg, (result.fetched_candidates || 0) === 0);
       await refreshSignals();
+      await refreshSources();
     }
 
     async function boot() {

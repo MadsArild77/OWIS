@@ -175,3 +175,14 @@ class NewsRepository:
                 """,
                 (source_name, health_score, health_color, last_items, last_error, updated_at),
             )
+
+    def list_source_health_states(self) -> list[dict[str, Any]]:
+        with get_conn() as conn:
+            rows = conn.execute(
+                """
+                SELECT source_name, health_score, health_color, last_items, last_error, updated_at
+                FROM source_fetch_health
+                ORDER BY source_name ASC
+                """
+            ).fetchall()
+            return [dict(row) for row in rows]

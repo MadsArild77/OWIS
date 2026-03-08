@@ -234,7 +234,23 @@ def _candidate_feed_urls(homepage: str, soup: BeautifulSoup | None, html: str = 
     return candidates
 
 
+
+def _forced_feed_for_host(homepage: str) -> str | None:
+    host = _host(homepage)
+    forced = KNOWN_FEED_OVERRIDES.get(host, [])
+    if not forced:
+        return None
+    # Known watch media feeds can be temporarily empty/strict; prefer explicit endpoint.
+    for u in forced:
+        if "rss-feed-api.aws.jyllands-posten.dk" in u:
+            return u
+    return forced[0]
+
 def discover_feed_url(homepage: str) -> str | None:
+    forced = _forced_feed_for_host(homepage)
+    if forced:
+        return forced
+
     soup: BeautifulSoup | None = None
     html = ""
 
@@ -268,6 +284,23 @@ def discover_feed_url(homepage: str) -> str | None:
 
 
 def discover_feed_url_with_debug(homepage: str) -> dict[str, Any]:
+    forced = _forced_feed_for_host(homepage)
+    if forced:
+        return {
+            "homepage": homepage,
+            "homepage_ok": True,
+            "homepage_error": "",
+            "candidate_count": len(KNOWN_FEED_OVERRIDES.get(_host(homepage), [])),
+            "candidates_checked": [
+                {
+                    "candidate": forced,
+                    "valid": True,
+                    "reason": "known_feed_override",
+                }
+            ],
+            "discovered_feed_url": forced,
+        }
+
     soup: BeautifulSoup | None = None
     html = ""
     homepage_ok = True
@@ -591,3 +624,5 @@ def rediscover_rss_for_sources(only_scrape: bool = True, with_debug: bool = Fals
         result["details"] = details
 
     return result
+
+

@@ -35,3 +35,15 @@ def test_import_sources_uses_rss_then_scrape(tmp_path, monkeypatch):
     assert added[0]["url"] == "https://rechargenews.com/rss"
     assert added[1]["type"] == "scrape"
 
+
+def test_discover_feed_url_returns_known_override_without_network():
+    feed_url = source_discovery.discover_feed_url("https://energiwatch.no")
+    assert feed_url is not None
+    assert "energiwatch.no" in feed_url
+
+
+def test_discover_feed_url_with_debug_returns_known_override_payload():
+    payload = source_discovery.discover_feed_url_with_debug("https://energywatch.com")
+    assert payload["discovered_feed_url"]
+    assert payload["homepage_ok"] is True
+    assert payload["candidate_count"] >= 1
