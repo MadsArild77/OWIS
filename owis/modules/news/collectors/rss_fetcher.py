@@ -4,6 +4,7 @@ from typing import Any
 
 import feedparser
 
+from owis.modules.news.collectors.filters import is_probable_news_item
 from owis.modules.news.registry.source_discovery import load_source_registry
 
 
@@ -26,16 +27,20 @@ def fetch_rss_items_with_report() -> tuple[list[dict[str, Any]], list[dict[str, 
         src_name = source.get("name", "unknown")
         src_url = source.get("url", "")
         source_count = 0
+        filtered_count = 0
         error = None
 
         try:
             feed = feedparser.parse(src_url, request_headers={"User-Agent": USER_AGENT})
             for entry in getattr(feed, "entries", []):
                 url = entry.get("link") or ""
-                if not url:
-                    continue
                 title = (entry.get("title") or "").strip()
                 summary = (entry.get("summary") or "").strip()
+
+                if not is_probable_news_item(url=url, title=title, summary=summary):
+                    filtered_count += 1
+                    continue
+
                 content_hash = hashlib.sha256(f"{url}|{title}".encode("utf-8")).hexdigest()
 
                 items.append(
@@ -60,6 +65,7 @@ def fetch_rss_items_with_report() -> tuple[list[dict[str, Any]], list[dict[str, 
                 "type": "rss",
                 "url": src_url,
                 "items": source_count,
+                "filtered": filtered_count,
                 "status": "ok" if error is None else "error",
                 "error": error,
             }

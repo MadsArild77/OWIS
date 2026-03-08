@@ -5,15 +5,11 @@ from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 import httpx
 
+from owis.modules.news.collectors.filters import is_probable_news_item
 from owis.modules.news.registry.source_discovery import load_source_registry
 
 
 USER_AGENT = "OWISBot/1.0 (+https://github.com/MadsArild77/OWIS)"
-
-
-def _looks_like_article(url: str) -> bool:
-    lowered = url.lower()
-    return any(token in lowered for token in ["/news", "/article", "offshore", "wind", "202", "2026"])
 
 
 def fetch_scrape_items_with_report(limit_per_source: int = 20) -> tuple[list[dict], list[dict]]:
@@ -28,10 +24,11 @@ def fetch_scrape_items_with_report(limit_per_source: int = 20) -> tuple[list[dic
         src_name = source.get("name", "unknown")
         homepage = source.get("homepage") or source.get("url")
         if not homepage:
-            report.append({"source": src_name, "type": "scrape", "url": "", "items": 0, "status": "error", "error": "missing_homepage"})
+            report.append({"source": src_name, "type": "scrape", "url": "", "items": 0, "filtered": 0, "status": "error", "error": "missing_homepage"})
             continue
 
         source_count = 0
+        filtered_count = 0
         error = None
         try:
             with httpx.Client(timeout=20, follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
@@ -49,7 +46,8 @@ def fetch_scrape_items_with_report(limit_per_source: int = 20) -> tuple[list[dic
                 url = urljoin(homepage, href)
                 if urlparse(url).netloc and urlparse(url).netloc != domain:
                     continue
-                if not _looks_like_article(url):
+                if not is_probable_news_item(url=url, title=title, summary=""):
+                    filtered_count += 1
                     continue
 
                 content_hash = hashlib.sha256(f"{url}|{title}".encode("utf-8")).hexdigest()
@@ -77,6 +75,7 @@ def fetch_scrape_items_with_report(limit_per_source: int = 20) -> tuple[list[dic
                 "type": "scrape",
                 "url": homepage,
                 "items": source_count,
+                "filtered": filtered_count,
                 "status": "ok" if error is None else "error",
                 "error": error,
             }
