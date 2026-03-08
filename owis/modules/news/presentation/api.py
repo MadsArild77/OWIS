@@ -2,8 +2,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from owis.core.storage.db import init_db
-from owis.modules.news.collectors.rss_fetcher import fetch_rss_items
-from owis.modules.news.collectors.scrape_fetcher import fetch_scrape_items
+from owis.modules.news.collectors.rss_fetcher import fetch_rss_items_with_report
+from owis.modules.news.collectors.scrape_fetcher import fetch_scrape_items_with_report
 from owis.modules.news.processing.pipeline import process_raw_item
 from owis.modules.news.registry.source_discovery import (
     dedupe_sources,
@@ -59,7 +59,6 @@ def item(item_id: int):
         raise HTTPException(status_code=404, detail="News item not found")
     return found
 
-
 @router.get("/sources")
 def list_sources():
     return [{"index": i, **s} for i, s in enumerate(load_source_registry())]
@@ -93,12 +92,14 @@ def edit_source(payload: UpdateSourceRequest):
 def run_dedupe():
     return dedupe_sources()
 
-
 @router.post("/run/fetch-process")
 def run_fetch_process():
     init_db()
 
-    fetched_items = [*fetch_rss_items(), *fetch_scrape_items()]
+    rss_items, rss_report = fetch_rss_items_with_report()
+    scrape_items, scrape_report = fetch_scrape_items_with_report()
+    fetched_items = [*rss_items, *scrape_items]
+
     inserted = 0
     for item in fetched_items:
         if repo.upsert_raw_item(item):
@@ -116,4 +117,5 @@ def run_fetch_process():
         "fetched_candidates": len(fetched_items),
         "new_raw_items": inserted,
         "processed_items": processed,
+        "source_report": [*rss_report, *scrape_report],
     }

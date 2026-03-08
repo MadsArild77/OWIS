@@ -277,7 +277,14 @@
     async function runPipeline() {
       setStatus('Running fetch + processing ...');
       const result = await postJson('/api/news/run/fetch-process');
-      setStatus(`Done. fetched=${result.fetched_candidates}, new=${result.new_raw_items}, processed=${result.processed_items}`);
+
+      let msg = `Done. fetched=${result.fetched_candidates}, new=${result.new_raw_items}, processed=${result.processed_items}`;
+      if ((result.fetched_candidates || 0) === 0 && Array.isArray(result.source_report)) {
+        const summary = result.source_report.map(r => `${r.source}:${r.items}${r.error ? ` (${r.error})` : ''}`).join(' | ');
+        msg += ` | sources => ${summary}`;
+      }
+
+      setStatus(msg, (result.fetched_candidates || 0) === 0);
       await refreshSignals();
     }
 
@@ -300,3 +307,4 @@
   </script>
 </body>
 </html>
+
