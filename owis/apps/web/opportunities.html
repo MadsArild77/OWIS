@@ -189,6 +189,13 @@
           <div class="meta">Action: ${item.recommended_action || 'n/a'}</div>
           <div class="meta"><a href="${item.source_url}" target="_blank" rel="noopener noreferrer">Open source</a></div>
         `;
+        div.style.cursor = 'pointer';
+        div.title = 'Click card to open source';
+        div.addEventListener('click', (evt) => {
+          if (evt.target.closest('a')) return;
+          const url = item.source_url || '';
+          if (url) window.open(url, '_blank', 'noopener,noreferrer');
+        });
         root.appendChild(div);
       }
     }

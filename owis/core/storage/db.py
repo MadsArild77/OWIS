@@ -56,6 +56,14 @@ def init_db() -> None:
                 updated_at TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS news_collection_overrides (
+                processed_id INTEGER PRIMARY KEY,
+                collection_key TEXT NOT NULL,
+                note TEXT,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY(processed_id) REFERENCES news_processed_items(id)
+            );
+
             CREATE TABLE IF NOT EXISTS opportunity_raw_items (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 notice_id TEXT NOT NULL UNIQUE,

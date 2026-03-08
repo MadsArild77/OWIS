@@ -1,7 +1,8 @@
+from collections import defaultdict
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from owis.core.storage.db import init_db
 from owis.modules.news.collectors.rss_fetcher import fetch_rss_items_with_report
@@ -12,38 +13,14 @@ from owis.modules.news.registry.source_discovery import (
     import_sources_from_text,
     load_source_registry,
     rediscover_rss_for_sources,
-    source_health_report,
     set_source_enabled,
+    source_health_report,
     update_source,
 )
 from owis.modules.news.storage.repository import NewsRepository
 
 router = APIRouter(prefix="/api/news", tags=["news"])
 repo = NewsRepository()
-
-
-def _base_health(items: int, error: str | None) -> tuple[int, str]:
-    if error:
-        return 0, "red"
-    if items <= 0:
-        return 1, "yellow"
-    return 2, "green"
-
-
-def _with_degradation_color(base_score: int, base_color: str, prev: dict | None, items: int) -> tuple[int, str, str]:
-    reason = "ok"
-    if base_color == "red":
-        return base_score, base_color, "fetch_failed"
-    if prev is None:
-        return base_score, base_color, reason
-
-    prev_score = int(prev.get("health_score") or 0)
-    prev_items = int(prev.get("last_items") or 0)
-    if items < prev_items:
-        return min(base_score, 1), "yellow", "degraded_from_previous_fetch"
-    if base_score < prev_score:
-        return min(base_score, 1), "yellow", "health_score_regressed"
-    return base_score, base_color, reason
 
 
 class ImportSourcesRequest(BaseModel):
@@ -76,6 +53,144 @@ class UpdateSourceRequest(BaseModel):
     auth: dict[str, object] | None = None
     manual_override: bool | None = None
 
+
+class MergeCollectionRequest(BaseModel):
+    item_ids: list[int] = Field(default_factory=list)
+    collection_key: str | None = None
+    note: str | None = None
+
+
+class UnmergeCollectionRequest(BaseModel):
+    item_ids: list[int] = Field(default_factory=list)
+
+
+def _base_health(items: int, error: str | None) -> tuple[int, str]:
+    if error:
+        return 0, "red"
+    if items <= 0:
+        return 1, "yellow"
+    return 2, "green"
+
+
+def _with_degradation_color(base_score: int, base_color: str, prev: dict | None, items: int) -> tuple[int, str, str]:
+    reason = "ok"
+    if base_color == "red":
+        return base_score, base_color, "fetch_failed"
+    if prev is None:
+        return base_score, base_color, reason
+
+    prev_score = int(prev.get("health_score") or 0)
+    prev_items = int(prev.get("last_items") or 0)
+    if items < prev_items:
+        return min(base_score, 1), "yellow", "degraded_from_previous_fetch"
+    if base_score < prev_score:
+        return min(base_score, 1), "yellow", "health_score_regressed"
+    return base_score, base_color, reason
+
+
+def _split_csv(value: str | None) -> list[str]:
+    if not value:
+        return []
+    return [x.strip() for x in str(value).split(",") if x.strip()]
+
+
+def _default_collection_key(item: dict) -> str:
+    themes = _split_csv(item.get("theme_tags"))
+    geos = _split_csv(item.get("geography_tags"))
+    theme = themes[0] if themes else "general_news"
+    geo = geos[0] if geos else "Global"
+    return f"auto:{theme}|{geo}"
+
+
+def _build_collections(
+    items: list[dict],
+    overrides: dict[int, dict],
+    limit: int,
+    items_per_collection: int,
+) -> list[dict]:
+    groups: dict[str, dict] = {}
+
+    for item in items:
+        processed_id = int(item.get("id") or 0)
+        override = overrides.get(processed_id)
+        collection_key = (override or {}).get("collection_key") or _default_collection_key(item)
+
+        group = groups.get(collection_key)
+        if group is None:
+            group = {
+                "collection_key": collection_key,
+                "is_manual": collection_key.startswith("manual:"),
+                "article_count": 0,
+                "top_signal_score": 0,
+                "signal_score_sum": 0,
+                "latest_published_at": None,
+                "themes": defaultdict(int),
+                "geographies": defaultdict(int),
+                "items": [],
+            }
+            groups[collection_key] = group
+
+        score = int(item.get("signal_score") or 0)
+        group["article_count"] += 1
+        group["top_signal_score"] = max(group["top_signal_score"], score)
+        group["signal_score_sum"] += score
+
+        published = item.get("published_at") or item.get("processed_at")
+        if not group["latest_published_at"] or str(published) > str(group["latest_published_at"]):
+            group["latest_published_at"] = published
+
+        themes = _split_csv(item.get("theme_tags"))
+        geographies = _split_csv(item.get("geography_tags"))
+
+        for theme in themes:
+            group["themes"][theme] += 1
+        for geo in geographies:
+            group["geographies"][geo] += 1
+
+        group["items"].append(
+            {
+                "id": processed_id,
+                "title": item.get("title") or "Untitled",
+                "source_name": item.get("source_name") or "Unknown",
+                "article_url": item.get("article_url") or "",
+                "signal_score": score,
+                "published_at": item.get("published_at"),
+                "is_manual_override": bool(override),
+            }
+        )
+
+    result: list[dict] = []
+    for group in groups.values():
+        item_rows = sorted(
+            group["items"],
+            key=lambda x: (int(x.get("signal_score") or 0), str(x.get("published_at") or "")),
+            reverse=True,
+        )
+
+        top_themes = sorted(group["themes"].items(), key=lambda x: x[1], reverse=True)
+        top_geos = sorted(group["geographies"].items(), key=lambda x: x[1], reverse=True)
+        avg_score = round(group["signal_score_sum"] / max(group["article_count"], 1), 1)
+
+        result.append(
+            {
+                "collection_key": group["collection_key"],
+                "is_manual": group["is_manual"],
+                "article_count": group["article_count"],
+                "top_signal_score": group["top_signal_score"],
+                "avg_signal_score": avg_score,
+                "latest_published_at": group["latest_published_at"],
+                "primary_theme": top_themes[0][0] if top_themes else "general_news",
+                "primary_geography": top_geos[0][0] if top_geos else "Global",
+                "items": item_rows[: max(items_per_collection, 1)],
+            }
+        )
+
+    result.sort(
+        key=lambda x: (int(x.get("article_count") or 0), int(x.get("top_signal_score") or 0), str(x.get("latest_published_at") or "")),
+        reverse=True,
+    )
+    return result[: max(limit, 1)]
+
 @router.get("/latest")
 def latest(limit: int = 20):
     return repo.latest(limit)
@@ -98,10 +213,52 @@ def item(item_id: int):
         raise HTTPException(status_code=404, detail="News item not found")
     return found
 
+@router.get("/collections")
+def list_collections(limit: int = 20, items_per_collection: int = 5, lookback_items: int = 400):
+    init_db()
+    items = repo.latest(limit=max(lookback_items, 1))
+    overrides = repo.list_collection_overrides()
+    collections = _build_collections(items, overrides, limit=limit, items_per_collection=items_per_collection)
+    return {"items": collections}
+
+@router.post("/collections/merge")
+def merge_collections(payload: MergeCollectionRequest):
+    init_db()
+    item_ids = [int(x) for x in payload.item_ids if int(x) > 0]
+    if len(item_ids) < 2:
+        raise HTTPException(status_code=400, detail="Select at least 2 items to merge.")
+
+    found_items = repo.list_processed_by_ids(item_ids)
+    if len(found_items) != len(item_ids):
+        raise HTTPException(status_code=404, detail="One or more selected items were not found.")
+
+    provided_key = (payload.collection_key or "").strip()
+    collection_key = provided_key or f"manual:{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+
+    updated = repo.set_collection_overrides(item_ids, collection_key=collection_key, note=payload.note)
+    return {
+        "updated_count": updated,
+        "collection_key": collection_key,
+    }
+
+
+@router.post("/collections/unmerge")
+def unmerge_collections(payload: UnmergeCollectionRequest):
+    init_db()
+    item_ids = [int(x) for x in payload.item_ids if int(x) > 0]
+    if not item_ids:
+        raise HTTPException(status_code=400, detail="Provide at least 1 item to unmerge.")
+
+    removed = repo.clear_collection_overrides(item_ids)
+    return {
+        "updated_count": removed,
+        "message": "Selected items reverted to automatic grouping.",
+    }
 
 @router.get("/sources")
 def list_sources():
     return [{"index": i, **s} for i, s in enumerate(load_source_registry())]
+
 
 @router.post("/sources/import-text")
 def import_sources(payload: ImportSourcesRequest):
@@ -126,6 +283,7 @@ def edit_source(payload: UpdateSourceRequest):
         raise HTTPException(status_code=404, detail="Source not found")
     return updated
 
+
 @router.post("/sources/dedupe")
 def run_dedupe():
     return dedupe_sources()
@@ -140,10 +298,10 @@ def rediscover_rss(payload: RediscoverRSSRequest):
 def source_health(payload: SourceHealthRequest):
     return {"items": source_health_report(only_enabled=payload.only_enabled)}
 
+
 @router.get("/sources/health-state")
 def source_health_state():
     return {"items": repo.list_source_health_states()}
-
 
 @router.post("/run/fetch-process")
 def run_fetch_process():
@@ -191,11 +349,19 @@ def run_fetch_process():
         row["health_reason"] = reason
         health_rows.append({"source": source_name, "health": color, "reason": reason, "items": items})
 
+    collections = _build_collections(
+        items=repo.latest(limit=300),
+        overrides=repo.list_collection_overrides(),
+        limit=8,
+        items_per_collection=3,
+    )
+
     return {
         "fetched_candidates": len(fetched_items),
         "new_raw_items": inserted,
         "processed_items": processed,
         "source_report": source_report,
         "source_health": health_rows,
+        "collection_preview": collections,
     }
 

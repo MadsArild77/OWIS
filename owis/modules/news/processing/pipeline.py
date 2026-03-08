@@ -6,6 +6,18 @@ from owis.core.llm.client import AIClient
 PAYWALL_MARKERS = ["paywalled", "paywall", "no full access", "partial/open text", "subscriber", "subscription"]
 
 
+_THEME_KEYWORDS: list[tuple[str, list[str]]] = [
+    ("market_competition", ["auction", "cfd", "bid", "leasing round", "prequalification", "license round"]),
+    ("procurement", ["tender", "procurement", "rfp", "framework agreement", "contract notice"]),
+    ("funding", ["grant", "funding", "support scheme", "horizon", "subsidy"]),
+    ("policy", ["policy", "regulation", "government", "ministry", "directive", "consultation"]),
+    ("projects", ["project", "fids", "final investment decision", "pipeline", "capacity expansion"]),
+    ("supply_chain", ["supply chain", "supplier", "factory", "port", "installation vessel", "fabrication"]),
+    ("technology", ["floating", "fixed-bottom", "turbine", "substation", "foundation", "electrolyser"]),
+    ("finance", ["financing", "investment", "bank", "equity", "debt", "ppas"]),
+]
+
+
 def _clean_text(raw_text: str) -> str:
     text = re.sub(r"\s+", " ", raw_text or "").strip()
     return text
@@ -18,17 +30,26 @@ def _summary(text: str) -> str:
     return " ".join(sentences[:3]).strip()[:700]
 
 
+def _contains_token(text: str, token: str) -> bool:
+    t = token.lower().strip()
+    if not t:
+        return False
+    if len(t) <= 3 and t.isalpha():
+        return re.search(rf"\b{re.escape(t)}\b", text) is not None
+    return t in text
+
+
 def _classify_theme(text: str) -> list[str]:
     lower = text.lower()
-    tags = []
-    if any(k in lower for k in ["auction", "cfd", "tender", "bid"]):
-        tags.append("market_competition")
-    if any(k in lower for k in ["policy", "regulation", "government", "ministry"]):
-        tags.append("policy")
-    if any(k in lower for k in ["floating", "fixed-bottom", "turbine", "substation"]):
-        tags.append("technology")
+    tags: list[str] = []
+
+    for tag, keywords in _THEME_KEYWORDS:
+        if any(_contains_token(lower, keyword) for keyword in keywords):
+            tags.append(tag)
+
     if not tags:
         tags.append("general_news")
+
     return tags
 
 
@@ -36,22 +57,54 @@ def _classify_geo(text: str) -> list[str]:
     lower = text.lower()
     mapping = {
         "norway": "Norway",
+        "norwegian": "Norway",
         "uk": "UK",
         "united kingdom": "UK",
+        "england": "UK",
+        "scotland": "UK",
         "eu": "EU",
         "europe": "Europe",
         "denmark": "Denmark",
         "germany": "Germany",
+        "netherlands": "Netherlands",
+        "dutch": "Netherlands",
+        "sweden": "Sweden",
+        "france": "France",
+        "spain": "Spain",
+        "poland": "Poland",
+        "italy": "Italy",
+        "japan": "Japan",
+        "korea": "South Korea",
+        "south korea": "South Korea",
+        "usa": "USA",
+        "united states": "USA",
+        "canada": "Canada",
+        "australia": "Australia",
+        "taiwan": "Taiwan",
     }
-    tags = [v for k, v in mapping.items() if k in lower]
-    return sorted(set(tags)) or ["Global"]
+
+    tags = [label for token, label in mapping.items() if _contains_token(lower, token)]
+    unique = sorted(set(tags))
+    return unique or ["Global"]
 
 
 def _extract_actors(text: str) -> list[str]:
-    # Simple placeholder extraction for v1; replace with NER model later.
-    candidates = ["Equinor", "RWE", "Vattenfall", "Orsted", "TotalEnergies"]
+    candidates = [
+        "Equinor",
+        "RWE",
+        "Vattenfall",
+        "Orsted",
+        "TotalEnergies",
+        "BP",
+        "Shell",
+        "Iberdrola",
+        "Siemens Gamesa",
+        "Vestas",
+        "GE Vernova",
+        "Statkraft",
+    ]
     lower = text.lower()
-    return [c for c in candidates if c.lower() in lower]
+    return [company for company in candidates if company.lower() in lower]
 
 
 def _why_it_matters(theme_tags: list[str], geo_tags: list[str]) -> str:
@@ -62,12 +115,14 @@ def _why_it_matters(theme_tags: list[str], geo_tags: list[str]) -> str:
 
 
 def _score(theme_tags: list[str], geo_tags: list[str], actors: list[str], text: str) -> int:
-    score = 30
-    score += min(len(theme_tags) * 10, 25)
-    score += 10 if "Norway" in geo_tags or "Europe" in geo_tags else 5
-    score += min(len(actors) * 8, 20)
+    score = 28
+    score += min(len(theme_tags) * 9, 30)
+    score += 10 if any(geo in geo_tags for geo in ["Norway", "UK", "EU", "Europe"]) else 5
+    score += min(len(actors) * 7, 21)
     if len(text) > 500:
         score += 10
+    if any(tag in theme_tags for tag in ["market_competition", "procurement", "funding", "policy"]):
+        score += 8
     return min(score, 100)
 
 
@@ -78,11 +133,11 @@ def _safe_list(value: object, fallback: list[str]) -> list[str]:
     return fallback
 
 
-
 def _is_paywalled(raw: dict, text: str) -> bool:
     title = (raw.get("title_raw") or "").lower()
     blob = f"{raw.get('summary_raw','')} {raw.get('content_raw','')} {text}".lower()
-    return "[paywalled]" in title or any(m in blob for m in PAYWALL_MARKERS)
+    return "[paywalled]" in title or any(marker in blob for marker in PAYWALL_MARKERS)
+
 
 def process_raw_item(raw: dict) -> dict:
     text = _clean_text(raw.get("content_raw") or raw.get("summary_raw") or raw.get("title_raw") or "")
@@ -109,12 +164,14 @@ def process_raw_item(raw: dict) -> dict:
     score = _score(theme_tags, geo_tags, actors, text)
     paywalled = _is_paywalled(raw, text)
     title = raw.get("title_raw") or "Untitled"
+
     if paywalled and "[Paywalled]" not in title:
         title = f"[Paywalled] {title}"
     if paywalled and not summary.lower().startswith("paywalled"):
         summary = f"Paywalled: full article unavailable. {summary}"
     if paywalled:
         confidence = min(confidence, 0.45)
+
     linkedin_candidate = 1 if score >= 65 else 0
 
     return {

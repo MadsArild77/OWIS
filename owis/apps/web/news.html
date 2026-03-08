@@ -60,6 +60,10 @@
     .health-red { background:#dc2626; }
     .health-gray { background:#94a3b8; }
     .badge-paywall { display:inline-block; margin-left:8px; padding:2px 8px; border-radius:999px; font-size:0.72rem; font-weight:700; background:#fee2e2; color:#991b1b; }
+    .collection-head { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
+    .collection-key { font-family: ui-monospace, Consolas, monospace; font-size:0.8rem; color:#334155; }
+    .collection-item { margin:6px 0; font-size:0.9rem; color:#334155; }
+    .selection-row { margin-top:8px; font-size:0.84rem; color:#334155; }
   </style>
 </head>
 <body>
@@ -145,11 +149,32 @@
       <h2>LinkedIn Candidates</h2>
       <div id="linkedin" class="grid"></div>
     </section>
+
+    <section class="card">
+      <h2>Signal Collections</h2>
+      <p class="muted">Merge related cards manually, and unmerge if grouping is wrong.</p>
+      <div class="two-col">
+        <div>
+          <label class="muted">Manual collection key (optional)</label>
+          <input id="collectionKey" placeholder="manual:offshore-policy-eu" />
+        </div>
+        <div>
+          <label class="muted">Selected card count</label>
+          <input id="selectedCount" readonly value="0" />
+        </div>
+      </div>
+      <div style="margin-top:10px;">
+        <button id="mergeBtn" class="btn-secondary">Merge Selected</button>
+        <button id="unmergeBtn" class="btn-warning">Unmerge Selected</button>
+      </div>
+      <div id="collections" class="grid" style="margin-top:12px;"></div>
+    </section>
   </div>
 
   <script>
     let currentSources = [];
     let healthStateBySource = {};
+    let selectedCollectionItems = new Set();
 
     async function getJson(path) {
       const res = await fetch(path);
@@ -191,15 +216,121 @@
         const paywalled = isPaywalled(item);
         const div = document.createElement('article');
         div.className = 'card';
+        const itemId = Number(item.id || 0);
         div.innerHTML = `
           <h3>${item.title}${paywalled ? '<span class="badge-paywall">Paywall</span>' : ''}</h3>
           <p class="muted">${item.summary || 'No summary'}</p>
           <div class="meta">Score: ${item.signal_score} | Source: ${item.source_name || 'Unknown'}</div>
           <div class="meta">Published: ${item.published_at || 'Unknown'}</div>
           <div class="meta"><a href="${item.article_url}" target="_blank" rel="noopener noreferrer">Open source</a></div>
+          <div class="selection-row"><label><input type="checkbox" data-collection-item="${itemId}" ${selectedCollectionItems.has(itemId) ? 'checked' : ''} /> Select for merge</label></div>
+        `;
+        div.style.cursor = 'pointer';
+        div.title = 'Click card to open source';
+        div.addEventListener('click', (evt) => {
+          if (evt.target.closest('a') || evt.target.closest('input')) return;
+          const url = item.article_url || '';
+          if (url) window.open(url, '_blank', 'noopener,noreferrer');
+        });
+        root.appendChild(div);
+      }
+
+      bindCollectionCheckboxes(root);
+    }
+
+    function updateSelectedCount() {
+      document.getElementById('selectedCount').value = String(selectedCollectionItems.size);
+    }
+
+    function bindCollectionCheckboxes(scope) {
+      const root = scope || document;
+      root.querySelectorAll('[data-collection-item]').forEach(chk => {
+        chk.addEventListener('change', () => {
+          const id = Number(chk.getAttribute('data-collection-item'));
+          if (Number.isNaN(id) || id <= 0) return;
+          if (chk.checked) selectedCollectionItems.add(id);
+          else selectedCollectionItems.delete(id);
+          document.querySelectorAll(`[data-collection-item="${id}"]`).forEach(other => {
+            if (other !== chk) other.checked = chk.checked;
+          });
+          updateSelectedCount();
+        });
+      });
+      updateSelectedCount();
+    }
+
+    function renderCollections(items) {
+      const root = document.getElementById('collections');
+      root.innerHTML = '';
+
+      if (!items.length) {
+        root.innerHTML = '<p class="muted">No collections yet. Run fetch + processing first.</p>';
+        return;
+      }
+
+      for (const col of items) {
+        const div = document.createElement('article');
+        div.className = 'card';
+        const rows = (col.items || []).map(item => {
+          const id = Number(item.id || 0);
+          const checked = selectedCollectionItems.has(id) ? 'checked' : '';
+          return `<div class="collection-item"><label><input type="checkbox" data-collection-item="${id}" ${checked} /> <strong>${item.title}</strong> (${item.source_name || 'Unknown'})</label></div>`;
+        }).join('');
+
+        div.innerHTML = `
+          <div class="collection-head">
+            <div>
+              <strong>${col.primary_theme || 'general_news'} / ${col.primary_geography || 'Global'}</strong>
+              <div class="collection-key">${col.collection_key}</div>
+            </div>
+            <div class="meta">items=${col.article_count} | avg=${col.avg_signal_score} | top=${col.top_signal_score}</div>
+          </div>
+          ${rows}
         `;
         root.appendChild(div);
       }
+
+      bindCollectionCheckboxes(root);
+    }
+
+    async function refreshCollections() {
+      const result = await getJson('/api/news/collections?limit=12&items_per_collection=6');
+      const items = Array.isArray(result.items) ? result.items : [];
+      renderCollections(items);
+    }
+
+    async function mergeSelected() {
+      const ids = Array.from(selectedCollectionItems.values());
+      if (ids.length < 2) {
+        setStatus('Select at least 2 cards to merge.', true);
+        return;
+      }
+
+      const keyInput = document.getElementById('collectionKey').value.trim();
+      const payload = { item_ids: ids };
+      if (keyInput) payload.collection_key = keyInput;
+
+      const result = await postJson('/api/news/collections/merge', payload);
+      setStatus(`Merged ${result.updated_count} cards into ${result.collection_key}`);
+      selectedCollectionItems.clear();
+      updateSelectedCount();
+      await refreshCollections();
+      await refreshSignals();
+    }
+
+    async function unmergeSelected() {
+      const ids = Array.from(selectedCollectionItems.values());
+      if (!ids.length) {
+        setStatus('Select at least 1 card to unmerge.', true);
+        return;
+      }
+
+      const result = await postJson('/api/news/collections/unmerge', { item_ids: ids });
+      setStatus(`Unmerged ${result.updated_count} cards back to automatic grouping.`);
+      selectedCollectionItems.clear();
+      updateSelectedCount();
+      await refreshCollections();
+      await refreshSignals();
     }
 
     function fillEditForm(source) {
@@ -366,6 +497,7 @@
 
       setStatus(msg, (result.fetched_candidates || 0) === 0);
       await refreshSignals();
+      await refreshCollections();
       await refreshSources();
     }
 
@@ -376,10 +508,13 @@
       document.getElementById('rediscoverBtn').addEventListener('click', rediscoverRSS);
       document.getElementById('healthBtn').addEventListener('click', sourceHealth);
       document.getElementById('runPipelineBtn').addEventListener('click', runPipeline);
+      document.getElementById('mergeBtn').addEventListener('click', mergeSelected);
+      document.getElementById('unmergeBtn').addEventListener('click', unmergeSelected);
 
       try {
         await refreshSources();
         await refreshSignals();
+        await refreshCollections();
       } catch (err) {
         console.error(err);
         setStatus('Failed loading data. Check API logs.', true);

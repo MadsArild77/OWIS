@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Any
 
 from owis.core.storage.db import get_conn
@@ -138,6 +139,72 @@ class NewsRepository:
                 (processed_id,),
             ).fetchone()
             return dict(row) if row else None
+
+    def list_processed_by_ids(self, processed_ids: list[int]) -> list[dict[str, Any]]:
+        cleaned = [int(x) for x in processed_ids if int(x) > 0]
+        if not cleaned:
+            return []
+
+        placeholders = ",".join("?" for _ in cleaned)
+        with get_conn() as conn:
+            rows = conn.execute(
+                f"""
+                SELECT p.*, r.source_name, r.article_url, r.published_at
+                FROM news_processed_items p
+                JOIN news_raw_items r ON r.id = p.raw_item_id
+                WHERE p.id IN ({placeholders})
+                """,
+                tuple(cleaned),
+            ).fetchall()
+            return [dict(row) for row in rows]
+
+    def list_collection_overrides(self) -> dict[int, dict[str, Any]]:
+        with get_conn() as conn:
+            rows = conn.execute(
+                """
+                SELECT processed_id, collection_key, note, updated_at
+                FROM news_collection_overrides
+                """
+            ).fetchall()
+            return {int(row["processed_id"]): dict(row) for row in rows}
+
+    def set_collection_overrides(self, processed_ids: list[int], collection_key: str, note: str | None = None) -> int:
+        cleaned = [int(x) for x in processed_ids if int(x) > 0]
+        if not cleaned:
+            return 0
+
+        key = collection_key.strip()
+        if not key:
+            return 0
+
+        updated_at = datetime.now(timezone.utc).isoformat()
+        with get_conn() as conn:
+            for processed_id in cleaned:
+                conn.execute(
+                    """
+                    INSERT INTO news_collection_overrides (processed_id, collection_key, note, updated_at)
+                    VALUES (?, ?, ?, ?)
+                    ON CONFLICT(processed_id) DO UPDATE SET
+                        collection_key = excluded.collection_key,
+                        note = excluded.note,
+                        updated_at = excluded.updated_at
+                    """,
+                    (processed_id, key, note, updated_at),
+                )
+        return len(cleaned)
+
+    def clear_collection_overrides(self, processed_ids: list[int]) -> int:
+        cleaned = [int(x) for x in processed_ids if int(x) > 0]
+        if not cleaned:
+            return 0
+
+        placeholders = ",".join("?" for _ in cleaned)
+        with get_conn() as conn:
+            cur = conn.execute(
+                f"DELETE FROM news_collection_overrides WHERE processed_id IN ({placeholders})",
+                tuple(cleaned),
+            )
+            return int(cur.rowcount)
 
     def get_source_health_state(self, source_name: str) -> dict[str, Any] | None:
         with get_conn() as conn:
