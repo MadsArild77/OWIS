@@ -1,39 +1,27 @@
 from types import SimpleNamespace
 
-import yaml
-
 from platform.modules.news.collectors import rss_fetcher
 
 
-def test_fetch_rss_items_from_enabled_sources(tmp_path, monkeypatch):
-    sources_path = tmp_path / "sources.yaml"
-    sources_path.write_text(
-        yaml.safe_dump(
+def test_fetch_rss_items_from_enabled_sources(monkeypatch):
+    monkeypatch.setattr(
+        rss_fetcher,
+        "load_sources",
+        lambda: [
             {
-                "sources": [
-                    {
-                        "name": "TestFeed",
-                        "type": "rss",
-                        "url": "https://example.com/feed",
-                        "enabled": True,
-                        "priority": "high",
-                        "geography_tags": ["global"],
-                    },
-                    {
-                        "name": "DisabledFeed",
-                        "type": "rss",
-                        "url": "https://example.com/disabled",
-                        "enabled": False,
-                        "priority": "low",
-                        "geography_tags": ["global"],
-                    },
-                ]
-            }
-        ),
-        encoding="utf-8",
+                "name": "TestFeed",
+                "type": "rss",
+                "url": "https://example.com/feed",
+                "enabled": True,
+            },
+            {
+                "name": "ScrapeOnly",
+                "type": "scrape",
+                "url": "https://example.com",
+                "enabled": True,
+            },
+        ],
     )
-
-    monkeypatch.setattr(rss_fetcher, "NEWS_SOURCES_PATH", str(sources_path))
 
     def fake_parse(url: str):
         assert url == "https://example.com/feed"
@@ -57,4 +45,3 @@ def test_fetch_rss_items_from_enabled_sources(tmp_path, monkeypatch):
     assert items[0]["article_url"] == "https://example.com/a1"
     assert items[0]["title_raw"] == "Auction announced in Norway"
     assert items[0]["content_hash"]
-

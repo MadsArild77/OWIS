@@ -1,10 +1,15 @@
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
+from platform.modules.news.registry.source_discovery import import_sources_from_text, load_source_registry
 from platform.modules.news.storage.repository import NewsRepository
 
 router = APIRouter(prefix="/api/news", tags=["news"])
 repo = NewsRepository()
 
+
+class ImportSourcesRequest(BaseModel):
+    text: str
 
 @router.get("/latest")
 def latest(limit: int = 20):
@@ -27,3 +32,13 @@ def item(item_id: int):
     if not found:
         raise HTTPException(status_code=404, detail="News item not found")
     return found
+
+@router.get("/sources")
+def list_sources():
+    return load_source_registry()
+
+
+@router.post("/sources/import-text")
+def import_sources(payload: ImportSourcesRequest):
+    added = import_sources_from_text(payload.text)
+    return {"added_count": len(added), "added": added}

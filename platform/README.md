@@ -14,7 +14,7 @@ MVP implementing Foundation + News module v1 from your spec.
 
 ## Jobs
 
-- Fetch RSS items: `python -m platform.jobs.run_news_fetch`
+- Fetch RSS + scrape sources: `python -m platform.jobs.run_news_fetch`
 - Process raw items: `python -m platform.jobs.run_news_processing`
 
 ## API endpoints
@@ -23,18 +23,41 @@ MVP implementing Foundation + News module v1 from your spec.
 - `GET /api/news/top-signals`
 - `GET /api/news/item/{id}`
 - `GET /api/news/linkedin-candidates`
+- `GET /api/news/sources`
+- `POST /api/news/sources/import-text`
 
 ## Tests
 
 - Run all tests: `pytest platform/tests -q`
 
-## AI Layer (optional)
+## AI Layer (optional, provider-agnostic)
 
-Set environment variables before running processing job:
+This project uses an OpenAI-compatible API pattern, so you can switch providers by config.
+
+Set environment variables:
 
 - `OWI_AI_ENABLED=true`
+- `OWI_AI_PROVIDER=openai_compatible` (or `mistral`, `deepseek`)
+- `OWI_AI_MODEL=...`
+- `OWI_AI_BASE_URL=...`
+- `OWI_AI_ENDPOINT=/chat/completions`
+- `OWI_AI_INPUT_MAX_CHARS=3500`
+- `OWI_AI_MAX_TOKENS=220`
 - `OPENAI_API_KEY=...`
-- Optional: `OWI_AI_MODEL=gpt-4o-mini`
-- Optional: `OWI_AI_BASE_URL=https://api.openai.com/v1`
+
+Cost control defaults:
+- input truncation (`OWI_AI_INPUT_MAX_CHARS`)
+- low `temperature`
+- strict JSON output
+- low `max_tokens`
 
 If AI is disabled or unavailable, the pipeline automatically falls back to heuristic processing.
+
+## Source Input UX
+
+In `/news`, paste one source per line, for example:
+
+- `Recharge - https://www.rechargenews.com`
+- `https://windeurope.org`
+
+Importer tries RSS autodiscovery first; if no feed is found, source is added as `scrape`.

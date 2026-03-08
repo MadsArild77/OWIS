@@ -12,6 +12,7 @@
       --muted: #475569;
       --line: #e2e8f0;
       --brand: #0b5fff;
+      --ok: #0f766e;
     }
     body {
       margin: 0;
@@ -35,11 +36,29 @@
     section { margin: 20px 0 30px; }
     a { color: var(--brand); text-decoration: none; }
     a:hover { text-decoration: underline; }
+    textarea {
+      width: 100%; min-height: 110px; border: 1px solid var(--line);
+      border-radius: 8px; padding: 10px; font-family: ui-monospace, Consolas, monospace;
+    }
+    button {
+      margin-top: 8px; border: 0; border-radius: 8px; padding: 10px 14px;
+      background: var(--brand); color: #fff; cursor: pointer; font-weight: 600;
+    }
+    .status { margin-top: 8px; color: var(--ok); font-size: 0.9rem; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <h1>Offshore Wind Intelligence - News</h1>
+
+    <section class="card">
+      <h2>Add Sources (text input)</h2>
+      <p class="muted">One per line. Example: <code>Recharge - rechargenews.com</code> or just <code>https://windeurope.org</code>.</p>
+      <textarea id="sourceInput" placeholder="Recharge - https://www.rechargenews.com\nhttps://windeurope.org"></textarea>
+      <button id="importBtn">Import Sources</button>
+      <div id="importStatus" class="status"></div>
+      <div id="sourceList" class="meta"></div>
+    </section>
 
     <section>
       <h2>Latest</h2>
@@ -60,6 +79,16 @@
   <script>
     async function getJson(path) {
       const res = await fetch(path);
+      if (!res.ok) throw new Error(`Request failed: ${path}`);
+      return await res.json();
+    }
+
+    async function postJson(path, body) {
+      const res = await fetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
       if (!res.ok) throw new Error(`Request failed: ${path}`);
       return await res.json();
     }
@@ -85,8 +114,31 @@
       }
     }
 
+    async function refreshSources() {
+      const sources = await getJson('/api/news/sources');
+      const text = sources.map(s => `${s.name} (${s.type}) -> ${s.url}`).slice(0, 10).join(' | ');
+      document.getElementById('sourceList').textContent = sources.length ? `Sources: ${text}` : 'No sources yet';
+    }
+
+    async function importSourcesFromText() {
+      const text = document.getElementById('sourceInput').value.trim();
+      if (!text) return;
+      const result = await postJson('/api/news/sources/import-text', { text });
+      document.getElementById('importStatus').textContent = `Added ${result.added_count} sources`;
+      await refreshSources();
+    }
+
     async function boot() {
+      document.getElementById('importBtn').addEventListener('click', async () => {
+        try {
+          await importSourcesFromText();
+        } catch (err) {
+          console.error(err);
+        }
+      });
+
       try {
+        await refreshSources();
         const [latest, top, linkedin] = await Promise.all([
           getJson('/api/news/latest?limit=12'),
           getJson('/api/news/top-signals?limit=12'),

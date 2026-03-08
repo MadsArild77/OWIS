@@ -3,15 +3,12 @@ import hashlib
 from typing import Any
 
 import feedparser
-import yaml
 
-from platform.core.config.settings import NEWS_SOURCES_PATH
+from platform.modules.news.registry.source_discovery import load_source_registry
 
 
 def load_sources() -> list[dict[str, Any]]:
-    with open(NEWS_SOURCES_PATH, "r", encoding="utf-8") as f:
-        data = yaml.safe_load(f)
-    return [s for s in data.get("sources", []) if s.get("enabled")]
+    return [s for s in load_source_registry() if s.get("enabled")]
 
 
 def fetch_rss_items() -> list[dict[str, Any]]:
@@ -23,8 +20,10 @@ def fetch_rss_items() -> list[dict[str, Any]]:
             continue
 
         feed = feedparser.parse(source["url"])
-        for entry in feed.entries:
+        for entry in getattr(feed, "entries", []):
             url = entry.get("link") or ""
+            if not url:
+                continue
             title = (entry.get("title") or "").strip()
             summary = (entry.get("summary") or "").strip()
             content = summary
