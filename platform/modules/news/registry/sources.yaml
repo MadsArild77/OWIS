@@ -1,0 +1,16 @@
+sources:
+  - name: Recharge
+    homepage: https://www.rechargenews.com
+    type: rss
+    url: https://www.rechargenews.com/rss
+    enabled: true
+    geography_tags: [global, europe]
+    priority: high
+
+  - name: WindEurope
+    homepage: https://windeurope.org
+    type: rss
+    url: https://windeurope.org/newsroom/feed/
+    enabled: true
+    geography_tags: [europe]
+    priority: high
