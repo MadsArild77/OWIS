@@ -22,7 +22,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r platform/requirements.txt
+          pip install -r owis/requirements.txt
 
       - name: Run tests
-        run: pytest platform/tests -q
+        run: pytest owis/tests -q
+

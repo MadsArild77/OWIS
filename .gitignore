@@ -25,6 +25,7 @@ Thumbs.db
 .idea/
 
 # App data
-platform/data/*.db
-platform/data/*.sqlite
-platform/data/*.sqlite3
+owis/data/*.db
+owis/data/*.sqlite
+owis/data/*.sqlite3
+
