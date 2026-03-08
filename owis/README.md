@@ -90,3 +90,9 @@ Optional after deploy:
 - Set `OWI_AI_ENABLED=true` to turn on AI enrichment.
 
 Note: free-tier disk is ephemeral, so SQLite/source-file changes can reset on restart.
+
+
+## Railway note
+
+Railway deploy uses Dockerfile to ensure Python/pip are always available in build/runtime.
+
