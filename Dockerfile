@@ -14,4 +14,4 @@ COPY . /app
 ENV OWI_DB_PATH=/tmp/owi.db
 ENV OWI_NEWS_SOURCES=owis/modules/news/registry/sources.yaml
 
-CMD ["sh", "-c", "python -m uvicorn owis.apps.api.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
+CMD ["python", "-m", "owis.scripts.run_server"]
