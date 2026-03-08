@@ -13,6 +13,7 @@
       --line: #e2e8f0;
       --brand: #0b5fff;
       --ok: #0f766e;
+      --warn: #b45309;
     }
     body {
       margin: 0;
@@ -36,15 +37,23 @@
     section { margin: 20px 0 30px; }
     a { color: var(--brand); text-decoration: none; }
     a:hover { text-decoration: underline; }
-    textarea {
-      width: 100%; min-height: 110px; border: 1px solid var(--line);
-      border-radius: 8px; padding: 10px; font-family: ui-monospace, Consolas, monospace;
+    textarea, input, select {
+      width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 8px;
+      font-family: ui-monospace, Consolas, monospace;
     }
+    textarea { min-height: 110px; }
     button {
       margin-top: 8px; border: 0; border-radius: 8px; padding: 10px 14px;
       background: var(--brand); color: #fff; cursor: pointer; font-weight: 600;
     }
+    .btn-secondary { background: #334155; }
+    .btn-warning { background: #b45309; }
     .status { margin-top: 8px; color: var(--ok); font-size: 0.9rem; }
+    .status.warn { color: var(--warn); }
+    .sources-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    .sources-table th, .sources-table td { border-bottom: 1px solid var(--line); padding: 8px; text-align: left; }
+    .row-actions button { margin: 0 4px 0 0; padding: 6px 10px; font-size: 0.8rem; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   </style>
 </head>
 <body>
@@ -52,12 +61,59 @@
     <h1>Offshore Wind Intelligence - News</h1>
 
     <section class="card">
-      <h2>Add Sources (text input)</h2>
-      <p class="muted">One per line. Example: <code>Recharge - rechargenews.com</code> or just <code>https://windeurope.org</code>.</p>
+      <h2>Source Admin</h2>
+      <p class="muted">Import, edit, activate/deactivate, dedupe and trigger pipeline.</p>
+
+      <h3>Import sources</h3>
       <textarea id="sourceInput" placeholder="Recharge - https://www.rechargenews.com\nhttps://windeurope.org"></textarea>
       <button id="importBtn">Import Sources</button>
-      <div id="importStatus" class="status"></div>
-      <div id="sourceList" class="meta"></div>
+
+      <h3>Edit source</h3>
+      <div class="two-col">
+        <div>
+          <label class="muted">Index</label>
+          <input id="editIndex" type="number" readonly />
+        </div>
+        <div>
+          <label class="muted">Name</label>
+          <input id="editName" />
+        </div>
+        <div>
+          <label class="muted">Homepage</label>
+          <input id="editHomepage" />
+        </div>
+        <div>
+          <label class="muted">Type</label>
+          <select id="editType">
+            <option value="rss">rss</option>
+            <option value="scrape">scrape</option>
+          </select>
+        </div>
+        <div>
+          <label class="muted">URL</label>
+          <input id="editUrl" />
+        </div>
+        <div>
+          <label class="muted">Priority</label>
+          <input id="editPriority" />
+        </div>
+      </div>
+      <button id="saveEditBtn" class="btn-secondary">Save Edit</button>
+
+      <div style="margin-top:10px;">
+        <button id="dedupeBtn" class="btn-warning">Remove Duplicates</button>
+        <button id="runPipelineBtn">Run Fetch + Processing</button>
+      </div>
+
+      <div id="adminStatus" class="status"></div>
+      <table class="sources-table">
+        <thead>
+          <tr>
+            <th>#</th><th>Name</th><th>Type</th><th>URL</th><th>Enabled</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="sourcesBody"></tbody>
+      </table>
     </section>
 
     <section>
@@ -77,13 +133,15 @@
   </div>
 
   <script>
+    let currentSources = [];
+
     async function getJson(path) {
       const res = await fetch(path);
       if (!res.ok) throw new Error(`Request failed: ${path}`);
       return await res.json();
     }
 
-    async function postJson(path, body) {
+    async function postJson(path, body = {}) {
       const res = await fetch(path, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -93,11 +151,17 @@
       return await res.json();
     }
 
+    function setStatus(msg, warn = false) {
+      const el = document.getElementById('adminStatus');
+      el.textContent = msg;
+      el.className = warn ? 'status warn' : 'status';
+    }
+
     function renderCards(elId, items) {
       const root = document.getElementById(elId);
       root.innerHTML = "";
       if (!items.length) {
-        root.innerHTML = '<p class="muted">Ingen data ennå. Kjør fetch + processing-jobbene.</p>';
+        root.innerHTML = '<p class="muted">Ingen data ennå. Kjør fetch + processing.</p>';
         return;
       }
 
@@ -114,42 +178,121 @@
       }
     }
 
+    function fillEditForm(source) {
+      document.getElementById('editIndex').value = source.index;
+      document.getElementById('editName').value = source.name || '';
+      document.getElementById('editHomepage').value = source.homepage || '';
+      document.getElementById('editType').value = source.type || 'rss';
+      document.getElementById('editUrl').value = source.url || '';
+      document.getElementById('editPriority').value = source.priority || 'medium';
+    }
+
+    function renderSourcesTable() {
+      const body = document.getElementById('sourcesBody');
+      body.innerHTML = '';
+
+      for (const s of currentSources) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${s.index}</td>
+          <td>${s.name || ''}</td>
+          <td>${s.type || ''}</td>
+          <td>${s.url || ''}</td>
+          <td><input type="checkbox" ${s.enabled ? 'checked' : ''} data-toggle-index="${s.index}" /></td>
+          <td class="row-actions">
+            <button data-edit-index="${s.index}" class="btn-secondary">Edit</button>
+          </td>
+        `;
+        body.appendChild(tr);
+      }
+
+      body.querySelectorAll('[data-edit-index]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = Number(btn.getAttribute('data-edit-index'));
+          const source = currentSources.find(x => x.index === idx);
+          if (source) fillEditForm(source);
+        });
+      });
+
+      body.querySelectorAll('[data-toggle-index]').forEach(chk => {
+        chk.addEventListener('change', async () => {
+          const idx = Number(chk.getAttribute('data-toggle-index'));
+          await postJson('/api/news/sources/toggle', { index: idx, enabled: chk.checked });
+          setStatus(`Updated source #${idx} enabled=${chk.checked}`);
+          await refreshSources();
+        });
+      });
+    }
+
     async function refreshSources() {
-      const sources = await getJson('/api/news/sources');
-      const text = sources.map(s => `${s.name} (${s.type}) -> ${s.url}`).slice(0, 10).join(' | ');
-      document.getElementById('sourceList').textContent = sources.length ? `Sources: ${text}` : 'No sources yet';
+      currentSources = await getJson('/api/news/sources');
+      renderSourcesTable();
+    }
+
+    async function refreshSignals() {
+      const [latest, top, linkedin] = await Promise.all([
+        getJson('/api/news/latest?limit=12'),
+        getJson('/api/news/top-signals?limit=12'),
+        getJson('/api/news/linkedin-candidates?limit=12')
+      ]);
+      renderCards('latest', latest);
+      renderCards('top', top);
+      renderCards('linkedin', linkedin);
     }
 
     async function importSourcesFromText() {
       const text = document.getElementById('sourceInput').value.trim();
       if (!text) return;
       const result = await postJson('/api/news/sources/import-text', { text });
-      document.getElementById('importStatus').textContent = `Added ${result.added_count} sources`;
+      setStatus(`Added ${result.added_count} sources`);
       await refreshSources();
     }
 
-    async function boot() {
-      document.getElementById('importBtn').addEventListener('click', async () => {
-        try {
-          await importSourcesFromText();
-        } catch (err) {
-          console.error(err);
-        }
+    async function saveEdit() {
+      const index = Number(document.getElementById('editIndex').value);
+      if (Number.isNaN(index)) {
+        setStatus('Select a source via Edit button first.', true);
+        return;
+      }
+
+      await postJson('/api/news/sources/update', {
+        index,
+        name: document.getElementById('editName').value,
+        homepage: document.getElementById('editHomepage').value,
+        type: document.getElementById('editType').value,
+        url: document.getElementById('editUrl').value,
+        priority: document.getElementById('editPriority').value,
       });
+
+      setStatus(`Saved source #${index}`);
+      await refreshSources();
+    }
+
+    async function dedupeSources() {
+      const result = await postJson('/api/news/sources/dedupe');
+      setStatus(`Dedupe done: removed ${result.removed_count} (${result.before} -> ${result.after})`);
+      await refreshSources();
+    }
+
+    async function runPipeline() {
+      setStatus('Running fetch + processing ...');
+      const result = await postJson('/api/news/run/fetch-process');
+      setStatus(`Done. fetched=${result.fetched_candidates}, new=${result.new_raw_items}, processed=${result.processed_items}`);
+      await refreshSignals();
+    }
+
+    async function boot() {
+      document.getElementById('importBtn').addEventListener('click', importSourcesFromText);
+      document.getElementById('saveEditBtn').addEventListener('click', saveEdit);
+      document.getElementById('dedupeBtn').addEventListener('click', dedupeSources);
+      document.getElementById('runPipelineBtn').addEventListener('click', runPipeline);
 
       try {
         await refreshSources();
-        const [latest, top, linkedin] = await Promise.all([
-          getJson('/api/news/latest?limit=12'),
-          getJson('/api/news/top-signals?limit=12'),
-          getJson('/api/news/linkedin-candidates?limit=12')
-        ]);
-
-        renderCards('latest', latest);
-        renderCards('top', top);
-        renderCards('linkedin', linkedin);
+        await refreshSignals();
       } catch (err) {
         console.error(err);
+        setStatus('Failed loading data. Check API logs.', true);
       }
     }
 

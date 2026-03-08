@@ -32,7 +32,7 @@ This opens `http://127.0.0.1:8000/news` and starts the API with reload.
 - `GET /api/news/item/{id}`
 - `GET /api/news/linkedin-candidates`
 - `GET /api/news/sources`
-- `POST /api/news/sources/import-text`
+- `POST /api/news/sources/import-text`\n- `POST /api/news/sources/toggle`\n- `POST /api/news/sources/update`\n- `POST /api/news/sources/dedupe`\n- `POST /api/news/run/fetch-process`
 
 ## Tests
 
@@ -95,4 +95,5 @@ Note: free-tier disk is ephemeral, so SQLite/source-file changes can reset on re
 ## Railway note
 
 Railway deploy uses Dockerfile to ensure Python/pip are always available in build/runtime.
+
 
