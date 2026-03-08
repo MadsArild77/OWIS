@@ -162,7 +162,7 @@
       const root = document.getElementById(elId);
       root.innerHTML = "";
       if (!items.length) {
-        root.innerHTML = '<p class="muted">Ingen data ennå. Kjør fetch + processing.</p>';
+        root.innerHTML = '<p class="muted">No data yet. Run fetch + processing.</p>';
         return;
       }
 
@@ -276,11 +276,21 @@
     }
 
     async function rediscoverRSS() {
-      const result = await postJson('/api/news/sources/rediscover-rss', { only_scrape: true });
-      setStatus(`Rediscover done. updated=${result.updated_count}`);
+      const result = await postJson('/api/news/sources/rediscover-rss', { only_scrape: false, with_debug: true });
+      let msg = `Rediscover done. updated=${result.updated_count}, checked=${result.checked_count || 0}`;
+      if (Array.isArray(result.details)) {
+        const misses = result.details.filter(d => d.status === 'no_feed_found');
+        if (misses.length) {
+          const sample = misses.slice(0, 2).map(m => {
+            const base = `${m.source_name || m.homepage}: candidates=${m.candidate_count || 0}`;
+            return m.homepage_error ? `${base}, homeErr=${m.homepage_error}` : base;
+          }).join(' | ');
+          msg += ` | no-feed sample: ${sample}`;
+        }
+      }
+      setStatus(msg, (result.updated_count || 0) === 0);
       await refreshSources();
     }
-
     async function runPipeline() {
       setStatus('Running fetch + processing ...');
       const result = await postJson('/api/news/run/fetch-process');

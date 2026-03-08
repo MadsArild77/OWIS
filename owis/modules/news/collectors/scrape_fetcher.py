@@ -11,7 +11,7 @@ from owis.modules.news.collectors.filters import is_probable_news_item
 from owis.modules.news.registry.source_discovery import load_source_registry
 
 
-USER_AGENT = "OWISBot/1.0 (+https://github.com/MadsArild77/OWIS)"
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 
 
 def _resolve_auth_value(value: Any) -> str:
