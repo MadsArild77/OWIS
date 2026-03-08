@@ -30,6 +30,7 @@ class ToggleSourceRequest(BaseModel):
 
 class RediscoverRSSRequest(BaseModel):
     only_scrape: bool = True
+    with_debug: bool = False
 
 
 class UpdateSourceRequest(BaseModel):
@@ -41,6 +42,7 @@ class UpdateSourceRequest(BaseModel):
     enabled: bool | None = None
     priority: str | None = None
     geography_tags: list[str] | None = None
+    auth: dict[str, object] | None = None
 
 @router.get("/latest")
 def latest(limit: int = 20):
@@ -92,7 +94,7 @@ def run_dedupe():
 
 @router.post("/sources/rediscover-rss")
 def rediscover_rss(payload: RediscoverRSSRequest):
-    return rediscover_rss_for_sources(only_scrape=payload.only_scrape)
+    return rediscover_rss_for_sources(only_scrape=payload.only_scrape, with_debug=payload.with_debug)
 
 @router.post("/run/fetch-process")
 def run_fetch_process():
@@ -121,3 +123,4 @@ def run_fetch_process():
         "processed_items": processed,
         "source_report": [*rss_report, *scrape_report],
     }
+

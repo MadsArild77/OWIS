@@ -93,7 +93,7 @@ def parse_source_input(text: str) -> list[ParsedSourceLine]:
     return parsed
 
 
-def _is_valid_feed_url(url: str) -> bool:
+def _validate_feed_url(url: str) -> tuple[bool, str]:
     try:
         with httpx.Client(timeout=15, follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
             resp = client.get(url)
@@ -104,21 +104,26 @@ def _is_valid_feed_url(url: str) -> bool:
 
         if getattr(parsed, "entries", None):
             if len(parsed.entries) > 0:
-                return True
+                return True, "feed has entries"
 
         feed_meta = getattr(parsed, "feed", None) or {}
         if feed_meta.get("title") or feed_meta.get("link"):
-            return True
+            return True, "feed metadata present"
 
         if any(token in content_type for token in ["rss", "atom", "xml"]):
-            return True
+            return True, f"content-type={content_type}"
 
         if "<rss" in snippet or "<feed" in snippet:
-            return True
-    except Exception:
-        return False
+            return True, "rss/atom tags in content"
+    except Exception as exc:
+        return False, f"request/parse error: {exc.__class__.__name__}"
 
-    return False
+    return False, "not recognized as RSS/Atom feed"
+
+
+def _is_valid_feed_url(url: str) -> bool:
+    ok, _ = _validate_feed_url(url)
+    return ok
 
 
 def _candidate_feed_urls(homepage: str, soup: BeautifulSoup | None, html: str = "") -> list[str]:
@@ -187,6 +192,43 @@ def discover_feed_url(homepage: str) -> str | None:
     return None
 
 
+def discover_feed_url_with_debug(homepage: str) -> dict[str, Any]:
+    soup: BeautifulSoup | None = None
+    html = ""
+    homepage_ok = True
+    homepage_error = ""
+
+    try:
+        with httpx.Client(timeout=15, follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
+            resp = client.get(homepage)
+            resp.raise_for_status()
+            html = resp.text
+            soup = BeautifulSoup(resp.text, "html.parser")
+    except Exception as exc:
+        soup = None
+        homepage_ok = False
+        homepage_error = f"{exc.__class__.__name__}: {exc}"
+
+    candidates = _candidate_feed_urls(homepage, soup, html=html)
+    checked: list[dict[str, Any]] = []
+    found_url: str | None = None
+
+    for candidate in candidates:
+        valid, reason = _validate_feed_url(candidate)
+        checked.append({"candidate": candidate, "valid": valid, "reason": reason})
+        if valid and found_url is None:
+            found_url = candidate
+
+    return {
+        "homepage": homepage,
+        "homepage_ok": homepage_ok,
+        "homepage_error": homepage_error,
+        "candidate_count": len(candidates),
+        "candidates_checked": checked,
+        "discovered_feed_url": found_url,
+    }
+
+
 def _default_source(name: str, homepage: str, source_type: str, source_url: str) -> dict[str, Any]:
     return {
         "name": name,
@@ -253,7 +295,7 @@ def update_source(index: int, updates: dict[str, Any]) -> dict[str, Any] | None:
         return None
 
     target = sources[index]
-    allowed = {"name", "homepage", "type", "url", "enabled", "priority", "geography_tags"}
+    allowed = {"name", "homepage", "type", "url", "enabled", "priority", "geography_tags", "auth"}
     for k, v in updates.items():
         if k in allowed and v is not None:
             if k in {"homepage", "url"}:
@@ -305,9 +347,11 @@ def dedupe_sources() -> dict[str, Any]:
     }
 
 
-def rediscover_rss_for_sources(only_scrape: bool = True) -> dict[str, Any]:
+def rediscover_rss_for_sources(only_scrape: bool = True, with_debug: bool = False) -> dict[str, Any]:
     sources = load_source_registry()
     updated_count = 0
+    checked_count = 0
+    details: list[dict[str, Any]] = []
 
     for source in sources:
         if only_scrape and source.get("type") != "scrape":
@@ -317,21 +361,49 @@ def rediscover_rss_for_sources(only_scrape: bool = True) -> dict[str, Any]:
         if not homepage:
             continue
 
-        feed_url = discover_feed_url(homepage)
+        checked_count += 1
+        debug_payload = discover_feed_url_with_debug(homepage) if with_debug else None
+        feed_url = (debug_payload or {}).get("discovered_feed_url") if debug_payload else discover_feed_url(homepage)
+
         if not feed_url:
+            if debug_payload is not None:
+                details.append(
+                    {
+                        "source_name": source.get("name"),
+                        "source_type": source.get("type"),
+                        "status": "no_feed_found",
+                        **debug_payload,
+                    }
+                )
             continue
 
         changed = source.get("type") != "rss" or source.get("url") != feed_url
+        status = "updated" if changed else "unchanged"
         if changed:
             source["type"] = "rss"
             source["url"] = feed_url
             updated_count += 1
 
+        if debug_payload is not None:
+            details.append(
+                {
+                    "source_name": source.get("name"),
+                    "source_type": source.get("type"),
+                    "status": status,
+                    **debug_payload,
+                }
+            )
+
     if updated_count > 0:
         save_source_registry(sources)
 
-    return {
+    result: dict[str, Any] = {
         "updated_count": updated_count,
+        "checked_count": checked_count,
         "only_scrape": only_scrape,
         "total_sources": len(sources),
     }
+    if with_debug:
+        result["details"] = details
+
+    return result

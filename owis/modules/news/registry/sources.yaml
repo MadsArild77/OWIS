@@ -14,3 +14,17 @@ sources:
     enabled: true
     geography_tags: [europe]
     priority: high
+
+# Example authenticated scrape source (env-backed, no secrets in git):
+# - name: Energiwatch
+#   homepage: https://energiwatch.no
+#   type: scrape
+#   url: https://energiwatch.no
+#   enabled: true
+#   geography_tags: [europe]
+#   priority: high
+#   auth:
+#     cookies:
+#       session: { env: ENERGIWATCH_SESSION_COOKIE }
+#     headers:
+#       Authorization: { env: ENERGIWATCH_AUTH_HEADER }

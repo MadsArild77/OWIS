@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
 import hashlib
+import os
+from typing import Any
 from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
@@ -10,6 +12,61 @@ from owis.modules.news.registry.source_discovery import load_source_registry
 
 
 USER_AGENT = "OWISBot/1.0 (+https://github.com/MadsArild77/OWIS)"
+
+
+def _resolve_auth_value(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value.strip()
+    if isinstance(value, dict):
+        env_key = value.get("env")
+        if env_key:
+            return os.getenv(str(env_key), "").strip()
+        raw = value.get("value")
+        if raw is not None:
+            return str(raw).strip()
+    return ""
+
+
+def _build_request_auth(source: dict[str, Any]) -> tuple[dict[str, str], dict[str, str], bool]:
+    headers: dict[str, str] = {"User-Agent": USER_AGENT}
+    cookies: dict[str, str] = {}
+    auth_cfg = source.get("auth") or {}
+    configured = False
+
+    if not isinstance(auth_cfg, dict):
+        return headers, cookies, configured
+
+    for header_name, raw_value in (auth_cfg.get("headers") or {}).items():
+        resolved = _resolve_auth_value(raw_value)
+        if header_name and resolved:
+            headers[str(header_name)] = resolved
+            configured = True
+
+    for cookie_name, raw_value in (auth_cfg.get("cookies") or {}).items():
+        resolved = _resolve_auth_value(raw_value)
+        if cookie_name and resolved:
+            cookies[str(cookie_name)] = resolved
+            configured = True
+
+    legacy_header_name = auth_cfg.get("header_name")
+    legacy_header_env = auth_cfg.get("header_env")
+    if legacy_header_name and legacy_header_env:
+        resolved = os.getenv(str(legacy_header_env), "").strip()
+        if resolved:
+            headers[str(legacy_header_name)] = resolved
+            configured = True
+
+    legacy_cookie_name = auth_cfg.get("cookie_name")
+    legacy_cookie_env = auth_cfg.get("cookie_env")
+    if legacy_cookie_name and legacy_cookie_env:
+        resolved = os.getenv(str(legacy_cookie_env), "").strip()
+        if resolved:
+            cookies[str(legacy_cookie_name)] = resolved
+            configured = True
+
+    return headers, cookies, configured
 
 
 def _extract_article_text(html: str) -> str:
@@ -41,8 +98,14 @@ def fetch_scrape_items_with_report(limit_per_source: int = 20) -> tuple[list[dic
         source_count = 0
         filtered_count = 0
         error = None
+        source_headers, source_cookies, auth_configured = _build_request_auth(source)
         try:
-            with httpx.Client(timeout=20, follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
+            with httpx.Client(
+                timeout=20,
+                follow_redirects=True,
+                headers=source_headers,
+                cookies=source_cookies or None,
+            ) as client:
                 response = client.get(homepage)
                 response.raise_for_status()
                 soup = BeautifulSoup(response.text, "html.parser")
@@ -97,6 +160,7 @@ def fetch_scrape_items_with_report(limit_per_source: int = 20) -> tuple[list[dic
                 "url": homepage,
                 "items": source_count,
                 "filtered": filtered_count,
+                "auth_configured": auth_configured,
                 "status": "ok" if error is None else "error",
                 "error": error,
             }
