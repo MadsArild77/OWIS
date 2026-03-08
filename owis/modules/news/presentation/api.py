@@ -1,5 +1,7 @@
 from collections import defaultdict
 from datetime import datetime, timezone
+import re
+from typing import Any
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
@@ -10,6 +12,7 @@ from owis.modules.news.collectors.scrape_fetcher import fetch_scrape_items_with_
 from owis.modules.news.processing.pipeline import process_raw_item
 from owis.modules.news.registry.source_discovery import (
     dedupe_sources,
+    delete_source,
     import_sources_from_text,
     load_source_registry,
     rediscover_rss_for_sources,
@@ -22,6 +25,12 @@ from owis.modules.news.storage.repository import NewsRepository
 router = APIRouter(prefix="/api/news", tags=["news"])
 repo = NewsRepository()
 
+_CLUSTER_STOPWORDS = {
+    "a", "an", "and", "are", "as", "at", "be", "by", "for", "from",
+    "in", "into", "is", "it", "its", "new", "of", "on", "or", "the",
+    "to", "with", "offshore", "wind", "project", "projects"
+}
+
 
 class ImportSourcesRequest(BaseModel):
     text: str
@@ -30,6 +39,10 @@ class ImportSourcesRequest(BaseModel):
 class ToggleSourceRequest(BaseModel):
     index: int
     enabled: bool
+
+
+class DeleteSourceRequest(BaseModel):
+    index: int
 
 
 class RediscoverRSSRequest(BaseModel):
@@ -64,6 +77,11 @@ class UnmergeCollectionRequest(BaseModel):
     item_ids: list[int] = Field(default_factory=list)
 
 
+class UpdateQualificationRequest(BaseModel):
+    item_ids: list[int] = Field(default_factory=list)
+    qualified: bool
+
+
 def _base_health(items: int, error: str | None) -> tuple[int, str]:
     if error:
         return 0, "red"
@@ -94,12 +112,29 @@ def _split_csv(value: str | None) -> list[str]:
     return [x.strip() for x in str(value).split(",") if x.strip()]
 
 
-def _default_collection_key(item: dict) -> str:
+def _clean_source_filter(source_name: str | None) -> str | None:
+    if source_name is None:
+        return None
+    cleaned = str(source_name).strip()
+    return cleaned or None
+
+
+def _title_cluster_key(item: dict[str, Any]) -> str:
+    title = str(item.get("title") or "").lower()
+    tokens = re.findall(r"[a-z0-9]{3,}", title)
+    significant = [token for token in tokens if token not in _CLUSTER_STOPWORDS]
+    if not significant:
+        return f"item{int(item.get('id') or 0)}"
+    return "-".join(significant[:5])
+
+
+def _default_collection_key(item: dict[str, Any]) -> str:
     themes = _split_csv(item.get("theme_tags"))
     geos = _split_csv(item.get("geography_tags"))
     theme = themes[0] if themes else "general_news"
     geo = geos[0] if geos else "Global"
-    return f"auto:{theme}|{geo}"
+    title_key = _title_cluster_key(item)
+    return f"auto:{theme}|{geo}|{title_key}"
 
 
 def _build_collections(
@@ -155,6 +190,7 @@ def _build_collections(
                 "article_url": item.get("article_url") or "",
                 "signal_score": score,
                 "published_at": item.get("published_at"),
+                "linkedin_candidate": int(item.get("linkedin_candidate") or 0),
                 "is_manual_override": bool(override),
             }
         )
@@ -192,19 +228,32 @@ def _build_collections(
     return result[: max(limit, 1)]
 
 @router.get("/latest")
-def latest(limit: int = 20):
-    return repo.latest(limit)
+def latest(limit: int = 20, source_name: str | None = None):
+    return repo.latest(limit, source_name=_clean_source_filter(source_name))
 
 
 @router.get("/top-signals")
-def top_signals(limit: int = 20):
-    return repo.top_signals(limit)
+def top_signals(limit: int = 20, source_name: str | None = None):
+    return repo.top_signals(limit, source_name=_clean_source_filter(source_name))
 
 
 @router.get("/linkedin-candidates")
-def linkedin_candidates(limit: int = 20):
-    return repo.linkedin_candidates(limit)
+def linkedin_candidates(limit: int = 20, source_name: str | None = None):
+    return repo.linkedin_candidates(limit, source_name=_clean_source_filter(source_name))
 
+
+@router.post("/items/qualification")
+def update_item_qualification(payload: UpdateQualificationRequest):
+    item_ids = sorted({int(x) for x in payload.item_ids if int(x) > 0})
+    if not item_ids:
+        raise HTTPException(status_code=400, detail="Provide at least 1 item id.")
+
+    found_items = repo.list_processed_by_ids(item_ids)
+    if len(found_items) != len(item_ids):
+        raise HTTPException(status_code=404, detail="One or more selected items were not found.")
+
+    updated = repo.set_linkedin_candidate(item_ids, qualified=payload.qualified)
+    return {"updated_count": updated, "qualified": bool(payload.qualified)}
 
 @router.get("/item/{item_id}")
 def item(item_id: int):
@@ -214,9 +263,9 @@ def item(item_id: int):
     return found
 
 @router.get("/collections")
-def list_collections(limit: int = 20, items_per_collection: int = 5, lookback_items: int = 400):
+def list_collections(limit: int = 20, items_per_collection: int = 5, lookback_items: int = 400, source_name: str | None = None):
     init_db()
-    items = repo.latest(limit=max(lookback_items, 1))
+    items = repo.latest(limit=max(lookback_items, 1), source_name=_clean_source_filter(source_name))
     overrides = repo.list_collection_overrides()
     collections = _build_collections(items, overrides, limit=limit, items_per_collection=items_per_collection)
     return {"items": collections}
@@ -272,6 +321,14 @@ def toggle_source(payload: ToggleSourceRequest):
     if not updated:
         raise HTTPException(status_code=404, detail="Source not found")
     return updated
+
+
+@router.post("/sources/delete")
+def remove_source(payload: DeleteSourceRequest):
+    removed = delete_source(payload.index)
+    if not removed:
+        raise HTTPException(status_code=404, detail="Source not found")
+    return {"removed": removed}
 
 
 @router.post("/sources/update")
@@ -364,4 +421,3 @@ def run_fetch_process():
         "source_health": health_rows,
         "collection_preview": collections,
     }
-

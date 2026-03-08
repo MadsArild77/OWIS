@@ -5,6 +5,18 @@ from owis.core.storage.db import get_conn
 
 
 class NewsRepository:
+    @staticmethod
+    def _clean_ids(values: list[int]) -> list[int]:
+        cleaned = {int(x) for x in values if int(x) > 0}
+        return sorted(cleaned)
+
+    @staticmethod
+    def _clean_source_name(source_name: str | None) -> str | None:
+        if source_name is None:
+            return None
+        cleaned = str(source_name).strip()
+        return cleaned or None
+
     def upsert_raw_item(self, item: dict[str, Any]) -> bool:
         with get_conn() as conn:
             existing = conn.execute(
@@ -84,48 +96,82 @@ class NewsRepository:
             )
             return int(cur.lastrowid)
 
-    def latest(self, limit: int = 20) -> list[dict[str, Any]]:
+    def latest(self, limit: int = 20, source_name: str | None = None) -> list[dict[str, Any]]:
+        source = self._clean_source_name(source_name)
+        where = "WHERE LOWER(r.source_name) = LOWER(?)" if source else ""
+        params: list[Any] = [source] if source else []
+        params.append(limit)
+
         with get_conn() as conn:
             rows = conn.execute(
-                """
+                f"""
                 SELECT p.*, r.source_name, r.article_url, r.published_at
                 FROM news_processed_items p
                 JOIN news_raw_items r ON r.id = p.raw_item_id
+                {where}
                 ORDER BY COALESCE(r.published_at, p.processed_at) DESC, p.processed_at DESC
                 LIMIT ?
                 """,
-                (limit,),
+                tuple(params),
             ).fetchall()
             return [dict(row) for row in rows]
 
-    def top_signals(self, limit: int = 20) -> list[dict[str, Any]]:
+    def top_signals(self, limit: int = 20, source_name: str | None = None) -> list[dict[str, Any]]:
+        source = self._clean_source_name(source_name)
+        where = "WHERE LOWER(r.source_name) = LOWER(?)" if source else ""
+        params: list[Any] = [source] if source else []
+        params.append(limit)
+
         with get_conn() as conn:
             rows = conn.execute(
-                """
+                f"""
                 SELECT p.*, r.source_name, r.article_url, r.published_at
                 FROM news_processed_items p
                 JOIN news_raw_items r ON r.id = p.raw_item_id
+                {where}
                 ORDER BY p.signal_score DESC, p.processed_at DESC
                 LIMIT ?
                 """,
-                (limit,),
+                tuple(params),
             ).fetchall()
             return [dict(row) for row in rows]
 
-    def linkedin_candidates(self, limit: int = 20) -> list[dict[str, Any]]:
+    def linkedin_candidates(self, limit: int = 20, source_name: str | None = None) -> list[dict[str, Any]]:
+        source = self._clean_source_name(source_name)
+        where = "WHERE p.linkedin_candidate = 1"
+        params: list[Any] = []
+        if source:
+            where += " AND LOWER(r.source_name) = LOWER(?)"
+            params.append(source)
+        params.append(limit)
+
         with get_conn() as conn:
             rows = conn.execute(
-                """
+                f"""
                 SELECT p.*, r.source_name, r.article_url, r.published_at
                 FROM news_processed_items p
                 JOIN news_raw_items r ON r.id = p.raw_item_id
-                WHERE p.linkedin_candidate = 1
-                ORDER BY p.signal_score DESC
+                {where}
+                ORDER BY p.signal_score DESC, p.processed_at DESC
                 LIMIT ?
                 """,
-                (limit,),
+                tuple(params),
             ).fetchall()
             return [dict(row) for row in rows]
+
+    def set_linkedin_candidate(self, processed_ids: list[int], qualified: bool) -> int:
+        cleaned = self._clean_ids(processed_ids)
+        if not cleaned:
+            return 0
+
+        value = 1 if qualified else 0
+        placeholders = ",".join("?" for _ in cleaned)
+        with get_conn() as conn:
+            cur = conn.execute(
+                f"UPDATE news_processed_items SET linkedin_candidate = ? WHERE id IN ({placeholders})",
+                (value, *cleaned),
+            )
+            return int(cur.rowcount)
 
     def get_item(self, processed_id: int) -> dict[str, Any] | None:
         with get_conn() as conn:
@@ -141,7 +187,7 @@ class NewsRepository:
             return dict(row) if row else None
 
     def list_processed_by_ids(self, processed_ids: list[int]) -> list[dict[str, Any]]:
-        cleaned = [int(x) for x in processed_ids if int(x) > 0]
+        cleaned = self._clean_ids(processed_ids)
         if not cleaned:
             return []
 
@@ -169,7 +215,7 @@ class NewsRepository:
             return {int(row["processed_id"]): dict(row) for row in rows}
 
     def set_collection_overrides(self, processed_ids: list[int], collection_key: str, note: str | None = None) -> int:
-        cleaned = [int(x) for x in processed_ids if int(x) > 0]
+        cleaned = self._clean_ids(processed_ids)
         if not cleaned:
             return 0
 
@@ -194,7 +240,7 @@ class NewsRepository:
         return len(cleaned)
 
     def clear_collection_overrides(self, processed_ids: list[int]) -> int:
-        cleaned = [int(x) for x in processed_ids if int(x) > 0]
+        cleaned = self._clean_ids(processed_ids)
         if not cleaned:
             return 0
 

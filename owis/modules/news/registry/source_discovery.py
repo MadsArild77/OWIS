@@ -482,6 +482,16 @@ def set_source_enabled(index: int, enabled: bool) -> dict[str, Any] | None:
     return sources[index]
 
 
+def delete_source(index: int) -> dict[str, Any] | None:
+    sources = load_source_registry()
+    if index < 0 or index >= len(sources):
+        return None
+
+    removed = sources.pop(index)
+    save_source_registry(sources)
+    return removed
+
+
 def update_source(index: int, updates: dict[str, Any]) -> dict[str, Any] | None:
     sources = load_source_registry()
     if index < 0 or index >= len(sources):
@@ -624,5 +634,3 @@ def rediscover_rss_for_sources(only_scrape: bool = True, with_debug: bool = Fals
         result["details"] = details
 
     return result
-
-

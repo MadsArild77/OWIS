@@ -124,6 +124,16 @@
         <button id="runPipelineBtn">Run Fetch + Processing</button>
       </div>
 
+      <div class="two-col" style="margin-top:10px;">
+        <div>
+          <label class="muted">Filter cards by source</label>
+          <select id="sourceFilter">
+            <option value="">All sources</option>
+          </select>
+        </div>
+        <div class="muted" style="align-self:end;">Filter applies to Latest, Top, LinkedIn and Collections.</div>
+      </div>
+
       <div id="adminStatus" class="status"></div>
       <table class="sources-table">
         <thead>
@@ -166,6 +176,8 @@
       <div style="margin-top:10px;">
         <button id="mergeBtn" class="btn-secondary">Merge Selected</button>
         <button id="unmergeBtn" class="btn-warning">Unmerge Selected</button>
+        <button id="qualifyBtn" class="btn-secondary">Qualify Selected</button>
+        <button id="unqualifyBtn" class="btn-secondary">Unqualify Selected</button>
       </div>
       <div id="collections" class="grid" style="margin-top:12px;"></div>
     </section>
@@ -198,6 +210,32 @@
       el.className = warn ? 'status warn' : 'status';
     }
 
+    function currentSourceFilter() {
+      const el = document.getElementById('sourceFilter');
+      return (el?.value || '').trim();
+    }
+
+    function sourceFilterQuery() {
+      const source = currentSourceFilter();
+      return source ? `&source_name=${encodeURIComponent(source)}` : '';
+    }
+
+    function renderSourceFilterOptions() {
+      const select = document.getElementById('sourceFilter');
+      if (!select) return;
+
+      const selected = (select.value || '').trim();
+      const names = Array.from(new Set((currentSources || []).map(x => (x.name || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+
+      select.innerHTML = '<option value="">All sources</option>';
+      for (const name of names) {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        if (name === selected) opt.selected = true;
+        select.appendChild(opt);
+      }
+    }
     function isPaywalled(item) {
       const title = (item.title || '').toLowerCase();
       const summary = (item.summary || '').toLowerCase();
@@ -220,10 +258,10 @@
         div.innerHTML = `
           <h3>${item.title}${paywalled ? '<span class="badge-paywall">Paywall</span>' : ''}</h3>
           <p class="muted">${item.summary || 'No summary'}</p>
-          <div class="meta">Score: ${item.signal_score} | Source: ${item.source_name || 'Unknown'}</div>
+          <div class="meta">Score: ${item.signal_score} | Source: ${item.source_name || 'Unknown'} | Qualified: ${item.linkedin_candidate ? 'Yes' : 'No'}</div>
           <div class="meta">Published: ${item.published_at || 'Unknown'}</div>
           <div class="meta"><a href="${item.article_url}" target="_blank" rel="noopener noreferrer">Open source</a></div>
-          <div class="selection-row"><label><input type="checkbox" data-collection-item="${itemId}" ${selectedCollectionItems.has(itemId) ? 'checked' : ''} /> Select for merge</label></div>
+          <div class="selection-row"><label><input type="checkbox" data-collection-item="${itemId}" ${selectedCollectionItems.has(itemId) ? 'checked' : ''} /> Select</label></div>
         `;
         div.style.cursor = 'pointer';
         div.title = 'Click card to open source';
@@ -274,7 +312,7 @@
         const rows = (col.items || []).map(item => {
           const id = Number(item.id || 0);
           const checked = selectedCollectionItems.has(id) ? 'checked' : '';
-          return `<div class="collection-item"><label><input type="checkbox" data-collection-item="${id}" ${checked} /> <strong>${item.title}</strong> (${item.source_name || 'Unknown'})</label></div>`;
+          return `<div class="collection-item"><label><input type="checkbox" data-collection-item="${id}" ${checked} /> <strong>${item.title}</strong> (${item.source_name || 'Unknown'} | ${item.linkedin_candidate ? 'Qualified' : 'Unqualified'})</label></div>`;
         }).join('');
 
         div.innerHTML = `
@@ -294,7 +332,7 @@
     }
 
     async function refreshCollections() {
-      const result = await getJson('/api/news/collections?limit=12&items_per_collection=6');
+      const result = await getJson(`/api/news/collections?limit=12&items_per_collection=6${sourceFilterQuery()}`);
       const items = Array.isArray(result.items) ? result.items : [];
       renderCollections(items);
     }
@@ -333,6 +371,28 @@
       await refreshSignals();
     }
 
+    async function setQualificationForSelected(qualified) {
+      const ids = Array.from(selectedCollectionItems.values());
+      if (!ids.length) {
+        setStatus('Select at least 1 card to update qualification.', true);
+        return;
+      }
+
+      const result = await postJson('/api/news/items/qualification', { item_ids: ids, qualified });
+      setStatus(`${qualified ? 'Qualified' : 'Unqualified'} ${result.updated_count} cards.`);
+      selectedCollectionItems.clear();
+      updateSelectedCount();
+      await refreshSignals();
+      await refreshCollections();
+    }
+
+    async function qualifySelected() {
+      await setQualificationForSelected(true);
+    }
+
+    async function unqualifySelected() {
+      await setQualificationForSelected(false);
+    }
     function fillEditForm(source) {
       document.getElementById('editIndex').value = source.index;
       document.getElementById('editName').value = source.name || '';
@@ -368,6 +428,7 @@
           <td><input type="checkbox" ${s.enabled ? 'checked' : ''} data-toggle-index="${s.index}" /></td>
           <td class="row-actions">
             <button data-edit-index="${s.index}" class="btn-secondary">Edit</button>
+            <button data-delete-index="${s.index}" class="btn-warning">Delete</button>
           </td>
         `;
         body.appendChild(tr);
@@ -381,6 +442,20 @@
         });
       });
 
+      body.querySelectorAll('[data-delete-index]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const idx = Number(btn.getAttribute('data-delete-index'));
+          const source = currentSources.find(x => x.index === idx);
+          const label = source?.name || `#${idx}`;
+          if (!window.confirm(`Delete source ${label}?`)) return;
+
+          await postJson('/api/news/sources/delete', { index: idx });
+          setStatus(`Deleted source ${label}`);
+          await refreshSources();
+          await refreshSignals();
+          await refreshCollections();
+        });
+      });
       body.querySelectorAll('[data-toggle-index]').forEach(chk => {
         chk.addEventListener('change', async () => {
           const idx = Number(chk.getAttribute('data-toggle-index'));
@@ -406,14 +481,15 @@
         refreshHealthState(),
       ]);
       currentSources = Array.isArray(sources) ? sources : [];
+      renderSourceFilterOptions();
       renderSourcesTable();
     }
 
     async function refreshSignals() {
       const [latest, top, linkedin] = await Promise.all([
-        getJson('/api/news/latest?limit=12'),
-        getJson('/api/news/top-signals?limit=12'),
-        getJson('/api/news/linkedin-candidates?limit=12')
+        getJson(`/api/news/latest?limit=12${sourceFilterQuery()}`),
+        getJson(`/api/news/top-signals?limit=12${sourceFilterQuery()}`),
+        getJson(`/api/news/linkedin-candidates?limit=12${sourceFilterQuery()}`)
       ]);
       renderCards('latest', latest);
       renderCards('top', top);
@@ -510,6 +586,14 @@
       document.getElementById('runPipelineBtn').addEventListener('click', runPipeline);
       document.getElementById('mergeBtn').addEventListener('click', mergeSelected);
       document.getElementById('unmergeBtn').addEventListener('click', unmergeSelected);
+      document.getElementById('qualifyBtn').addEventListener('click', qualifySelected);
+      document.getElementById('unqualifyBtn').addEventListener('click', unqualifySelected);
+      document.getElementById('sourceFilter').addEventListener('change', async () => {
+        selectedCollectionItems.clear();
+        updateSelectedCount();
+        await refreshSignals();
+        await refreshCollections();
+      });
 
       try {
         await refreshSources();
