@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 from typing import Any
 
 from owis.core.storage.db import get_conn
@@ -140,3 +139,39 @@ class NewsRepository:
             ).fetchone()
             return dict(row) if row else None
 
+    def get_source_health_state(self, source_name: str) -> dict[str, Any] | None:
+        with get_conn() as conn:
+            row = conn.execute(
+                """
+                SELECT source_name, health_score, health_color, last_items, last_error, updated_at
+                FROM source_fetch_health
+                WHERE source_name = ?
+                """,
+                (source_name,),
+            ).fetchone()
+            return dict(row) if row else None
+
+    def upsert_source_health_state(
+        self,
+        source_name: str,
+        health_score: int,
+        health_color: str,
+        last_items: int,
+        last_error: str | None,
+        updated_at: str,
+    ) -> None:
+        with get_conn() as conn:
+            conn.execute(
+                """
+                INSERT INTO source_fetch_health (
+                    source_name, health_score, health_color, last_items, last_error, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(source_name) DO UPDATE SET
+                    health_score = excluded.health_score,
+                    health_color = excluded.health_color,
+                    last_items = excluded.last_items,
+                    last_error = excluded.last_error,
+                    updated_at = excluded.updated_at
+                """,
+                (source_name, health_score, health_color, last_items, last_error, updated_at),
+            )

@@ -46,6 +46,14 @@ def init_db() -> None:
                 processed_at TEXT NOT NULL,
                 FOREIGN KEY(raw_item_id) REFERENCES news_raw_items(id)
             );
+
+            CREATE TABLE IF NOT EXISTS source_fetch_health (
+                source_name TEXT PRIMARY KEY,
+                health_score INTEGER NOT NULL,
+                health_color TEXT NOT NULL,
+                last_items INTEGER NOT NULL DEFAULT 0,
+                last_error TEXT,
+                updated_at TEXT NOT NULL
+            );
             """
         )
-
