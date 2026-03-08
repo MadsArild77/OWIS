@@ -121,7 +121,7 @@ def _is_valid_feed_url(url: str) -> bool:
     return False
 
 
-def _candidate_feed_urls(homepage: str, soup: BeautifulSoup | None) -> list[str]:
+def _candidate_feed_urls(homepage: str, soup: BeautifulSoup | None, html: str = "") -> list[str]:
     candidates: list[str] = []
     seen: set[str] = set()
 
@@ -138,6 +138,12 @@ def _candidate_feed_urls(homepage: str, soup: BeautifulSoup | None) -> list[str]
     for known_url in KNOWN_FEED_OVERRIDES.get(host, []):
         add(known_url)
 
+    if html:
+        for match in re.findall(r"https?://[^\"'\s>]*(?:rss|feed|atom)[^\"'\s>]*", html, flags=re.IGNORECASE):
+            add(match)
+        for match in re.findall(r"(?:href|src)=['\"]([^'\"]*(?:rss|feed|atom)[^'\"]*)['\"]", html, flags=re.IGNORECASE):
+            add(urljoin(homepage, match))
+
     if soup is not None:
         for link in soup.select('link[rel="alternate"]'):
             href = (link.get("href") or "").strip()
@@ -149,9 +155,10 @@ def _candidate_feed_urls(homepage: str, soup: BeautifulSoup | None) -> list[str]
 
         for anchor in soup.select("a[href]"):
             href = (anchor.get("href") or "").strip()
+            label = anchor.get_text(" ", strip=True).lower()
             if not href:
                 continue
-            if _looks_like_feed_url(href):
+            if _looks_like_feed_url(href) or any(token in label for token in ["rss", "feed", "atom", "xml"]):
                 add(urljoin(homepage, href))
 
     for path in COMMON_FEED_PATHS:
@@ -162,16 +169,18 @@ def _candidate_feed_urls(homepage: str, soup: BeautifulSoup | None) -> list[str]
 
 def discover_feed_url(homepage: str) -> str | None:
     soup: BeautifulSoup | None = None
+    html = ""
 
     try:
         with httpx.Client(timeout=15, follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
             resp = client.get(homepage)
             resp.raise_for_status()
+            html = resp.text
             soup = BeautifulSoup(resp.text, "html.parser")
     except Exception:
         soup = None
 
-    for candidate in _candidate_feed_urls(homepage, soup):
+    for candidate in _candidate_feed_urls(homepage, soup, html=html):
         if _is_valid_feed_url(candidate):
             return candidate
 
