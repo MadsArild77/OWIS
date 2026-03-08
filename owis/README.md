@@ -72,3 +72,21 @@ Importer tries RSS autodiscovery first; if no feed is found, source is added as 
 
 
 
+
+## Deploy on the web (Render)
+
+1. Go to [Render Dashboard](https://dashboard.render.com) and click **New +** -> **Blueprint**.
+2. Connect your GitHub repo `MadsArild77/OWIS`.
+3. Render will detect `render.yaml` automatically.
+4. Click **Apply** to deploy.
+5. When deployment is done, open the public URL from the Render service.
+
+Default public routes:
+- `/news` (frontend)
+- `/health`
+
+Optional after deploy:
+- Add `OPENAI_API_KEY` in Render environment variables.
+- Set `OWI_AI_ENABLED=true` to turn on AI enrichment.
+
+Note: free-tier disk is ephemeral, so SQLite/source-file changes can reset on restart.
