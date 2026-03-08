@@ -6,9 +6,11 @@ from fastapi.staticfiles import StaticFiles
 
 from owis.core.storage.db import init_db
 from owis.modules.news.presentation.api import router as news_router
+from owis.modules.opportunities.presentation.api import router as opportunities_router
 
 app = FastAPI(title="Offshore Wind Intelligence API", version="0.1.0")
 app.include_router(news_router)
+app.include_router(opportunities_router)
 
 web_dir = Path("owis/apps/web")
 if web_dir.exists():
@@ -30,8 +32,11 @@ def news_page():
     return FileResponse(web_dir / "news.html")
 
 
+@app.get("/opportunities", include_in_schema=False)
+def opportunities_page():
+    return FileResponse(web_dir / "opportunities.html")
+
+
 @app.get("/health")
 def health():
     return {"ok": True}
-
-

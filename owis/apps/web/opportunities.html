@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OWIS Opportunities</title>
+  <style>
+    :root {
+      --bg: #f7fafc;
+      --panel: #ffffff;
+      --ink: #0f172a;
+      --muted: #475569;
+      --line: #dbe6f2;
+      --brand: #0a66c2;
+      --ok: #0f766e;
+      --warn: #b45309;
+      --subtle: #334155;
+    }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background: radial-gradient(circle at top right, #ddf4ff, var(--bg) 42%);
+      color: var(--ink);
+    }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 24px; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .nav a { margin-left: 10px; font-weight: 600; color: var(--brand); text-decoration: none; }
+    .nav a:hover { text-decoration: underline; }
+    h1 { margin: 0; font-size: 2rem; }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+    }
+    .controls { margin-top: 14px; display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 12px; }
+    label { display: block; color: var(--muted); font-size: 0.85rem; margin-bottom: 4px; }
+    input, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      font-family: ui-monospace, Consolas, monospace;
+      box-sizing: border-box;
+      background: #fff;
+    }
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      background: var(--brand);
+      color: #fff;
+      cursor: pointer;
+      font-weight: 600;
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+    .btn-secondary { background: var(--subtle); }
+    .status { margin-top: 10px; color: var(--ok); }
+    .status.warn { color: var(--warn); }
+    section { margin: 20px 0 30px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 14px; }
+    .item h3 { margin: 0 0 6px; font-size: 1rem; }
+    .muted { color: var(--muted); font-size: 0.9rem; }
+    .meta { margin-top: 8px; color: var(--muted); font-size: 0.84rem; }
+    a { color: var(--brand); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      background: #e0f2fe;
+      color: #075985;
+      margin-left: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <h1>Offshore Wind Intelligence - Opportunities</h1>
+      <div class="nav">
+        <a href="/news">News</a>
+        <a href="/opportunities">Opportunities</a>
+      </div>
+    </div>
+
+    <section class="card">
+      <h2>DealEngine Bridge</h2>
+      <p class="muted">Fetch notices from TED, Doffin and World Bank, classify against local profiles, and optionally export to Notion.</p>
+
+      <div class="controls">
+        <div>
+          <label>Days Back</label>
+          <input id="daysBack" type="number" min="1" value="30" />
+        </div>
+        <div>
+          <label>Sources (comma-separated)</label>
+          <input id="sources" value="TED,DOFFIN,WORLDBANK" />
+        </div>
+        <div>
+          <label>Profiles (comma-separated)</label>
+          <input id="profiles" value="AGR,MAV" />
+        </div>
+        <div>
+          <label>Notion Export Limit</label>
+          <input id="notionLimit" type="number" min="1" value="30" />
+        </div>
+        <div>
+          <label>Notion Export Mode</label>
+          <select id="notionMode">
+            <option value="high_relevance">high_relevance</option>
+            <option value="latest">latest</option>
+            <option value="upcoming_deadlines">upcoming_deadlines</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <button id="runBtn">Run Fetch + Processing</button>
+        <button id="exportBtn" class="btn-secondary">Export to Notion</button>
+        <button id="exportDryBtn" class="btn-secondary">Dry Run Export</button>
+      </div>
+      <div id="status" class="status"></div>
+    </section>
+
+    <section>
+      <h2>Upcoming Deadlines</h2>
+      <div id="deadlines" class="grid"></div>
+    </section>
+
+    <section>
+      <h2>High Relevance</h2>
+      <div id="high" class="grid"></div>
+    </section>
+
+    <section>
+      <h2>Latest Opportunities</h2>
+      <div id="latest" class="grid"></div>
+    </section>
+  </div>
+
+  <script>
+    async function getJson(path) {
+      const res = await fetch(path);
+      if (!res.ok) throw new Error(`Request failed: ${path}`);
+      return await res.json();
+    }
+
+    async function postJson(path, body = {}) {
+      const res = await fetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const maybe = await res.json().catch(() => ({}));
+        throw new Error(maybe.detail || `Request failed: ${path}`);
+      }
+      return await res.json();
+    }
+
+    function setStatus(msg, warn = false) {
+      const el = document.getElementById('status');
+      el.textContent = msg;
+      el.className = warn ? 'status warn' : 'status';
+    }
+
+    function renderCards(elId, items) {
+      const root = document.getElementById(elId);
+      root.innerHTML = '';
+
+      if (!items.length) {
+        root.innerHTML = '<p class="muted">No opportunities yet. Run fetch + processing.</p>';
+        return;
+      }
+
+      for (const item of items) {
+        const div = document.createElement('article');
+        div.className = 'card item';
+        div.innerHTML = `
+          <h3>${item.title}<span class="pill">${item.strategic_fit || 'n/a'}</span></h3>
+          <p class="muted">${item.summary || 'No summary'}</p>
+          <div class="meta">Score: ${item.signal_score} | Source: ${item.source_name || 'Unknown'} | Profile: ${item.profile_name || 'n/a'}</div>
+          <div class="meta">Country: ${item.country || 'Unknown'} | Deadline: ${item.deadline || 'n/a'} | Family: ${item.opportunity_family || 'n/a'}</div>
+          <div class="meta">Action: ${item.recommended_action || 'n/a'}</div>
+          <div class="meta"><a href="${item.source_url}" target="_blank" rel="noopener noreferrer">Open source</a></div>
+        `;
+        root.appendChild(div);
+      }
+    }
+
+    async function refresh() {
+      const [deadlines, high, latest] = await Promise.all([
+        getJson('/api/opportunities/upcoming-deadlines?limit=12'),
+        getJson('/api/opportunities/high-relevance?limit=12'),
+        getJson('/api/opportunities/latest?limit=12'),
+      ]);
+
+      renderCards('deadlines', deadlines);
+      renderCards('high', high);
+      renderCards('latest', latest);
+    }
+
+    function readPipelineInputs() {
+      const daysBack = Number(document.getElementById('daysBack').value || '30');
+      const sources = document.getElementById('sources').value
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+      const profiles = document.getElementById('profiles').value
+        .split(',')
+        .map(p => p.trim())
+        .filter(Boolean);
+      return { daysBack, sources, profiles };
+    }
+
+    function readNotionInputs() {
+      const limit = Number(document.getElementById('notionLimit').value || '30');
+      const mode = document.getElementById('notionMode').value;
+      return { limit, mode };
+    }
+
+    async function runPipeline() {
+      const { daysBack, sources, profiles } = readPipelineInputs();
+      setStatus('Running opportunities fetch + processing ...');
+
+      const result = await postJson('/api/opportunities/run/fetch-process', {
+        days_back: daysBack,
+        sources,
+        profiles,
+      });
+
+      const reportText = (result.source_report || [])
+        .map(x => `${x.source}:${x.items}${x.error ? ` (${x.error})` : ''}`)
+        .join(' | ');
+
+      const msg = `Done. fetched=${result.fetched_candidates}, new=${result.new_raw_items}, processed=${result.processed_items}, rejected=${result.rejected_items}${reportText ? ` | ${reportText}` : ''}`;
+      setStatus(msg, (result.fetched_candidates || 0) === 0);
+      await refresh();
+    }
+
+    async function exportToNotion(dryRun) {
+      const { limit, mode } = readNotionInputs();
+      setStatus(dryRun ? 'Running Notion export dry run ...' : 'Exporting opportunities to Notion ...');
+
+      const result = await postJson('/api/opportunities/export/notion', {
+        limit,
+        mode,
+        dry_run: dryRun,
+      });
+
+      const msg = `${dryRun ? 'Dry run' : 'Export'}: attempted=${result.attempted}, imported=${result.imported}, skipped=${result.skipped_duplicates}, failed=${result.failed}, dedup_field=${result.dedup_field || 'none'}`;
+      setStatus(msg, (result.failed || 0) > 0);
+    }
+
+    async function boot() {
+      document.getElementById('runBtn').addEventListener('click', async () => {
+        try {
+          await runPipeline();
+        } catch (err) {
+          console.error(err);
+          setStatus(`Failed: ${err.message || err}`, true);
+        }
+      });
+
+      document.getElementById('exportBtn').addEventListener('click', async () => {
+        try {
+          await exportToNotion(false);
+        } catch (err) {
+          console.error(err);
+          setStatus(`Failed: ${err.message || err}`, true);
+        }
+      });
+
+      document.getElementById('exportDryBtn').addEventListener('click', async () => {
+        try {
+          await exportToNotion(true);
+        } catch (err) {
+          console.error(err);
+          setStatus(`Failed: ${err.message || err}`, true);
+        }
+      });
+
+      try {
+        await refresh();
+      } catch (err) {
+        console.error(err);
+        setStatus('Failed loading opportunities. Check API logs.', true);
+      }
+    }
+
+    boot();
+  </script>
+</body>
+</html>

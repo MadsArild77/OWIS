@@ -1,0 +1,58 @@
+profiles:
+  - company: AGR
+    name: Marine Survey & Geoscience
+    category: Marine Services
+    keywords:
+      - marine survey
+      - geotechnical
+      - geophysical
+      - cable route
+      - seabed
+    aliases:
+      - hydrographic
+      - UXO survey
+      - site investigation
+    qualifier:
+      - offshore
+      - subsea
+      - marine
+      - wind
+      - cable
+    negative_keywords:
+      - building construction
+      - school
+      - hospital
+      - road maintenance
+      - catering
+    cpv_codes:
+      - '71354500'
+      - '71351914'
+      - '45111250'
+
+  - company: MAV
+    name: Strategy & Advisory
+    category: Advisory
+    keywords:
+      - advisory
+      - strategy
+      - due diligence
+      - market analysis
+      - project development
+    aliases:
+      - transaction support
+      - commercial advisory
+    qualifier:
+      - offshore
+      - wind
+      - renewable
+      - port
+      - maritime
+    negative_keywords:
+      - classroom
+      - farming
+      - medical equipment
+      - office cleaning
+    cpv_codes:
+      - '79411100'
+      - '79400000'
+      - '90713000'

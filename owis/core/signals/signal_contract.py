@@ -22,3 +22,28 @@ def map_news_to_signal(processed: dict[str, Any], raw: dict[str, Any]) -> dict[s
         "linkedin_candidate": bool(processed["linkedin_candidate"]),
         "raw_reference": f"raw_{raw['id']}",
     }
+
+
+def map_opportunity_to_signal(processed: dict[str, Any], raw: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "signal_id": f"opportunity_{processed['id']}",
+        "module_type": "opportunities",
+        "module_item_id": str(processed["id"]),
+        "title": processed["title"],
+        "source_name": processed["source_name"],
+        "source_url": processed["source_url"],
+        "published_at": raw.get("publication_date"),
+        "country": processed.get("country") or "",
+        "geography_tags": [processed.get("country") or ""],
+        "theme_tags": [processed.get("opportunity_family") or ""],
+        "actors": [processed.get("buyer") or ""],
+        "summary": processed["summary"],
+        "why_it_matters": processed["why_it_matters"],
+        "signal_score": processed["signal_score"],
+        "confidence": processed["confidence"],
+        "deadline": processed.get("deadline"),
+        "mechanism_type": processed.get("mechanism_type"),
+        "opportunity_family": processed.get("opportunity_family"),
+        "recommended_action": processed.get("recommended_action"),
+        "raw_reference": f"raw_{raw['id']}",
+    }
