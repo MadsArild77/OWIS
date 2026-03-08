@@ -12,6 +12,14 @@ MVP implementing Foundation + News module v1 from your spec.
 4. Open frontend:
    - `http://127.0.0.1:8000/news`
 
+
+## Preview mode (one command)
+
+Run from repo root:
+
+- `pwsh -File owis/scripts/preview.ps1`
+
+This opens `http://127.0.0.1:8000/news` and starts the API with reload.
 ## Jobs
 
 - Fetch RSS + scrape sources: `python -m owis.jobs.run_news_fetch`
@@ -61,4 +69,5 @@ In `/news`, paste one source per line, for example:
 - `https://windeurope.org`
 
 Importer tries RSS autodiscovery first; if no feed is found, source is added as `scrape`.
+
 
