@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 import re
 from typing import Any
 from urllib.parse import urljoin, urlparse
@@ -19,6 +20,7 @@ COMMON_FEED_PATHS = [
     "/rss.xml",
     "/feed.xml",
     "/atom.xml",
+    "/service/rss",
 ]
 
 KNOWN_FEED_OVERRIDES = {
@@ -26,12 +28,17 @@ KNOWN_FEED_OVERRIDES = {
         "https://www.rechargenews.com/rss",
     ],
     "energiwatch.no": [
-        "https://energiwatch.no/rss",
-        "https://www.energiwatch.no/rss",
+        "https://energiwatch.no/service/rss",
+        "https://rss-feed-api.aws.jyllands-posten.dk/energiwatch.no/latest",
+    ],
+    "energywatch.com": [
+        "https://energywatch.com/service/rss",
+        "https://rss-feed-api.aws.jyllands-posten.dk/energywatch.com/latest",
     ],
 }
 
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+PAYWALL_MARKERS = ["subscribe", "subscriber", "subscription", "sign in", "log in", "paywall", "abonner", "abonnement"]
 
 
 @dataclass
@@ -67,6 +74,61 @@ def _host(homepage: str) -> str:
 def _looks_like_feed_url(url: str) -> bool:
     u = url.lower()
     return any(token in u for token in ["rss", "feed", "atom", ".xml"])
+
+
+def _resolve_auth_value(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value.strip()
+    if isinstance(value, dict):
+        env_key = value.get("env")
+        if env_key:
+            return os.getenv(str(env_key), "").strip()
+        raw = value.get("value")
+        if raw is not None:
+            return str(raw).strip()
+    return ""
+
+
+def _build_source_auth(source: dict[str, Any]) -> tuple[dict[str, str], dict[str, str], bool]:
+    headers: dict[str, str] = {"User-Agent": USER_AGENT}
+    cookies: dict[str, str] = {}
+    auth_cfg = source.get("auth") or {}
+    configured = False
+
+    if not isinstance(auth_cfg, dict):
+        return headers, cookies, configured
+
+    for header_name, raw_value in (auth_cfg.get("headers") or {}).items():
+        resolved = _resolve_auth_value(raw_value)
+        if header_name and resolved:
+            headers[str(header_name)] = resolved
+            configured = True
+
+    for cookie_name, raw_value in (auth_cfg.get("cookies") or {}).items():
+        resolved = _resolve_auth_value(raw_value)
+        if cookie_name and resolved:
+            cookies[str(cookie_name)] = resolved
+            configured = True
+
+    legacy_header_name = auth_cfg.get("header_name")
+    legacy_header_env = auth_cfg.get("header_env")
+    if legacy_header_name and legacy_header_env:
+        resolved = os.getenv(str(legacy_header_env), "").strip()
+        if resolved:
+            headers[str(legacy_header_name)] = resolved
+            configured = True
+
+    legacy_cookie_name = auth_cfg.get("cookie_name")
+    legacy_cookie_env = auth_cfg.get("cookie_env")
+    if legacy_cookie_name and legacy_cookie_env:
+        resolved = os.getenv(str(legacy_cookie_env), "").strip()
+        if resolved:
+            cookies[str(legacy_cookie_name)] = resolved
+            configured = True
+
+    return headers, cookies, configured
 
 
 def parse_source_input(text: str) -> list[ParsedSourceLine]:
@@ -189,6 +251,19 @@ def discover_feed_url(homepage: str) -> str | None:
         if _is_valid_feed_url(candidate):
             return candidate
 
+        if "service/rss" in candidate or candidate.rstrip("/").endswith("/rss"):
+            try:
+                with httpx.Client(timeout=15, follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
+                    resp2 = client.get(candidate)
+                    resp2.raise_for_status()
+                    soup2 = BeautifulSoup(resp2.text, "html.parser")
+                    html2 = resp2.text
+                for nested in _candidate_feed_urls(candidate, soup2, html=html2):
+                    if _is_valid_feed_url(nested):
+                        return nested
+            except Exception:
+                pass
+
     return None
 
 
@@ -218,6 +293,22 @@ def discover_feed_url_with_debug(homepage: str) -> dict[str, Any]:
         checked.append({"candidate": candidate, "valid": valid, "reason": reason})
         if valid and found_url is None:
             found_url = candidate
+            continue
+
+        if "service/rss" in candidate or candidate.rstrip("/").endswith("/rss"):
+            try:
+                with httpx.Client(timeout=15, follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
+                    resp2 = client.get(candidate)
+                    resp2.raise_for_status()
+                    soup2 = BeautifulSoup(resp2.text, "html.parser")
+                    html2 = resp2.text
+                for nested in _candidate_feed_urls(candidate, soup2, html=html2):
+                    n_valid, n_reason = _validate_feed_url(nested)
+                    checked.append({"candidate": nested, "valid": n_valid, "reason": f"nested:{n_reason}"})
+                    if n_valid and found_url is None:
+                        found_url = nested
+            except Exception as exc:
+                checked.append({"candidate": candidate, "valid": False, "reason": f"nested_error:{exc.__class__.__name__}"})
 
     return {
         "homepage": homepage,
@@ -229,6 +320,74 @@ def discover_feed_url_with_debug(homepage: str) -> dict[str, Any]:
     }
 
 
+def source_health_report(only_enabled: bool = True) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    sources = load_source_registry()
+
+    for source in sources:
+        if only_enabled and not source.get("enabled"):
+            continue
+
+        src_name = source.get("name", "unknown")
+        src_type = source.get("type", "unknown")
+        homepage = source.get("homepage") or source.get("url") or ""
+        host = _host(homepage) if homepage else ""
+        auth_headers, auth_cookies, auth_configured = _build_source_auth(source)
+
+        row: dict[str, Any] = {
+            "source": src_name,
+            "type": src_type,
+            "homepage": homepage,
+            "host": host,
+            "enabled": bool(source.get("enabled")),
+            "manual_override": bool(source.get("manual_override")),
+            "auth_configured": auth_configured,
+            "status": "unknown",
+            "detail": "",
+            "suggested_open_search": [
+                f"offshore wind {src_name} project",
+                f"offshore wind {host} open source",
+            ],
+        }
+
+        if not homepage:
+            row["status"] = "error"
+            row["detail"] = "missing_homepage"
+            rows.append(row)
+            continue
+
+        if src_type == "rss":
+            feed_url = source.get("url") or homepage
+            ok, reason = _validate_feed_url(feed_url)
+            row["status"] = "healthy" if ok else "rss_invalid"
+            row["detail"] = reason
+            rows.append(row)
+            continue
+
+        try:
+            with httpx.Client(timeout=15, follow_redirects=True, headers=auth_headers, cookies=auth_cookies or None) as client:
+                resp = client.get(homepage)
+            body = (resp.text or "")[:8000].lower()
+            has_paywall_signals = any(m in body for m in PAYWALL_MARKERS)
+
+            if resp.status_code in {401, 403}:
+                row["status"] = "auth_forbidden" if auth_configured else "paywall_no_auth"
+                row["detail"] = f"http_{resp.status_code}"
+            elif has_paywall_signals:
+                row["status"] = "paywall_detected_with_auth" if auth_configured else "paywall_no_auth"
+                row["detail"] = "paywall_markers_detected"
+            else:
+                row["status"] = "healthy"
+                row["detail"] = f"http_{resp.status_code}"
+        except Exception as exc:
+            row["status"] = "error"
+            row["detail"] = f"{exc.__class__.__name__}: {exc}"
+
+        rows.append(row)
+
+    return rows
+
+
 def _default_source(name: str, homepage: str, source_type: str, source_url: str) -> dict[str, Any]:
     return {
         "name": name,
@@ -236,6 +395,7 @@ def _default_source(name: str, homepage: str, source_type: str, source_url: str)
         "type": source_type,
         "url": source_url,
         "enabled": True,
+        "manual_override": False,
         "geography_tags": ["global"],
         "priority": "medium",
     }
@@ -295,13 +455,26 @@ def update_source(index: int, updates: dict[str, Any]) -> dict[str, Any] | None:
         return None
 
     target = sources[index]
-    allowed = {"name", "homepage", "type", "url", "enabled", "priority", "geography_tags", "auth"}
+    allowed = {
+        "name",
+        "homepage",
+        "type",
+        "url",
+        "enabled",
+        "priority",
+        "geography_tags",
+        "auth",
+        "manual_override",
+    }
     for k, v in updates.items():
         if k in allowed and v is not None:
             if k in {"homepage", "url"}:
                 target[k] = _normalize_url(str(v))
             else:
                 target[k] = v
+
+    if any(key in updates for key in {"homepage", "type", "url"}) and "manual_override" not in updates:
+        target["manual_override"] = True
 
     save_source_registry(sources)
     return target
@@ -355,6 +528,17 @@ def rediscover_rss_for_sources(only_scrape: bool = True, with_debug: bool = Fals
 
     for source in sources:
         if only_scrape and source.get("type") != "scrape":
+            continue
+        if source.get("manual_override"):
+            if with_debug:
+                details.append(
+                    {
+                        "source_name": source.get("name"),
+                        "source_type": source.get("type"),
+                        "status": "skipped_manual_override",
+                        "homepage": source.get("homepage") or source.get("url"),
+                    }
+                )
             continue
 
         homepage = source.get("homepage") or source.get("url")

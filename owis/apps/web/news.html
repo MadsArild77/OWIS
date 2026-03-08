@@ -102,7 +102,8 @@
 
       <div style="margin-top:10px;">
         <button id="dedupeBtn" class="btn-warning">Remove Duplicates</button>
-        <button id="rediscoverBtn" class="btn-secondary">Rediscover RSS</button>
+        <button id='rediscoverBtn' class='btn-secondary'>Rediscover RSS</button>
+        <button id='healthBtn' class='btn-secondary'>Source Health</button>
         <button id="runPipelineBtn">Run Fetch + Processing</button>
       </div>
 
@@ -291,6 +292,19 @@
       setStatus(msg, (result.updated_count || 0) === 0);
       await refreshSources();
     }
+
+    async function sourceHealth() {
+      const result = await postJson('/api/news/sources/health', { only_enabled: true });
+      const items = Array.isArray(result.items) ? result.items : [];
+      if (!items.length) {
+        setStatus('Health: no enabled sources found.', true);
+        return;
+      }
+      const bad = items.filter(x => x.status !== 'healthy');
+      const sample = bad.slice(0, 2).map(x => `${x.source}:${x.status}${x.detail ? `(${x.detail})` : ''}`).join(' | ');
+      const msg = `Health done. total=${items.length}, issues=${bad.length}${sample ? ` | sample: ${sample}` : ''}`;
+      setStatus(msg, bad.length > 0);
+    }
     async function runPipeline() {
       setStatus('Running fetch + processing ...');
       const result = await postJson('/api/news/run/fetch-process');
@@ -310,6 +324,7 @@
       document.getElementById('saveEditBtn').addEventListener('click', saveEdit);
       document.getElementById('dedupeBtn').addEventListener('click', dedupeSources);
       document.getElementById('rediscoverBtn').addEventListener('click', rediscoverRSS);
+      document.getElementById('healthBtn').addEventListener('click', sourceHealth);
       document.getElementById('runPipelineBtn').addEventListener('click', runPipeline);
 
       try {

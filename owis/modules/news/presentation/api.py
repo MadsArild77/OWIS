@@ -10,6 +10,7 @@ from owis.modules.news.registry.source_discovery import (
     import_sources_from_text,
     load_source_registry,
     rediscover_rss_for_sources,
+    source_health_report,
     set_source_enabled,
     update_source,
 )
@@ -33,6 +34,10 @@ class RediscoverRSSRequest(BaseModel):
     with_debug: bool = False
 
 
+class SourceHealthRequest(BaseModel):
+    only_enabled: bool = True
+
+
 class UpdateSourceRequest(BaseModel):
     index: int
     name: str | None = None
@@ -43,6 +48,7 @@ class UpdateSourceRequest(BaseModel):
     priority: str | None = None
     geography_tags: list[str] | None = None
     auth: dict[str, object] | None = None
+    manual_override: bool | None = None
 
 @router.get("/latest")
 def latest(limit: int = 20):
@@ -95,6 +101,11 @@ def run_dedupe():
 @router.post("/sources/rediscover-rss")
 def rediscover_rss(payload: RediscoverRSSRequest):
     return rediscover_rss_for_sources(only_scrape=payload.only_scrape, with_debug=payload.with_debug)
+
+@router.post("/sources/health")
+def source_health(payload: SourceHealthRequest):
+    return {"items": source_health_report(only_enabled=payload.only_enabled)}
+
 
 @router.post("/run/fetch-process")
 def run_fetch_process():

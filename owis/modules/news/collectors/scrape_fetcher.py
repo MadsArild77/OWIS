@@ -12,6 +12,7 @@ from owis.modules.news.registry.source_discovery import load_source_registry
 
 
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+PAYWALL_MARKERS = ["subscribe", "subscriber", "subscription", "sign in", "log in", "paywall", "abonner", "abonnement"]
 
 
 def _resolve_auth_value(value: Any) -> str:
@@ -80,6 +81,25 @@ def _extract_article_text(html: str) -> str:
     return " ".join(text.split())[:5000]
 
 
+def _has_paywall_marker(text: str) -> bool:
+    low = (text or "").lower()
+    return any(marker in low for marker in PAYWALL_MARKERS)
+
+
+def _make_raw_item(source_name: str, url: str, title: str, summary: str, content: str, now: str) -> dict[str, Any]:
+    content_hash = hashlib.sha256(f"{url}|{title}".encode("utf-8")).hexdigest()
+    return {
+        "source_name": source_name,
+        "article_url": url,
+        "title_raw": title,
+        "summary_raw": summary[:500],
+        "content_raw": content,
+        "content_hash": content_hash,
+        "published_at": None,
+        "fetched_at": now,
+    }
+
+
 def fetch_scrape_items_with_report(limit_per_source: int = 20) -> tuple[list[dict], list[dict]]:
     items: list[dict] = []
     report: list[dict] = []
@@ -97,6 +117,7 @@ def fetch_scrape_items_with_report(limit_per_source: int = 20) -> tuple[list[dic
 
         source_count = 0
         filtered_count = 0
+        paywall_count = 0
         error = None
         source_headers, source_cookies, auth_configured = _build_request_auth(source)
         try:
@@ -124,8 +145,27 @@ def fetch_scrape_items_with_report(limit_per_source: int = 20) -> tuple[list[dic
                     article_text = ""
                     try:
                         page_resp = client.get(url)
+                        if page_resp.status_code in {401, 403}:
+                            paywall_count += 1
+                            note = "Paywalled content; no full access available."
+                            items.append(_make_raw_item(src_name, url, title, note, f"{title}. {note}", now))
+                            source_count += 1
+                            if source_count >= limit_per_source:
+                                break
+                            continue
+
                         page_resp.raise_for_status()
                         article_text = _extract_article_text(page_resp.text)
+                        if _has_paywall_marker(page_resp.text) and not auth_configured:
+                            paywall_count += 1
+                            note = "Likely paywalled; only partial/open text available."
+                            summary = article_text[:500] if article_text else note
+                            content = f"{title}. {summary}"
+                            items.append(_make_raw_item(src_name, url, title, summary, content, now))
+                            source_count += 1
+                            if source_count >= limit_per_source:
+                                break
+                            continue
                     except Exception:
                         filtered_count += 1
                         continue
@@ -134,19 +174,7 @@ def fetch_scrape_items_with_report(limit_per_source: int = 20) -> tuple[list[dic
                         filtered_count += 1
                         continue
 
-                    content_hash = hashlib.sha256(f"{url}|{title}".encode("utf-8")).hexdigest()
-                    items.append(
-                        {
-                            "source_name": src_name,
-                            "article_url": url,
-                            "title_raw": title,
-                            "summary_raw": article_text[:500],
-                            "content_raw": article_text,
-                            "content_hash": content_hash,
-                            "published_at": None,
-                            "fetched_at": now,
-                        }
-                    )
+                    items.append(_make_raw_item(src_name, url, title, article_text[:500], article_text, now))
                     source_count += 1
                     if source_count >= limit_per_source:
                         break
@@ -160,6 +188,7 @@ def fetch_scrape_items_with_report(limit_per_source: int = 20) -> tuple[list[dic
                 "url": homepage,
                 "items": source_count,
                 "filtered": filtered_count,
+                "paywalled": paywall_count,
                 "auth_configured": auth_configured,
                 "status": "ok" if error is None else "error",
                 "error": error,
