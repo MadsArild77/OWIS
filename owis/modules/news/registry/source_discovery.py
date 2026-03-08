@@ -21,6 +21,18 @@ COMMON_FEED_PATHS = [
     "/atom.xml",
 ]
 
+KNOWN_FEED_OVERRIDES = {
+    "rechargenews.com": [
+        "https://www.rechargenews.com/rss",
+    ],
+    "energiwatch.no": [
+        "https://energiwatch.no/rss",
+        "https://www.energiwatch.no/rss",
+    ],
+}
+
+USER_AGENT = "OWISBot/1.0 (+https://github.com/MadsArild77/OWIS)"
+
 
 @dataclass
 class ParsedSourceLine:
@@ -48,6 +60,15 @@ def _source_key(source: dict[str, Any]) -> str:
     return parsed.netloc.replace("www.", "").lower().strip()
 
 
+def _host(homepage: str) -> str:
+    return urlparse(_normalize_url(homepage)).netloc.replace("www.", "").lower().strip()
+
+
+def _looks_like_feed_url(url: str) -> bool:
+    u = url.lower()
+    return any(token in u for token in ["rss", "feed", "atom", ".xml"])
+
+
 def parse_source_input(text: str) -> list[ParsedSourceLine]:
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     parsed: list[ParsedSourceLine] = []
@@ -72,34 +93,86 @@ def parse_source_input(text: str) -> list[ParsedSourceLine]:
     return parsed
 
 
-def _is_valid_feed(url: str) -> bool:
-    parsed = feedparser.parse(url)
-    return bool(getattr(parsed, "entries", []))
+def _is_valid_feed_url(url: str) -> bool:
+    try:
+        with httpx.Client(timeout=15, follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
+            resp = client.get(url)
+            resp.raise_for_status()
+            content_type = (resp.headers.get("content-type") or "").lower()
+            snippet = resp.text[:6000].lower()
+            parsed = feedparser.parse(resp.content)
+
+        if getattr(parsed, "entries", None):
+            if len(parsed.entries) > 0:
+                return True
+
+        feed_meta = getattr(parsed, "feed", None) or {}
+        if feed_meta.get("title") or feed_meta.get("link"):
+            return True
+
+        if any(token in content_type for token in ["rss", "atom", "xml"]):
+            return True
+
+        if "<rss" in snippet or "<feed" in snippet:
+            return True
+    except Exception:
+        return False
+
+    return False
+
+
+def _candidate_feed_urls(homepage: str, soup: BeautifulSoup | None) -> list[str]:
+    candidates: list[str] = []
+    seen: set[str] = set()
+
+    def add(url: str) -> None:
+        normalized = _normalize_url(url)
+        if not normalized:
+            return
+        if normalized in seen:
+            return
+        seen.add(normalized)
+        candidates.append(normalized)
+
+    host = _host(homepage)
+    for known_url in KNOWN_FEED_OVERRIDES.get(host, []):
+        add(known_url)
+
+    if soup is not None:
+        for link in soup.select('link[rel="alternate"]'):
+            href = (link.get("href") or "").strip()
+            typ = (link.get("type") or "").lower()
+            if not href:
+                continue
+            if "rss" in typ or "atom" in typ or "xml" in typ or _looks_like_feed_url(href):
+                add(urljoin(homepage, href))
+
+        for anchor in soup.select("a[href]"):
+            href = (anchor.get("href") or "").strip()
+            if not href:
+                continue
+            if _looks_like_feed_url(href):
+                add(urljoin(homepage, href))
+
+    for path in COMMON_FEED_PATHS:
+        add(urljoin(homepage, path))
+
+    return candidates
 
 
 def discover_feed_url(homepage: str) -> str | None:
+    soup: BeautifulSoup | None = None
+
     try:
-        with httpx.Client(timeout=15, follow_redirects=True) as client:
+        with httpx.Client(timeout=15, follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
             resp = client.get(homepage)
             resp.raise_for_status()
-            html = resp.text
+            soup = BeautifulSoup(resp.text, "html.parser")
     except Exception:
-        return None
+        soup = None
 
-    soup = BeautifulSoup(html, "html.parser")
-    for link in soup.select('link[rel="alternate"]'):
-        href = (link.get("href") or "").strip()
-        typ = (link.get("type") or "").lower()
-        if not href:
-            continue
-        if "rss" in typ or "atom" in typ or "xml" in typ:
-            candidate = urljoin(homepage, href)
-            if _is_valid_feed(candidate):
-                return candidate
-
-    for path in COMMON_FEED_PATHS:
-        candidate = urljoin(homepage, path)
-        if _is_valid_feed(candidate):
+    for candidate in _candidate_feed_urls(homepage, soup):
+        if _is_valid_feed_url(candidate):
             return candidate
 
     return None
@@ -220,4 +293,36 @@ def dedupe_sources() -> dict[str, Any]:
         "before": len(sources),
         "after": len(deduped),
         "removed_count": removed_count,
+    }
+
+
+def rediscover_rss_for_sources(only_scrape: bool = True) -> dict[str, Any]:
+    sources = load_source_registry()
+    updated_count = 0
+
+    for source in sources:
+        if only_scrape and source.get("type") != "scrape":
+            continue
+
+        homepage = source.get("homepage") or source.get("url")
+        if not homepage:
+            continue
+
+        feed_url = discover_feed_url(homepage)
+        if not feed_url:
+            continue
+
+        changed = source.get("type") != "rss" or source.get("url") != feed_url
+        if changed:
+            source["type"] = "rss"
+            source["url"] = feed_url
+            updated_count += 1
+
+    if updated_count > 0:
+        save_source_registry(sources)
+
+    return {
+        "updated_count": updated_count,
+        "only_scrape": only_scrape,
+        "total_sources": len(sources),
     }

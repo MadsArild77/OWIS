@@ -9,6 +9,7 @@ from owis.modules.news.registry.source_discovery import (
     dedupe_sources,
     import_sources_from_text,
     load_source_registry,
+    rediscover_rss_for_sources,
     set_source_enabled,
     update_source,
 )
@@ -27,6 +28,10 @@ class ToggleSourceRequest(BaseModel):
     enabled: bool
 
 
+class RediscoverRSSRequest(BaseModel):
+    only_scrape: bool = True
+
+
 class UpdateSourceRequest(BaseModel):
     index: int
     name: str | None = None
@@ -41,16 +46,13 @@ class UpdateSourceRequest(BaseModel):
 def latest(limit: int = 20):
     return repo.latest(limit)
 
-
 @router.get("/top-signals")
 def top_signals(limit: int = 20):
     return repo.top_signals(limit)
 
-
 @router.get("/linkedin-candidates")
 def linkedin_candidates(limit: int = 20):
     return repo.linkedin_candidates(limit)
-
 
 @router.get("/item/{item_id}")
 def item(item_id: int):
@@ -63,12 +65,10 @@ def item(item_id: int):
 def list_sources():
     return [{"index": i, **s} for i, s in enumerate(load_source_registry())]
 
-
 @router.post("/sources/import-text")
 def import_sources(payload: ImportSourcesRequest):
     added = import_sources_from_text(payload.text)
     return {"added_count": len(added), "added": added}
-
 
 @router.post("/sources/toggle")
 def toggle_source(payload: ToggleSourceRequest):
@@ -76,7 +76,6 @@ def toggle_source(payload: ToggleSourceRequest):
     if not updated:
         raise HTTPException(status_code=404, detail="Source not found")
     return updated
-
 
 @router.post("/sources/update")
 def edit_source(payload: UpdateSourceRequest):
@@ -87,10 +86,13 @@ def edit_source(payload: UpdateSourceRequest):
         raise HTTPException(status_code=404, detail="Source not found")
     return updated
 
-
 @router.post("/sources/dedupe")
 def run_dedupe():
     return dedupe_sources()
+
+@router.post("/sources/rediscover-rss")
+def rediscover_rss(payload: RediscoverRSSRequest):
+    return rediscover_rss_for_sources(only_scrape=payload.only_scrape)
 
 @router.post("/run/fetch-process")
 def run_fetch_process():

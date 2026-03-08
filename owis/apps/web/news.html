@@ -102,6 +102,7 @@
 
       <div style="margin-top:10px;">
         <button id="dedupeBtn" class="btn-warning">Remove Duplicates</button>
+        <button id="rediscoverBtn" class="btn-secondary">Rediscover RSS</button>
         <button id="runPipelineBtn">Run Fetch + Processing</button>
       </div>
 
@@ -274,13 +275,19 @@
       await refreshSources();
     }
 
+    async function rediscoverRSS() {
+      const result = await postJson('/api/news/sources/rediscover-rss', { only_scrape: true });
+      setStatus(`Rediscover done. updated=${result.updated_count}`);
+      await refreshSources();
+    }
+
     async function runPipeline() {
       setStatus('Running fetch + processing ...');
       const result = await postJson('/api/news/run/fetch-process');
 
       let msg = `Done. fetched=${result.fetched_candidates}, new=${result.new_raw_items}, processed=${result.processed_items}`;
       if ((result.fetched_candidates || 0) === 0 && Array.isArray(result.source_report)) {
-        const summary = result.source_report.map(r => `${r.source}:${r.items}${r.error ? ` (${r.error})` : ''}`).join(' | ');
+        const summary = result.source_report.map(r => `${r.source}:items=${r.items},filtered=${r.filtered || 0}${r.error ? ` (${r.error})` : ''}`).join(' | ');
         msg += ` | sources => ${summary}`;
       }
 
@@ -292,6 +299,7 @@
       document.getElementById('importBtn').addEventListener('click', importSourcesFromText);
       document.getElementById('saveEditBtn').addEventListener('click', saveEdit);
       document.getElementById('dedupeBtn').addEventListener('click', dedupeSources);
+      document.getElementById('rediscoverBtn').addEventListener('click', rediscoverRSS);
       document.getElementById('runPipelineBtn').addEventListener('click', runPipeline);
 
       try {
@@ -307,5 +315,3 @@
   </script>
 </body>
 </html>
-
-
