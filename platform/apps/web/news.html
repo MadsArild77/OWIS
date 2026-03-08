@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OWIS News</title>
+  <style>
+    :root {
+      --bg: #f6f8fa;
+      --panel: #ffffff;
+      --ink: #0f172a;
+      --muted: #475569;
+      --line: #e2e8f0;
+      --brand: #0b5fff;
+    }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background: radial-gradient(circle at top left, #e2ecff, var(--bg) 40%);
+      color: var(--ink);
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    h1 { margin: 0 0 16px; font-size: 2rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 16px; }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 8px 18px rgba(15,23,42,0.05);
+    }
+    .card h3 { margin: 0 0 6px; font-size: 1rem; }
+    .muted { color: var(--muted); font-size: 0.9rem; }
+    .meta { margin-top: 8px; font-size: 0.85rem; color: var(--muted); }
+    section { margin: 20px 0 30px; }
+    a { color: var(--brand); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Offshore Wind Intelligence - News</h1>
+
+    <section>
+      <h2>Latest</h2>
+      <div id="latest" class="grid"></div>
+    </section>
+
+    <section>
+      <h2>Top Signals</h2>
+      <div id="top" class="grid"></div>
+    </section>
+
+    <section>
+      <h2>LinkedIn Candidates</h2>
+      <div id="linkedin" class="grid"></div>
+    </section>
+  </div>
+
+  <script>
+    async function getJson(path) {
+      const res = await fetch(path);
+      if (!res.ok) throw new Error(`Request failed: ${path}`);
+      return await res.json();
+    }
+
+    function renderCards(elId, items) {
+      const root = document.getElementById(elId);
+      root.innerHTML = "";
+      if (!items.length) {
+        root.innerHTML = '<p class="muted">Ingen data ennå. Kjør fetch + processing-jobbene.</p>';
+        return;
+      }
+
+      for (const item of items) {
+        const div = document.createElement("article");
+        div.className = "card";
+        div.innerHTML = `
+          <h3>${item.title}</h3>
+          <p class="muted">${item.summary || "No summary"}</p>
+          <div class="meta">Score: ${item.signal_score} | Source: ${item.source_name || "Unknown"}</div>
+          <div class="meta"><a href="${item.article_url}" target="_blank" rel="noopener noreferrer">Open source</a></div>
+        `;
+        root.appendChild(div);
+      }
+    }
+
+    async function boot() {
+      try {
+        const [latest, top, linkedin] = await Promise.all([
+          getJson('/api/news/latest?limit=12'),
+          getJson('/api/news/top-signals?limit=12'),
+          getJson('/api/news/linkedin-candidates?limit=12')
+        ]);
+
+        renderCards('latest', latest);
+        renderCards('top', top);
+        renderCards('linkedin', linkedin);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    boot();
+  </script>
+</body>
+</html>

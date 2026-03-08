@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
 import re
 
+from platform.core.llm.client import AIClient
+
 
 def _clean_text(raw_text: str) -> str:
     text = re.sub(r"\s+", " ", raw_text or "").strip()
@@ -67,27 +69,50 @@ def _score(theme_tags: list[str], geo_tags: list[str], actors: list[str], text: 
     return min(score, 100)
 
 
+def _safe_list(value: object, fallback: list[str]) -> list[str]:
+    if isinstance(value, list):
+        cleaned = [str(x).strip() for x in value if str(x).strip()]
+        return cleaned or fallback
+    return fallback
+
+
 def process_raw_item(raw: dict) -> dict:
     text = _clean_text(raw.get("content_raw") or raw.get("summary_raw") or raw.get("title_raw") or "")
-    theme_tags = _classify_theme(text)
-    geo_tags = _classify_geo(text)
-    actors = _extract_actors(text)
-    score = _score(theme_tags, geo_tags, actors, text)
 
+    ai = AIClient()
+    ai_data = ai.enrich_news(text)
+
+    theme_tags = _safe_list(ai_data.get("theme_tags") if ai_data else None, _classify_theme(text))
+    geo_tags = _safe_list(ai_data.get("geography_tags") if ai_data else None, _classify_geo(text))
+    actors = _safe_list(ai_data.get("actors") if ai_data else None, _extract_actors(text))
+    summary = ai_data.get("summary") if ai_data and ai_data.get("summary") else _summary(text)
+    why_it_matters = (
+        ai_data.get("why_it_matters")
+        if ai_data and ai_data.get("why_it_matters")
+        else _why_it_matters(theme_tags, geo_tags)
+    )
+    linkedin_angle = (
+        ai_data.get("linkedin_angle")
+        if ai_data and ai_data.get("linkedin_angle")
+        else "Explain why this signal matters for offshore wind investors and supply chain players."
+    )
+    confidence = float(ai_data.get("confidence", 0.65)) if ai_data else 0.65
+
+    score = _score(theme_tags, geo_tags, actors, text)
     linkedin_candidate = 1 if score >= 65 else 0
 
     return {
         "raw_item_id": raw["id"],
         "title": raw.get("title_raw") or "Untitled",
         "cleaned_text": text,
-        "summary": _summary(text),
+        "summary": summary,
         "theme_tags": ",".join(theme_tags),
         "geography_tags": ",".join(geo_tags),
         "actors": ",".join(actors),
-        "why_it_matters": _why_it_matters(theme_tags, geo_tags),
+        "why_it_matters": why_it_matters,
         "signal_score": score,
-        "confidence": 0.65,
-        "linkedin_angle": "Explain why this signal matters for offshore wind investors and supply chain players.",
+        "confidence": max(0.0, min(confidence, 1.0)),
+        "linkedin_angle": linkedin_angle,
         "linkedin_candidate": linkedin_candidate,
         "processed_at": datetime.now(timezone.utc).isoformat(),
     }
