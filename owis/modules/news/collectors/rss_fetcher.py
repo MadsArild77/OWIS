@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 import hashlib
 from typing import Any
 
@@ -10,6 +11,28 @@ from owis.modules.news.registry.source_discovery import load_source_registry
 
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 
+
+
+def _normalized_published_at(entry: dict[str, Any]) -> str | None:
+    parsed = entry.get("published_parsed")
+    if parsed:
+        try:
+            dt = datetime(*parsed[:6], tzinfo=timezone.utc)
+            return dt.isoformat()
+        except Exception:
+            pass
+
+    raw = (entry.get("published") or entry.get("updated") or "").strip()
+    if not raw:
+        return None
+
+    try:
+        dt = parsedate_to_datetime(raw)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc).isoformat()
+    except Exception:
+        return raw
 
 def load_sources() -> list[dict[str, Any]]:
     return [s for s in load_source_registry() if s.get("enabled")]
@@ -56,7 +79,7 @@ def fetch_rss_items_with_report() -> tuple[list[dict[str, Any]], list[dict[str, 
                         "summary_raw": summary,
                         "content_raw": summary,
                         "content_hash": content_hash,
-                        "published_at": entry.get("published"),
+                        "published_at": _normalized_published_at(entry),
                         "fetched_at": now,
                     }
                 )

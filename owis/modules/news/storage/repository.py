@@ -91,7 +91,7 @@ class NewsRepository:
                 SELECT p.*, r.source_name, r.article_url, r.published_at
                 FROM news_processed_items p
                 JOIN news_raw_items r ON r.id = p.raw_item_id
-                ORDER BY p.processed_at DESC
+                ORDER BY COALESCE(r.published_at, p.processed_at) DESC, p.processed_at DESC
                 LIMIT ?
                 """,
                 (limit,),

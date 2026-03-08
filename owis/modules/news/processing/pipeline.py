@@ -3,6 +3,8 @@ import re
 
 from owis.core.llm.client import AIClient
 
+PAYWALL_MARKERS = ["paywalled", "paywall", "no full access", "partial/open text", "subscriber", "subscription"]
+
 
 def _clean_text(raw_text: str) -> str:
     text = re.sub(r"\s+", " ", raw_text or "").strip()
@@ -76,6 +78,12 @@ def _safe_list(value: object, fallback: list[str]) -> list[str]:
     return fallback
 
 
+
+def _is_paywalled(raw: dict, text: str) -> bool:
+    title = (raw.get("title_raw") or "").lower()
+    blob = f"{raw.get('summary_raw','')} {raw.get('content_raw','')} {text}".lower()
+    return "[paywalled]" in title or any(m in blob for m in PAYWALL_MARKERS)
+
 def process_raw_item(raw: dict) -> dict:
     text = _clean_text(raw.get("content_raw") or raw.get("summary_raw") or raw.get("title_raw") or "")
 
@@ -99,11 +107,19 @@ def process_raw_item(raw: dict) -> dict:
     confidence = float(ai_data.get("confidence", 0.65)) if ai_data else 0.65
 
     score = _score(theme_tags, geo_tags, actors, text)
+    paywalled = _is_paywalled(raw, text)
+    title = raw.get("title_raw") or "Untitled"
+    if paywalled and "[Paywalled]" not in title:
+        title = f"[Paywalled] {title}"
+    if paywalled and not summary.lower().startswith("paywalled"):
+        summary = f"Paywalled: full article unavailable. {summary}"
+    if paywalled:
+        confidence = min(confidence, 0.45)
     linkedin_candidate = 1 if score >= 65 else 0
 
     return {
         "raw_item_id": raw["id"],
-        "title": raw.get("title_raw") or "Untitled",
+        "title": title,
         "cleaned_text": text,
         "summary": summary,
         "theme_tags": ",".join(theme_tags),
