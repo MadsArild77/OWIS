@@ -61,6 +61,19 @@ class NewsRepository:
             ).fetchall()
             return [dict(row) for row in rows]
 
+    def latest_raw_checkpoint(self) -> str | None:
+        with get_conn() as conn:
+            row = conn.execute(
+                """
+                SELECT COALESCE(MAX(published_at), MAX(fetched_at)) AS checkpoint
+                FROM news_raw_items
+                """
+            ).fetchone()
+            if not row:
+                return None
+            value = row["checkpoint"]
+            return str(value) if value else None
+
     def mark_raw_processed(self, raw_id: int) -> None:
         with get_conn() as conn:
             conn.execute(

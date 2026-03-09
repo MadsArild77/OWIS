@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import re
 from typing import Any
 
@@ -62,6 +62,11 @@ class RediscoverRSSRequest(BaseModel):
 
 class SourceHealthRequest(BaseModel):
     only_enabled: bool = True
+
+
+class RunFetchProcessRequest(BaseModel):
+    days_back: int = 7
+    since_last: bool = False
 
 
 class UpdateSourceRequest(BaseModel):
@@ -128,6 +133,19 @@ def _with_degradation_color(base_score: int, base_color: str, prev: dict | None,
     if base_score < prev_score:
         return min(base_score, 1), "yellow", "health_score_regressed"
     return base_score, base_color, reason
+
+
+def _parse_iso_datetime(value: Any) -> datetime | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+    except Exception:
+        return None
 
 
 def _split_csv(value: str | None) -> list[str]:
@@ -596,13 +614,34 @@ def source_health_state():
     return {"items": repo.list_source_health_states()}
 
 @router.post("/run/fetch-process")
-def run_fetch_process():
+def run_fetch_process(payload: RunFetchProcessRequest):
     init_db()
+
+    days_back = max(1, int(payload.days_back or 7))
+    threshold = datetime.now(timezone.utc) - timedelta(days=days_back)
+
+    since_last = bool(payload.since_last)
+    checkpoint_dt: datetime | None = None
+    if since_last:
+        checkpoint = repo.latest_raw_checkpoint()
+        checkpoint_dt = _parse_iso_datetime(checkpoint) if checkpoint else None
 
     rss_items, rss_report = fetch_rss_items_with_report()
     scrape_items, scrape_report = fetch_scrape_items_with_report()
     source_report = [*rss_report, *scrape_report]
-    fetched_items = [*rss_items, *scrape_items]
+    fetched_items_all = [*rss_items, *scrape_items]
+
+    fetched_items: list[dict[str, Any]] = []
+    dropped_old = 0
+    for item in fetched_items_all:
+        published = _parse_iso_datetime(item.get("published_at"))
+        if published and published < threshold:
+            dropped_old += 1
+            continue
+        if since_last and checkpoint_dt and published and published <= checkpoint_dt:
+            dropped_old += 1
+            continue
+        fetched_items.append(item)
 
     inserted = 0
     for item in fetched_items:
@@ -651,6 +690,9 @@ def run_fetch_process():
 
     return {
         "fetched_candidates": len(fetched_items),
+        "dropped_old_items": dropped_old,
+        "days_back": days_back,
+        "since_last": since_last,
         "new_raw_items": inserted,
         "processed_items": processed,
         "source_report": source_report,
