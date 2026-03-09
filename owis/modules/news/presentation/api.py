@@ -656,11 +656,20 @@ def run_fetch_process(payload: RunFetchProcessRequest):
 
     raws = repo.list_unprocessed_raw(limit=200)
     processed = 0
+    processing_errors = 0
+    processing_error_samples: list[str] = []
     for raw in raws:
-        result = process_raw_item(raw)
-        repo.save_processed_item(result)
-        repo.mark_raw_processed(raw["id"])
-        processed += 1
+        try:
+            result = process_raw_item(raw)
+            repo.save_processed_item(result)
+            repo.mark_raw_processed(raw["id"])
+            processed += 1
+        except Exception as ex:
+            processing_errors += 1
+            if len(processing_error_samples) < 5:
+                rid = int(raw.get("id") or 0)
+                processing_error_samples.append(f"raw_id={rid}: {ex.__class__.__name__}: {ex}")
+            continue
 
     health_rows: list[dict] = []
     now_iso = datetime.now(timezone.utc).isoformat()
@@ -701,6 +710,8 @@ def run_fetch_process(payload: RunFetchProcessRequest):
         "since_last": since_last,
         "new_raw_items": inserted,
         "processed_items": processed,
+        "processing_errors": processing_errors,
+        "processing_error_samples": processing_error_samples,
         "source_report": source_report,
         "source_health": health_rows,
         "collection_preview": collections,
