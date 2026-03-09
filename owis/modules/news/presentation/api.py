@@ -6,9 +6,18 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from owis.core.llm.client import AIClient
 from owis.core.storage.db import init_db
 from owis.modules.news.collectors.rss_fetcher import fetch_rss_items_with_report
 from owis.modules.news.collectors.scrape_fetcher import fetch_scrape_items_with_report
+from owis.modules.news.matching.service import (
+    build_candidate_pairs,
+    judge_pair,
+    make_manual_collection_key,
+    should_enqueue_review,
+    window_start_iso,
+)
+from owis.modules.news.processing.domain_classifier import classify_domain_with_ai_fallback
 from owis.modules.news.processing.pipeline import process_raw_item
 from owis.modules.news.registry.source_discovery import (
     dedupe_sources,
@@ -28,8 +37,9 @@ repo = NewsRepository()
 _CLUSTER_STOPWORDS = {
     "a", "an", "and", "are", "as", "at", "be", "by", "for", "from",
     "in", "into", "is", "it", "its", "new", "of", "on", "or", "the",
-    "to", "with", "offshore", "wind", "project", "projects"
+    "to", "with", "offshore", "wind", "project", "projects",
 }
+VALID_DOMAIN_BUCKETS = {"offshore_wind", "adjacent_energy", "other_energy", "all"}
 
 
 class ImportSourcesRequest(BaseModel):
@@ -83,6 +93,19 @@ class UpdateRelevanceRequest(BaseModel):
     qualified: bool | None = None
 
 
+class MatchRunRequest(BaseModel):
+    lookback_items: int = 350
+    days_window: int = 7
+    top_k: int = 8
+    domain_bucket: str = "offshore_wind"
+
+
+class MatchReviewDecisionRequest(BaseModel):
+    pair_id: int
+    decision: str
+    actor: str | None = None
+
+
 def _base_health(items: int, error: str | None) -> tuple[int, str]:
     if error:
         return 0, "red"
@@ -120,6 +143,13 @@ def _clean_source_filter(source_name: str | None) -> str | None:
     return cleaned or None
 
 
+def _normalize_domain_bucket(domain_bucket: str | None, default: str = "offshore_wind") -> str:
+    raw = str(domain_bucket or default).strip().lower().replace("-", "_")
+    if raw not in VALID_DOMAIN_BUCKETS:
+        raise HTTPException(status_code=400, detail="Invalid domain_bucket")
+    return raw
+
+
 def _relevance_status(value: int | None) -> str:
     if value is None:
         return "unrated"
@@ -138,6 +168,43 @@ def _attach_relevance(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
         out.append(item_copy)
     return out
 
+def _attach_domain_data(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    ids = [int(item.get("id") or 0) for item in items if int(item.get("id") or 0) > 0]
+    domain_map = repo.list_domain_map(ids)
+
+    out: list[dict[str, Any]] = []
+    for item in items:
+        row = dict(item)
+        item_id = int(row.get("id") or 0)
+        existing = domain_map.get(item_id)
+        if existing:
+            row["domain_bucket"] = existing.get("domain_bucket")
+            row["domain_confidence"] = float(existing.get("domain_confidence") or 0.0)
+            out.append(row)
+            continue
+
+        bucket, confidence = classify_domain_with_ai_fallback(
+            title=str(row.get("title") or ""),
+            summary=str(row.get("summary") or ""),
+            themes=str(row.get("theme_tags") or ""),
+        )
+        repo.upsert_domain_classification(item_id, bucket, confidence)
+        row["domain_bucket"] = bucket
+        row["domain_confidence"] = confidence
+        out.append(row)
+
+    return out
+
+
+def _attach_metadata(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return _attach_domain_data(_attach_relevance(items))
+
+
+def _filter_domain(items: list[dict[str, Any]], domain_bucket: str) -> list[dict[str, Any]]:
+    if domain_bucket == "all":
+        return items
+    return [x for x in items if str(x.get("domain_bucket") or "other_energy") == domain_bucket]
+
 
 def _parse_relevance_payload(payload: UpdateRelevanceRequest) -> int | None:
     if payload.relevance is None:
@@ -155,6 +222,7 @@ def _parse_relevance_payload(payload: UpdateRelevanceRequest) -> int | None:
 
     raise HTTPException(status_code=400, detail="Invalid relevance. Use relevant, non_relevant, or unrated.")
 
+
 def _title_cluster_key(item: dict[str, Any]) -> str:
     title = str(item.get("title") or "").lower()
     tokens = re.findall(r"[a-z0-9]{3,}", title)
@@ -171,7 +239,6 @@ def _default_collection_key(item: dict[str, Any]) -> str:
     geo = geos[0] if geos else "Global"
     title_key = _title_cluster_key(item)
     return f"auto:{theme}|{geo}|{title_key}"
-
 
 def _build_collections(
     items: list[dict],
@@ -227,6 +294,7 @@ def _build_collections(
                 "signal_score": score,
                 "published_at": item.get("published_at"),
                 "relevance_status": str(item.get("relevance_status") or "unrated"),
+                "domain_bucket": str(item.get("domain_bucket") or "other_energy"),
                 "is_manual_override": bool(override),
             }
         )
@@ -263,23 +331,29 @@ def _build_collections(
     )
     return result[: max(limit, 1)]
 
+
 @router.get("/latest")
-def latest(limit: int = 20, source_name: str | None = None):
-    rows = repo.latest(limit, source_name=_clean_source_filter(source_name))
-    return _attach_relevance(rows)
+def latest(limit: int = 20, source_name: str | None = None, domain_bucket: str = "offshore_wind"):
+    bucket = _normalize_domain_bucket(domain_bucket)
+    rows = repo.latest(limit=max(limit * 5, limit), source_name=_clean_source_filter(source_name))
+    rows = _filter_domain(_attach_metadata(rows), bucket)
+    return rows[: max(limit, 1)]
 
 
 @router.get("/top-signals")
-def top_signals(limit: int = 20, source_name: str | None = None):
-    rows = repo.top_signals(limit, source_name=_clean_source_filter(source_name))
-    return _attach_relevance(rows)
+def top_signals(limit: int = 20, source_name: str | None = None, domain_bucket: str = "offshore_wind"):
+    bucket = _normalize_domain_bucket(domain_bucket)
+    rows = repo.top_signals(limit=max(limit * 5, limit), source_name=_clean_source_filter(source_name))
+    rows = _filter_domain(_attach_metadata(rows), bucket)
+    return rows[: max(limit, 1)]
 
 
 @router.get("/linkedin-candidates")
-def linkedin_candidates(limit: int = 20, source_name: str | None = None):
-    rows = repo.linkedin_candidates(limit, source_name=_clean_source_filter(source_name))
-    return _attach_relevance(rows)
-
+def linkedin_candidates(limit: int = 20, source_name: str | None = None, domain_bucket: str = "offshore_wind"):
+    bucket = _normalize_domain_bucket(domain_bucket)
+    rows = repo.linkedin_candidates(limit=max(limit * 5, limit), source_name=_clean_source_filter(source_name))
+    rows = _filter_domain(_attach_metadata(rows), bucket)
+    return rows[: max(limit, 1)]
 
 @router.post("/items/relevance")
 def update_item_relevance(payload: UpdateRelevanceRequest):
@@ -293,29 +367,45 @@ def update_item_relevance(payload: UpdateRelevanceRequest):
 
     relevance = _parse_relevance_payload(payload)
     updated = repo.set_relevance(item_ids, relevance=relevance)
-    return {"updated_count": updated, "relevance_status": _relevance_status(relevance)}
+    status_value = _relevance_status(relevance)
+    for item_id in item_ids:
+        repo.log_learning_feedback(
+            feedback_type="relevance",
+            feedback_value=status_value,
+            processed_id=item_id,
+        )
+    return {"updated_count": updated, "relevance_status": status_value}
 
 
 @router.post("/items/qualification")
 def update_item_qualification(payload: UpdateRelevanceRequest):
-    # Backward-compatible endpoint alias.
     return update_item_relevance(payload)
+
 
 @router.get("/item/{item_id}")
 def item(item_id: int):
     found = repo.get_item(item_id)
     if not found:
         raise HTTPException(status_code=404, detail="News item not found")
-    return _attach_relevance([found])[0]
+    return _attach_metadata([found])[0]
+
 
 @router.get("/collections")
-def list_collections(limit: int = 20, items_per_collection: int = 5, lookback_items: int = 400, source_name: str | None = None):
+def list_collections(
+    limit: int = 20,
+    items_per_collection: int = 5,
+    lookback_items: int = 400,
+    source_name: str | None = None,
+    domain_bucket: str = "offshore_wind",
+):
     init_db()
+    bucket = _normalize_domain_bucket(domain_bucket)
     items = repo.latest(limit=max(lookback_items, 1), source_name=_clean_source_filter(source_name))
-    items = _attach_relevance(items)
+    items = _filter_domain(_attach_metadata(items), bucket)
     overrides = repo.list_collection_overrides()
     collections = _build_collections(items, overrides, limit=limit, items_per_collection=items_per_collection)
     return {"items": collections}
+
 
 @router.post("/collections/merge")
 def merge_collections(payload: MergeCollectionRequest):
@@ -332,6 +422,12 @@ def merge_collections(payload: MergeCollectionRequest):
     collection_key = provided_key or f"manual:{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
 
     updated = repo.set_collection_overrides(item_ids, collection_key=collection_key, note=payload.note)
+    for item_id in item_ids:
+        repo.log_learning_feedback(
+            feedback_type="merge",
+            feedback_value=collection_key,
+            processed_id=item_id,
+        )
     return {
         "updated_count": updated,
         "collection_key": collection_key,
@@ -346,9 +442,101 @@ def unmerge_collections(payload: UnmergeCollectionRequest):
         raise HTTPException(status_code=400, detail="Provide at least 1 item to unmerge.")
 
     removed = repo.clear_collection_overrides(item_ids)
+    for item_id in item_ids:
+        repo.log_learning_feedback(
+            feedback_type="unmerge",
+            feedback_value="automatic_grouping",
+            processed_id=item_id,
+        )
     return {
         "updated_count": removed,
         "message": "Selected items reverted to automatic grouping.",
+    }
+
+@router.post("/match/run")
+def run_match_review(payload: MatchRunRequest):
+    init_db()
+    bucket = _normalize_domain_bucket(payload.domain_bucket)
+    since_iso = window_start_iso(payload.days_window)
+
+    items = repo.list_processed_since(since_iso=since_iso, limit=max(payload.lookback_items, 50))
+    items = _filter_domain(_attach_domain_data(items), bucket)
+
+    candidates = build_candidate_pairs(items, days_window=payload.days_window, top_k=payload.top_k)
+    ai = AIClient()
+
+    enqueued = 0
+    reviewed = 0
+    fallback_count = 0
+
+    for left, right, heuristic_score in candidates:
+        judgement = judge_pair(ai=ai, item_a=left, item_b=right, heuristic_score=heuristic_score)
+        reviewed += 1
+        if judgement.get("fallback"):
+            fallback_count += 1
+
+        if not should_enqueue_review(judgement):
+            continue
+
+        repo.upsert_match_review_pair(
+            item_a_id=int(left.get("id") or 0),
+            item_b_id=int(right.get("id") or 0),
+            ai_same_story=str(judgement.get("same_story") or "no"),
+            ai_confidence=float(judgement.get("confidence") or 0.0),
+            reason_short=str(judgement.get("reason_short") or ""),
+            overlap_entities=[str(x) for x in (judgement.get("overlap_entities") or [])],
+            overlap_timeframe=str(judgement.get("overlap_timeframe") or ""),
+        )
+        enqueued += 1
+
+    return {
+        "checked_pairs": reviewed,
+        "enqueued_pairs": enqueued,
+        "fallback_pairs": fallback_count,
+        "domain_bucket": bucket,
+        "lookback_items": len(items),
+    }
+
+
+@router.get("/match-review")
+def list_match_review(status: str = "pending", domain_bucket: str = "offshore_wind", limit: int = 30):
+    if status not in {"pending", "accepted", "rejected"}:
+        raise HTTPException(status_code=400, detail="Invalid status")
+    bucket = _normalize_domain_bucket(domain_bucket)
+    items = repo.list_match_review_pairs(status=status, domain_bucket=bucket, limit=limit)
+    return {"items": items}
+
+
+@router.post("/match-review/decide")
+def decide_match_review(payload: MatchReviewDecisionRequest):
+    decision = str(payload.decision or "").strip().lower()
+    if decision not in {"accept", "reject"}:
+        raise HTTPException(status_code=400, detail="decision must be accept or reject")
+
+    existing = repo.get_match_review_pair(payload.pair_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Pair not found")
+
+    updated = repo.decide_match_review_pair(pair_id=payload.pair_id, decision=decision, actor=payload.actor)
+    if updated <= 0:
+        raise HTTPException(status_code=404, detail="Pair not found")
+
+    item_ids = [int(existing.get("item_a_id") or 0), int(existing.get("item_b_id") or 0)]
+    if decision == "accept":
+        collection_key = make_manual_collection_key()
+        repo.set_collection_overrides(item_ids, collection_key=collection_key, note="accepted_from_match_review")
+
+    repo.log_learning_feedback(
+        feedback_type="match_review_decision",
+        feedback_value=decision,
+        pair_id=payload.pair_id,
+        actor=payload.actor,
+    )
+
+    return {
+        "updated_count": updated,
+        "pair_id": payload.pair_id,
+        "decision": decision,
     }
 
 @router.get("/sources")
@@ -453,7 +641,7 @@ def run_fetch_process():
         row["health_reason"] = reason
         health_rows.append({"source": source_name, "health": color, "reason": reason, "items": items})
 
-    collection_items = _attach_relevance(repo.latest(limit=300))
+    collection_items = _filter_domain(_attach_metadata(repo.latest(limit=300)), "offshore_wind")
     collections = _build_collections(
         items=collection_items,
         overrides=repo.list_collection_overrides(),

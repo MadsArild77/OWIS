@@ -138,7 +138,15 @@
             <option value="">All sources</option>
           </select>
         </div>
-        <div class="muted" style="align-self:end;">Filter applies to Latest, Top and Merged.</div>
+        <div>
+          <label class="muted">Domain filter</label>
+          <select id="domainFilter">
+            <option value="offshore_wind" selected>Offshore wind</option>
+            <option value="adjacent_energy">Adjacent energy</option>
+            <option value="other_energy">Other energy</option>
+            <option value="all">All domains</option>
+          </select>
+        </div>
       </div>
 
       <div id="adminStatus" class="status"></div>
@@ -203,8 +211,12 @@
           <button id="clearRatingBtn" class="btn-secondary">Clear Rating</button>
           <button id="relevantBtn" class="btn-secondary">Relevant Selected</button>
           <button id="nonRelevantBtn" class="btn-secondary">Non-relevant Selected</button>
+          <button id="runMatchBtn" class="btn-secondary">Run Match AI</button>
         </div>
         <div id="collections" class="grid" style="margin-top:12px;"></div>
+        <h3 style="margin-top:16px;">Match Review (Learning)</h3>
+        <p class="muted">AI foreslår par som kan være samme sak. Godkjenn eller avvis.</p>
+        <div id="matchReview" class="grid" style="margin-top:10px;"></div>
         <div class="pager">
           <button id="mergedPrev" class="btn-secondary" type="button">Prev</button>
           <span id="mergedPageInfo" class="muted"></span>
@@ -221,6 +233,7 @@
     let latestItems = [];
     let topItems = [];
     let mergedItems = [];
+    let matchReviewItems = [];
     let viewMode = 'reading';
 
     function relevanceLabel(status) {
@@ -235,6 +248,7 @@
       document.getElementById('learningModeBtn')?.classList.toggle('active', viewMode === 'learning');
       renderLatestPage();
       renderTopPage();
+      renderMatchReview();
     }
 
     const pageSize = { latest: 24, top: 24, merged: 8 };
@@ -267,9 +281,16 @@
       return (el?.value || '').trim();
     }
 
+    function currentDomainFilter() {
+      const el = document.getElementById("domainFilter");
+      return (el?.value || "offshore_wind").trim() || "offshore_wind";
+    }
+
     function sourceFilterQuery() {
       const source = currentSourceFilter();
-      return source ? `&source_name=${encodeURIComponent(source)}` : '';
+      const domain = currentDomainFilter();
+      const srcPart = source ? `&source_name=${encodeURIComponent(source)}` : "";
+      return `${srcPart}&domain_bucket=${encodeURIComponent(domain)}`;
     }
 
     function renderSourceFilterOptions() {
@@ -473,6 +494,65 @@
       }
 
       bindCollectionCheckboxes(root);
+    }
+
+    function renderMatchReview() {
+      const root = document.getElementById("matchReview");
+      if (!root) return;
+      root.innerHTML = "";
+      if (viewMode !== "learning") {
+        root.innerHTML = "<p class=\"muted\">Bytt til Learning for å reviewe AI-match forslag.</p>";
+        return;
+      }
+      if (!matchReviewItems.length) {
+        root.innerHTML = "<p class=\"muted\">Ingen match-forslag akkurat nå.</p>";
+        return;
+      }
+      for (const pair of matchReviewItems) {
+        const div = document.createElement("article");
+        div.className = "card";
+        const entities = Array.isArray(pair.overlap_entities) ? pair.overlap_entities.join(", ") : "";
+        div.innerHTML = `
+          <h3>AI Match (${Math.round((Number(pair.ai_confidence || 0)) * 100)}%)</h3>
+          <div class="meta">${pair.reason_short || "No reason"}</div>
+          <div class="meta">Entities: ${entities || "n/a"}</div>
+          <div class="meta"><a href="${pair.item_a_url || "#"}" target="_blank" rel="noopener noreferrer">A: ${pair.item_a_title || "Untitled"}</a></div>
+          <div class="meta"><a href="${pair.item_b_url || "#"}" target="_blank" rel="noopener noreferrer">B: ${pair.item_b_title || "Untitled"}</a></div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="btn-secondary" type="button" data-match-accept="${pair.id}">Accept</button>
+            <button class="btn-warning" type="button" data-match-reject="${pair.id}">Reject</button>
+          </div>
+        `;
+        root.appendChild(div);
+      }
+      root.querySelectorAll("[data-match-accept]").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const id = Number(btn.getAttribute("data-match-accept"));
+          if (!Number.isFinite(id) || id <= 0) return;
+          await decideMatchReview(id, "accept");
+        });
+      });
+      root.querySelectorAll("[data-match-reject]").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const id = Number(btn.getAttribute("data-match-reject"));
+          if (!Number.isFinite(id) || id <= 0) return;
+          await decideMatchReview(id, "reject");
+        });
+      });
+    }
+
+    async function refreshMatchReview() {
+      const result = await getJson(`/api/news/match-review?status=pending&limit=40${sourceFilterQuery()}`);
+      matchReviewItems = Array.isArray(result.items) ? result.items : [];
+      renderMatchReview();
+    }
+
+    async function decideMatchReview(pairId, decision) {
+      const result = await postJson("/api/news/match-review/decide", { pair_id: pairId, decision });
+      setStatus(`Match review ${result.decision} for pair #${result.pair_id}`);
+      await refreshMatchReview();
+      await refreshCollections();
+      await refreshSignals();
     }
 
     async function refreshCollections() {
@@ -718,6 +798,7 @@
       pageState.top = 1;
       renderLatestPage();
       renderTopPage();
+      renderMatchReview();
     }
 
     async function importSourcesFromText() {
@@ -785,6 +866,14 @@
       await refreshSources();
     }
 
+    async function runMatchReviewQueue() {
+      const result = await postJson("/api/news/match/run", {
+        domain_bucket: currentDomainFilter(),
+      });
+      setStatus(`Match run done. checked=${result.checked_pairs}, queued=${result.enqueued_pairs}, fallback=${result.fallback_pairs}`);
+      await refreshMatchReview();
+    }
+
     async function runPipeline() {
       setStatus('Running fetch + processing ...');
       const result = await postJson('/api/news/run/fetch-process');
@@ -798,6 +887,7 @@
       setStatus(msg, (result.fetched_candidates || 0) === 0);
       await refreshSignals();
       await refreshCollections();
+      await refreshMatchReview();
       await refreshSources();
     }
 
@@ -808,6 +898,7 @@
       document.getElementById('rediscoverBtn').addEventListener('click', rediscoverRSS);
       document.getElementById('healthBtn').addEventListener('click', sourceHealth);
       document.getElementById('runPipelineBtn').addEventListener('click', runPipeline);
+      document.getElementById('runMatchBtn').addEventListener('click', runMatchReviewQueue);
       document.getElementById('mergeBtn').addEventListener('click', mergeSelected);
       document.getElementById('unmergeBtn').addEventListener('click', unmergeSelected);
       document.getElementById('relevantBtn').addEventListener('click', relevantSelected);
@@ -815,12 +906,15 @@
       document.getElementById('clearRatingBtn').addEventListener('click', clearRatingSelected);
       document.getElementById('readingModeBtn').addEventListener('click', () => setViewMode('reading'));
       document.getElementById('learningModeBtn').addEventListener('click', () => setViewMode('learning'));
-      document.getElementById('sourceFilter').addEventListener('change', async () => {
+      const onGlobalFilterChange = async () => {
         selectedCollectionItems.clear();
         updateSelectedCount();
         await refreshSignals();
         await refreshCollections();
-      });
+        await refreshMatchReview();
+      };
+      document.getElementById('sourceFilter').addEventListener('change', onGlobalFilterChange);
+      document.getElementById('domainFilter').addEventListener('change', onGlobalFilterChange);
 
       document.getElementById('latestPrev').addEventListener('click', () => changePage('latest', -1));
       document.getElementById('latestNext').addEventListener('click', () => changePage('latest', 1));
@@ -834,6 +928,7 @@
         await refreshSources();
         await refreshSignals();
         await refreshCollections();
+        await refreshMatchReview();
       } catch (err) {
         console.error(err);
         setStatus('Failed loading data. Check API logs.', true);

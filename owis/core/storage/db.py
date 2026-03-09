@@ -71,6 +71,44 @@ def init_db() -> None:
                 FOREIGN KEY(processed_id) REFERENCES news_processed_items(id)
             );
 
+            CREATE TABLE IF NOT EXISTS news_domain_classification (
+                processed_id INTEGER PRIMARY KEY,
+                domain_bucket TEXT NOT NULL CHECK (domain_bucket IN ('offshore_wind', 'adjacent_energy', 'other_energy')),
+                domain_confidence REAL NOT NULL,
+                classified_at TEXT NOT NULL,
+                FOREIGN KEY(processed_id) REFERENCES news_processed_items(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS news_match_review_pairs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                item_a_id INTEGER NOT NULL,
+                item_b_id INTEGER NOT NULL,
+                ai_same_story TEXT NOT NULL CHECK (ai_same_story IN ('yes', 'no')),
+                ai_confidence REAL NOT NULL,
+                reason_short TEXT,
+                overlap_entities TEXT,
+                overlap_timeframe TEXT,
+                status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected')),
+                decided_by TEXT,
+                decided_at TEXT,
+                created_at TEXT NOT NULL,
+                UNIQUE(item_a_id, item_b_id),
+                FOREIGN KEY(item_a_id) REFERENCES news_processed_items(id),
+                FOREIGN KEY(item_b_id) REFERENCES news_processed_items(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS news_learning_feedback (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                processed_id INTEGER,
+                pair_id INTEGER,
+                feedback_type TEXT NOT NULL,
+                feedback_value TEXT NOT NULL,
+                actor TEXT,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(processed_id) REFERENCES news_processed_items(id),
+                FOREIGN KEY(pair_id) REFERENCES news_match_review_pairs(id)
+            );
+
             CREATE TABLE IF NOT EXISTS news_source_registry (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 position INTEGER NOT NULL,
