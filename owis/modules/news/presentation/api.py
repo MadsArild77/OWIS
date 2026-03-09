@@ -613,6 +613,12 @@ def source_health(payload: SourceHealthRequest):
 def source_health_state():
     return {"items": repo.list_source_health_states()}
 
+
+@router.get("/ai/status")
+def ai_status(probe: bool = False):
+    ai = AIClient()
+    return ai.status(with_probe=bool(probe))
+
 @router.post("/run/fetch-process")
 def run_fetch_process(payload: RunFetchProcessRequest):
     init_db()

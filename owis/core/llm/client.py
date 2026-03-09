@@ -18,6 +18,7 @@ from owis.core.config.settings import (
 class AIClient:
     def __init__(self) -> None:
         self.enabled = AI_ENABLED and bool(AI_API_KEY)
+        self.last_error: str | None = None
 
     def _build_headers(self) -> dict[str, str]:
         return {
@@ -27,8 +28,10 @@ class AIClient:
 
     def _post_json_prompt(self, system_prompt: str, user_text: str, max_tokens: int | None = None) -> dict[str, Any] | None:
         if not self.enabled:
+            self.last_error = "ai_disabled_or_missing_api_key"
             return None
         if AI_PROVIDER not in {"openai_compatible", "openai", "mistral", "deepseek"}:
+            self.last_error = f"unsupported_ai_provider:{AI_PROVIDER}"
             return None
 
         payload = {
@@ -53,8 +56,11 @@ class AIClient:
                 api_payload = response.json()
 
             content = api_payload["choices"][0]["message"]["content"]
-            return json.loads(content)
-        except Exception:
+            parsed = json.loads(content)
+            self.last_error = None
+            return parsed
+        except Exception as exc:
+            self.last_error = f"{exc.__class__.__name__}: {exc}"
             return None
 
     def enrich_news(self, text: str) -> dict[str, Any] | None:
@@ -143,3 +149,24 @@ class AIClient:
             "overlap_entities": [str(x).strip() for x in entities if str(x).strip()],
             "overlap_timeframe": str(parsed.get("overlap_timeframe") or ""),
         }
+
+    def status(self, with_probe: bool = False) -> dict[str, Any]:
+        data: dict[str, Any] = {
+            "enabled": bool(self.enabled),
+            "provider": AI_PROVIDER,
+            "model": AI_MODEL,
+            "base_url": AI_BASE_URL,
+            "endpoint": AI_ENDPOINT,
+            "api_key_configured": bool(AI_API_KEY),
+            "last_error": self.last_error,
+            "probe_ok": None,
+        }
+        if with_probe and self.enabled:
+            probe = self._post_json_prompt(
+                system_prompt="Return strict JSON only with key ok=true.",
+                user_text="ping",
+                max_tokens=20,
+            )
+            data["probe_ok"] = probe is not None
+            data["last_error"] = self.last_error
+        return data

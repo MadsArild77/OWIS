@@ -165,6 +165,10 @@
       </div>
 
       <div id="adminStatus" class="status"></div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
+        <span id="aiStatus" class="muted">AI: unknown</span>
+        <button id="checkAiBtn" class="btn-secondary" type="button" style="margin-top:0;">Check AI</button>
+      </div>
       <table class="sources-table">
         <thead>
           <tr>
@@ -305,7 +309,25 @@
         btn.textContent = btn.dataset.defaultLabel || btn.textContent;
       }
     }
+    function renderAiStatus(data) {
+      const el = document.getElementById('aiStatus');
+      if (!el) return;
+      if (!data) {
+        el.textContent = 'AI: status unavailable';
+        return;
+      }
+      const enabled = !!data.enabled;
+      const keyConfigured = !!data.api_key_configured;
+      const probePart = data.probe_ok === null || data.probe_ok === undefined ? '' : `, probe=${data.probe_ok ? 'ok' : 'fail'}`;
+      const errorPart = data.last_error ? `, error=${String(data.last_error).slice(0, 120)}` : '';
+      el.textContent = `AI: enabled=${enabled}, key=${keyConfigured}, provider=${data.provider || '-'}, model=${data.model || '-'}${probePart}${errorPart}`;
+    }
 
+    async function refreshAiStatus(probe = false) {
+      const result = await getJson(`/api/news/ai/status?probe=${probe ? 'true' : 'false'}`);
+      renderAiStatus(result);
+      return result;
+    }
     function currentSourceFilter() {
       const el = document.getElementById('sourceFilter');
       return (el?.value || '').trim();
@@ -953,6 +975,17 @@
       document.getElementById('rediscoverBtn').addEventListener('click', rediscoverRSS);
       document.getElementById('healthBtn').addEventListener('click', sourceHealth);
       document.getElementById('runPipelineBtn').addEventListener('click', runPipeline);
+      document.getElementById('checkAiBtn').addEventListener('click', async () => {
+        setButtonBusy('checkAiBtn', true, 'Checking AI...');
+        try {
+          await refreshAiStatus(true);
+        } catch (err) {
+          console.error(err);
+          setStatus('AI status check failed.', true);
+        } finally {
+          setButtonBusy('checkAiBtn', false);
+        }
+      });
       document.getElementById('runMatchBtn').addEventListener('click', runMatchReviewQueue);
       document.getElementById('mergeBtn').addEventListener('click', mergeSelected);
       document.getElementById('unmergeBtn').addEventListener('click', unmergeSelected);
@@ -980,6 +1013,7 @@
       setupTabs();
 
       try {
+        await refreshAiStatus(false);
         await refreshSources();
         await refreshSignals();
         await refreshCollections();
