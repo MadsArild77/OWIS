@@ -69,6 +69,8 @@
     .tab-btn.active { background:#0f172a; color:#ffffff; border-color:#0f172a; }
     .tab-panel { display:none; }
     .tab-panel.active { display:block; }
+    .pager { display:flex; align-items:center; gap:10px; margin-top:12px; }
+    .pager button { margin-top:0; padding:6px 10px; font-size:0.82rem; }
   </style>
 </head>
 <body>
@@ -160,11 +162,21 @@
       <div id="tab-latest" class="tab-panel active">
         <h2>Latest</h2>
         <div id="latest" class="grid"></div>
+        <div class="pager">
+          <button id="latestPrev" class="btn-secondary" type="button">Prev</button>
+          <span id="latestPageInfo" class="muted"></span>
+          <button id="latestNext" class="btn-secondary" type="button">Next</button>
+        </div>
       </div>
 
       <div id="tab-top" class="tab-panel">
         <h2>Top Signals</h2>
         <div id="top" class="grid"></div>
+        <div class="pager">
+          <button id="topPrev" class="btn-secondary" type="button">Prev</button>
+          <span id="topPageInfo" class="muted"></span>
+          <button id="topNext" class="btn-secondary" type="button">Next</button>
+        </div>
       </div>
 
       <div id="tab-merged" class="tab-panel">
@@ -187,6 +199,11 @@
           <button id="unqualifyBtn" class="btn-secondary">Unqualify Selected</button>
         </div>
         <div id="collections" class="grid" style="margin-top:12px;"></div>
+        <div class="pager">
+          <button id="mergedPrev" class="btn-secondary" type="button">Prev</button>
+          <span id="mergedPageInfo" class="muted"></span>
+          <button id="mergedNext" class="btn-secondary" type="button">Next</button>
+        </div>
       </div>
     </section>
   </div>
@@ -195,6 +212,12 @@
     let currentSources = [];
     let healthStateBySource = {};
     let selectedCollectionItems = new Set();
+    let latestItems = [];
+    let topItems = [];
+    let mergedItems = [];
+
+    const pageSize = { latest: 24, top: 24, merged: 8 };
+    const pageState = { latest: 1, top: 1, merged: 1 };
 
     async function getJson(path) {
       const res = await fetch(path);
@@ -263,6 +286,57 @@
         });
       });
       setActiveTab('latest');
+    }
+    function getPageSlice(kind, items) {
+      const size = pageSize[kind] || 12;
+      const totalPages = Math.max(1, Math.ceil((items.length || 0) / size));
+      pageState[kind] = Math.min(Math.max(pageState[kind] || 1, 1), totalPages);
+      const start = (pageState[kind] - 1) * size;
+      const end = start + size;
+      return {
+        totalPages,
+        pageItems: items.slice(start, end),
+      };
+    }
+
+    function updatePager(kind, totalItems) {
+      const size = pageSize[kind] || 12;
+      const totalPages = Math.max(1, Math.ceil((totalItems || 0) / size));
+      const prev = document.getElementById(`${kind}Prev`);
+      const next = document.getElementById(`${kind}Next`);
+      const info = document.getElementById(`${kind}PageInfo`);
+      if (!prev || !next || !info) return;
+
+      const page = Math.min(Math.max(pageState[kind] || 1, 1), totalPages);
+      pageState[kind] = page;
+      prev.disabled = page <= 1;
+      next.disabled = page >= totalPages;
+      info.textContent = `Page ${page}/${totalPages} (${totalItems} items)`;
+    }
+
+    function renderLatestPage() {
+      const { pageItems } = getPageSlice('latest', latestItems);
+      renderCards('latest', pageItems);
+      updatePager('latest', latestItems.length);
+    }
+
+    function renderTopPage() {
+      const { pageItems } = getPageSlice('top', topItems);
+      renderCards('top', pageItems);
+      updatePager('top', topItems.length);
+    }
+
+    function renderMergedPage() {
+      const { pageItems } = getPageSlice('merged', mergedItems);
+      renderCollections(pageItems);
+      updatePager('merged', mergedItems.length);
+    }
+
+    function changePage(kind, delta) {
+      pageState[kind] = (pageState[kind] || 1) + delta;
+      if (kind === 'latest') renderLatestPage();
+      if (kind === 'top') renderTopPage();
+      if (kind === 'merged') renderMergedPage();
     }
     function isPaywalled(item) {
       const title = (item.title || '').toLowerCase();
@@ -340,7 +414,10 @@
         const rows = (col.items || []).map(item => {
           const id = Number(item.id || 0);
           const checked = selectedCollectionItems.has(id) ? 'checked' : '';
-          return `<div class="collection-item"><label><input type="checkbox" data-collection-item="${id}" ${checked} /> <strong>${item.title}</strong> (${item.source_name || 'Unknown'} | ${item.linkedin_candidate ? 'Qualified' : 'Unqualified'})</label></div>`;
+          const titleHtml = item.article_url
+            ? `<a href="${item.article_url}" target="_blank" rel="noopener noreferrer"><strong>${item.title}</strong></a>`
+            : `<strong>${item.title}</strong>`;
+          return `<div class="collection-item"><label><input type="checkbox" data-collection-item="${id}" ${checked} /> ${titleHtml} (${item.source_name || 'Unknown'} | ${item.linkedin_candidate ? 'Qualified' : 'Unqualified'})</label></div>`;
         }).join('');
 
         div.innerHTML = `
@@ -360,9 +437,10 @@
     }
 
     async function refreshCollections() {
-      const result = await getJson(`/api/news/collections?limit=12&items_per_collection=6${sourceFilterQuery()}`);
-      const items = Array.isArray(result.items) ? result.items : [];
-      renderCollections(items);
+      const result = await getJson(`/api/news/collections?limit=120&items_per_collection=8${sourceFilterQuery()}`);
+      mergedItems = Array.isArray(result.items) ? result.items : [];
+      pageState.merged = 1;
+      renderMergedPage();
     }
 
     async function mergeSelected() {
@@ -515,11 +593,15 @@
 
     async function refreshSignals() {
       const [latest, top] = await Promise.all([
-        getJson(`/api/news/latest?limit=12${sourceFilterQuery()}`),
-        getJson(`/api/news/top-signals?limit=12${sourceFilterQuery()}`)
+        getJson(`/api/news/latest?limit=120${sourceFilterQuery()}`),
+        getJson(`/api/news/top-signals?limit=120${sourceFilterQuery()}`)
       ]);
-      renderCards('latest', latest);
-      renderCards('top', top);
+      latestItems = Array.isArray(latest) ? latest : [];
+      topItems = Array.isArray(top) ? top : [];
+      pageState.latest = 1;
+      pageState.top = 1;
+      renderLatestPage();
+      renderTopPage();
     }
 
     async function importSourcesFromText() {
@@ -621,6 +703,12 @@
         await refreshCollections();
       });
 
+      document.getElementById('latestPrev').addEventListener('click', () => changePage('latest', -1));
+      document.getElementById('latestNext').addEventListener('click', () => changePage('latest', 1));
+      document.getElementById('topPrev').addEventListener('click', () => changePage('top', -1));
+      document.getElementById('topNext').addEventListener('click', () => changePage('top', 1));
+      document.getElementById('mergedPrev').addEventListener('click', () => changePage('merged', -1));
+      document.getElementById('mergedNext').addEventListener('click', () => changePage('merged', 1));
       setupTabs();
 
       try {
