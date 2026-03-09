@@ -7,7 +7,7 @@ from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 import httpx
 
-from owis.modules.news.collectors.filters import is_probable_news_item
+from owis.modules.news.collectors.filters import is_probable_article_url, is_probable_news_item
 from owis.modules.news.registry.source_discovery import load_source_registry
 
 
@@ -142,6 +142,11 @@ def fetch_scrape_items_with_report(limit_per_source: int = 20) -> tuple[list[dic
                     if urlparse(url).netloc and urlparse(url).netloc != domain:
                         continue
 
+                    # Skip likely section/index/static pages before costly page fetch.
+                    if not is_probable_article_url(url):
+                        filtered_count += 1
+                        continue
+
                     article_text = ""
                     try:
                         page_resp = client.get(url)
@@ -201,3 +206,4 @@ def fetch_scrape_items_with_report(limit_per_source: int = 20) -> tuple[list[dic
 def fetch_scrape_items(limit_per_source: int = 20) -> list[dict]:
     items, _ = fetch_scrape_items_with_report(limit_per_source=limit_per_source)
     return items
+

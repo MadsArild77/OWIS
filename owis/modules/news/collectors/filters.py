@@ -175,3 +175,8 @@ def is_probable_news_item(url: str, title: str, summary: str = "", full_text: st
         return True
 
     return False
+
+
+def is_probable_article_url(url: str) -> bool:
+    return _is_probable_article_path(_norm(url))
+

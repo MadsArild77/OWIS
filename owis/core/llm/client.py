@@ -1,4 +1,5 @@
 import json
+import re
 from typing import Any
 
 import httpx
@@ -26,6 +27,32 @@ class AIClient:
             "Content-Type": "application/json",
         }
 
+    def _parse_json_content(self, content: Any) -> dict[str, Any] | None:
+        if isinstance(content, dict):
+            return content
+        text = str(content or "").strip()
+        if not text:
+            return None
+
+        try:
+            parsed = json.loads(text)
+            if isinstance(parsed, dict):
+                return parsed
+        except Exception:
+            pass
+
+        # Some providers prepend text before JSON despite prompt instructions.
+        match = re.search(r"\{[\s\S]*\}", text)
+        if not match:
+            return None
+        try:
+            parsed = json.loads(match.group(0))
+            if isinstance(parsed, dict):
+                return parsed
+        except Exception:
+            return None
+        return None
+
     def _post_json_prompt(self, system_prompt: str, user_text: str, max_tokens: int | None = None) -> dict[str, Any] | None:
         if not self.enabled:
             self.last_error = "ai_disabled_or_missing_api_key"
@@ -47,16 +74,36 @@ class AIClient:
 
         try:
             with httpx.Client(timeout=25) as client:
-                response = client.post(
-                    f"{AI_BASE_URL.rstrip('/')}{AI_ENDPOINT}",
-                    headers=self._build_headers(),
-                    json=payload,
-                )
-                response.raise_for_status()
+                try:
+                    response = client.post(
+                        f"{AI_BASE_URL.rstrip('/')}{AI_ENDPOINT}",
+                        headers=self._build_headers(),
+                        json=payload,
+                    )
+                    response.raise_for_status()
+                except httpx.HTTPStatusError as exc:
+                    # Some OpenAI-compatible providers reject response_format.
+                    error_text = (exc.response.text or "") if exc.response is not None else ""
+                    status = exc.response.status_code if exc.response is not None else None
+                    if status in {400, 404, 415, 422} and "response_format" in error_text.lower():
+                        fallback_payload = dict(payload)
+                        fallback_payload.pop("response_format", None)
+                        response = client.post(
+                            f"{AI_BASE_URL.rstrip('/')}{AI_ENDPOINT}",
+                            headers=self._build_headers(),
+                            json=fallback_payload,
+                        )
+                        response.raise_for_status()
+                    else:
+                        raise
+
                 api_payload = response.json()
 
             content = api_payload["choices"][0]["message"]["content"]
-            parsed = json.loads(content)
+            parsed = self._parse_json_content(content)
+            if parsed is None:
+                self.last_error = "invalid_json_response"
+                return None
             self.last_error = None
             return parsed
         except Exception as exc:
