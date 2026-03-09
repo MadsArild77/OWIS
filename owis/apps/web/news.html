@@ -64,6 +64,11 @@
     .collection-key { font-family: ui-monospace, Consolas, monospace; font-size:0.8rem; color:#334155; }
     .collection-item { margin:6px 0; font-size:0.9rem; color:#334155; }
     .selection-row { margin-top:8px; font-size:0.84rem; color:#334155; }
+    .tab-bar { display:flex; gap:8px; margin-bottom:14px; }
+    .tab-btn { background:#e2e8f0; color:#0f172a; border:1px solid #cbd5e1; margin-top:0; }
+    .tab-btn.active { background:#0f172a; color:#ffffff; border-color:#0f172a; }
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
   </style>
 </head>
 <body>
@@ -131,7 +136,7 @@
             <option value="">All sources</option>
           </select>
         </div>
-        <div class="muted" style="align-self:end;">Filter applies to Latest, Top, LinkedIn and Collections.</div>
+        <div class="muted" style="align-self:end;">Filter applies to Latest, Top and Merged.</div>
       </div>
 
       <div id="adminStatus" class="status"></div>
@@ -145,41 +150,44 @@
       </table>
     </section>
 
-    <section>
-      <h2>Latest</h2>
-      <div id="latest" class="grid"></div>
-    </section>
-
-    <section>
-      <h2>Top Signals</h2>
-      <div id="top" class="grid"></div>
-    </section>
-
-    <section>
-      <h2>LinkedIn Candidates</h2>
-      <div id="linkedin" class="grid"></div>
-    </section>
-
     <section class="card">
-      <h2>Signal Collections</h2>
-      <p class="muted">Merge related cards manually, and unmerge if grouping is wrong.</p>
-      <div class="two-col">
-        <div>
-          <label class="muted">Manual collection key (optional)</label>
-          <input id="collectionKey" placeholder="manual:offshore-policy-eu" />
-        </div>
-        <div>
-          <label class="muted">Selected card count</label>
-          <input id="selectedCount" readonly value="0" />
-        </div>
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="latest" type="button">Latest</button>
+        <button class="tab-btn" data-tab="top" type="button">Top</button>
+        <button class="tab-btn" data-tab="merged" type="button">Merged</button>
       </div>
-      <div style="margin-top:10px;">
-        <button id="mergeBtn" class="btn-secondary">Merge Selected</button>
-        <button id="unmergeBtn" class="btn-warning">Unmerge Selected</button>
-        <button id="qualifyBtn" class="btn-secondary">Qualify Selected</button>
-        <button id="unqualifyBtn" class="btn-secondary">Unqualify Selected</button>
+
+      <div id="tab-latest" class="tab-panel active">
+        <h2>Latest</h2>
+        <div id="latest" class="grid"></div>
       </div>
-      <div id="collections" class="grid" style="margin-top:12px;"></div>
+
+      <div id="tab-top" class="tab-panel">
+        <h2>Top Signals</h2>
+        <div id="top" class="grid"></div>
+      </div>
+
+      <div id="tab-merged" class="tab-panel">
+        <h2>Merged</h2>
+        <p class="muted">Merge related cards manually, and unmerge if grouping is wrong.</p>
+        <div class="two-col">
+          <div>
+            <label class="muted">Manual collection key (optional)</label>
+            <input id="collectionKey" placeholder="manual:offshore-policy-eu" />
+          </div>
+          <div>
+            <label class="muted">Selected card count</label>
+            <input id="selectedCount" readonly value="0" />
+          </div>
+        </div>
+        <div style="margin-top:10px;">
+          <button id="mergeBtn" class="btn-secondary">Merge Selected</button>
+          <button id="unmergeBtn" class="btn-warning">Unmerge Selected</button>
+          <button id="qualifyBtn" class="btn-secondary">Qualify Selected</button>
+          <button id="unqualifyBtn" class="btn-secondary">Unqualify Selected</button>
+        </div>
+        <div id="collections" class="grid" style="margin-top:12px;"></div>
+      </div>
     </section>
   </div>
 
@@ -235,6 +243,26 @@
         if (name === selected) opt.selected = true;
         select.appendChild(opt);
       }
+    }
+    function setActiveTab(tabName) {
+      const target = `tab-${tabName}`;
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        const isActive = btn.getAttribute('data-tab') === tabName;
+        btn.classList.toggle('active', isActive);
+      });
+      document.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.classList.toggle('active', panel.id === target);
+      });
+    }
+
+    function setupTabs() {
+      document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tab = btn.getAttribute('data-tab') || 'latest';
+          setActiveTab(tab);
+        });
+      });
+      setActiveTab('latest');
     }
     function isPaywalled(item) {
       const title = (item.title || '').toLowerCase();
@@ -486,14 +514,12 @@
     }
 
     async function refreshSignals() {
-      const [latest, top, linkedin] = await Promise.all([
+      const [latest, top] = await Promise.all([
         getJson(`/api/news/latest?limit=12${sourceFilterQuery()}`),
-        getJson(`/api/news/top-signals?limit=12${sourceFilterQuery()}`),
-        getJson(`/api/news/linkedin-candidates?limit=12${sourceFilterQuery()}`)
+        getJson(`/api/news/top-signals?limit=12${sourceFilterQuery()}`)
       ]);
       renderCards('latest', latest);
       renderCards('top', top);
-      renderCards('linkedin', linkedin);
     }
 
     async function importSourcesFromText() {
@@ -594,6 +620,8 @@
         await refreshSignals();
         await refreshCollections();
       });
+
+      setupTabs();
 
       try {
         await refreshSources();
