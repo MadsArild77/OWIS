@@ -64,6 +64,13 @@ def init_db() -> None:
                 FOREIGN KEY(processed_id) REFERENCES news_processed_items(id)
             );
 
+            CREATE TABLE IF NOT EXISTS news_source_registry (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                position INTEGER NOT NULL,
+                source_json TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+
             CREATE TABLE IF NOT EXISTS opportunity_raw_items (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 notice_id TEXT NOT NULL UNIQUE,

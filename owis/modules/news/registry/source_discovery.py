@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
+import json
 import os
+from pathlib import Path
 import re
 from typing import Any
 from urllib.parse import urljoin, urlparse
@@ -12,7 +15,80 @@ import httpx
 import yaml
 
 from owis.core.config.settings import NEWS_SOURCES_PATH
+from owis.core.storage.db import get_conn, init_db
 
+
+_DEFAULT_NEWS_SOURCES_PATH = str(Path("owis/modules/news/registry/sources.yaml"))
+
+
+def _is_default_sources_path(path_value: str) -> bool:
+    configured = Path(path_value.strip())
+    default = Path(_DEFAULT_NEWS_SOURCES_PATH)
+    try:
+        return configured.resolve() == default.resolve()
+    except OSError:
+        return configured.as_posix().strip() == default.as_posix().strip()
+
+
+def _use_db_registry() -> bool:
+    raw = os.getenv("OWI_NEWS_SOURCES_USE_DB", "true").strip().lower()
+    use_db = raw in {"1", "true", "yes"}
+    return use_db and _is_default_sources_path(str(NEWS_SOURCES_PATH))
+
+
+def _load_source_registry_from_yaml() -> list[dict[str, Any]]:
+    try:
+        with open(NEWS_SOURCES_PATH, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+        return data.get("sources", [])
+    except FileNotFoundError:
+        return []
+
+
+def _save_source_registry_to_yaml(sources: list[dict[str, Any]], strict: bool) -> None:
+    payload = {"sources": sources}
+    try:
+        with open(NEWS_SOURCES_PATH, "w", encoding="utf-8") as f:
+            yaml.safe_dump(payload, f, sort_keys=False, allow_unicode=True)
+    except Exception:
+        if strict:
+            raise
+
+
+def _load_source_registry_from_db() -> list[dict[str, Any]]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            """
+            SELECT source_json
+            FROM news_source_registry
+            ORDER BY position ASC, id ASC
+            """
+        ).fetchall()
+
+    items: list[dict[str, Any]] = []
+    for row in rows:
+        try:
+            parsed = json.loads(str(row["source_json"]))
+            if isinstance(parsed, dict):
+                items.append(parsed)
+        except Exception:
+            continue
+    return items
+
+
+def _save_source_registry_to_db(sources: list[dict[str, Any]]) -> None:
+    init_db()
+    now_iso = datetime.now(timezone.utc).isoformat()
+    with get_conn() as conn:
+        conn.execute("DELETE FROM news_source_registry")
+        for pos, source in enumerate(sources):
+            conn.execute(
+                """
+                INSERT INTO news_source_registry (position, source_json, updated_at)
+                VALUES (?, ?, ?)
+                """,
+                (pos, json.dumps(source, ensure_ascii=False), now_iso),
+            )
 
 COMMON_FEED_PATHS = [
     "/feed",
@@ -435,15 +511,28 @@ def _default_source(name: str, homepage: str, source_type: str, source_url: str)
 
 
 def load_source_registry() -> list[dict[str, Any]]:
-    with open(NEWS_SOURCES_PATH, "r", encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
-    return data.get("sources", [])
+    if _use_db_registry():
+        init_db()
+        db_sources = _load_source_registry_from_db()
+        if db_sources:
+            return db_sources
+
+    yaml_sources = _load_source_registry_from_yaml()
+
+    if _use_db_registry() and yaml_sources:
+        _save_source_registry_to_db(yaml_sources)
+
+    return yaml_sources
 
 
 def save_source_registry(sources: list[dict[str, Any]]) -> None:
-    payload = {"sources": sources}
-    with open(NEWS_SOURCES_PATH, "w", encoding="utf-8") as f:
-        yaml.safe_dump(payload, f, sort_keys=False, allow_unicode=True)
+    if _use_db_registry():
+        _save_source_registry_to_db(sources)
+        # Keep YAML in sync as a best-effort local/dev fallback.
+        _save_source_registry_to_yaml(sources, strict=False)
+        return
+
+    _save_source_registry_to_yaml(sources, strict=True)
 
 
 def import_sources_from_text(text: str) -> list[dict[str, Any]]:

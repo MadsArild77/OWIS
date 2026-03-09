@@ -11,7 +11,7 @@ RUN python -m pip install --no-cache-dir --upgrade pip && \
 
 COPY . /app
 
-ENV OWI_DB_PATH=/tmp/owi.db
+ENV OWI_DB_PATH=/data/owi.db
 ENV OWI_NEWS_SOURCES=owis/modules/news/registry/sources.yaml
 
 CMD ["python", "-m", "owis.scripts.run_server"]
