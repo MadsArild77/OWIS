@@ -51,6 +51,13 @@ def _hits(text: str, terms: set[str]) -> int:
     return sum(1 for term in terms if term in t)
 
 
+
+def _safe_float(value: object, fallback: float) -> float:
+    try:
+        return float(value)
+    except Exception:
+        return float(fallback)
+
 def classify_domain_bucket(title: str, summary: str, themes: str) -> tuple[str, float]:
     blob = _norm(f"{title} {summary} {themes}")
     if not blob:
@@ -89,7 +96,7 @@ def classify_domain_with_ai_fallback(title: str, summary: str, themes: str) -> t
         return bucket, confidence
 
     ai_bucket = str(ai_result.get("domain_bucket") or "").strip().lower()
-    ai_conf = float(ai_result.get("confidence") or 0.0)
+    ai_conf = _safe_float(ai_result.get("confidence") or 0.0, 0.0)
     if ai_bucket not in _BUCKETS:
         return bucket, confidence
 

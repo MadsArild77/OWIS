@@ -962,7 +962,7 @@
         await refreshSources();
       } catch (err) {
         console.error(err);
-        setStatus('Fetch + processing failed. Check API logs.', true);
+        setStatus('Fetch + processing failed: ' + (err?.message || 'Unknown error'), true);
       } finally {
         setButtonBusy('runPipelineBtn', false);
       }
