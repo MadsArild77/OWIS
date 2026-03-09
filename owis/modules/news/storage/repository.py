@@ -159,19 +159,54 @@ class NewsRepository:
             ).fetchall()
             return [dict(row) for row in rows]
 
-    def set_linkedin_candidate(self, processed_ids: list[int], qualified: bool) -> int:
+    def list_relevance_map(self, processed_ids: list[int]) -> dict[int, int]:
+        cleaned = self._clean_ids(processed_ids)
+        if not cleaned:
+            return {}
+
+        placeholders = ",".join("?" for _ in cleaned)
+        with get_conn() as conn:
+            rows = conn.execute(
+                f"""
+                SELECT processed_id, relevance
+                FROM news_item_relevance
+                WHERE processed_id IN ({placeholders})
+                """,
+                tuple(cleaned),
+            ).fetchall()
+            return {int(row["processed_id"]): int(row["relevance"]) for row in rows}
+
+    def set_relevance(self, processed_ids: list[int], relevance: int | None) -> int:
         cleaned = self._clean_ids(processed_ids)
         if not cleaned:
             return 0
 
-        value = 1 if qualified else 0
         placeholders = ",".join("?" for _ in cleaned)
         with get_conn() as conn:
-            cur = conn.execute(
-                f"UPDATE news_processed_items SET linkedin_candidate = ? WHERE id IN ({placeholders})",
-                (value, *cleaned),
-            )
-            return int(cur.rowcount)
+            if relevance is None:
+                cur = conn.execute(
+                    f"DELETE FROM news_item_relevance WHERE processed_id IN ({placeholders})",
+                    tuple(cleaned),
+                )
+                return int(cur.rowcount)
+
+            updated_at = datetime.now(timezone.utc).isoformat()
+            for processed_id in cleaned:
+                conn.execute(
+                    """
+                    INSERT INTO news_item_relevance (processed_id, relevance, updated_at)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT(processed_id) DO UPDATE SET
+                        relevance = excluded.relevance,
+                        updated_at = excluded.updated_at
+                    """,
+                    (processed_id, int(relevance), updated_at),
+                )
+            return len(cleaned)
+
+    def set_linkedin_candidate(self, processed_ids: list[int], qualified: bool) -> int:
+        # Backward-compatible alias while UI/API migrate to relevance terminology.
+        return self.set_relevance(processed_ids, 1 if qualified else 0)
 
     def get_item(self, processed_id: int) -> dict[str, Any] | None:
         with get_conn() as conn:

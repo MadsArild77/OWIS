@@ -77,9 +77,10 @@ class UnmergeCollectionRequest(BaseModel):
     item_ids: list[int] = Field(default_factory=list)
 
 
-class UpdateQualificationRequest(BaseModel):
+class UpdateRelevanceRequest(BaseModel):
     item_ids: list[int] = Field(default_factory=list)
-    qualified: bool
+    relevance: str | None = None
+    qualified: bool | None = None
 
 
 def _base_health(items: int, error: str | None) -> tuple[int, str]:
@@ -118,6 +119,41 @@ def _clean_source_filter(source_name: str | None) -> str | None:
     cleaned = str(source_name).strip()
     return cleaned or None
 
+
+def _relevance_status(value: int | None) -> str:
+    if value is None:
+        return "unrated"
+    return "relevant" if int(value) == 1 else "non_relevant"
+
+
+def _attach_relevance(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    ids = [int(item.get("id") or 0) for item in items if int(item.get("id") or 0) > 0]
+    mapping = repo.list_relevance_map(ids)
+
+    out: list[dict[str, Any]] = []
+    for item in items:
+        item_copy = dict(item)
+        item_id = int(item_copy.get("id") or 0)
+        item_copy["relevance_status"] = _relevance_status(mapping.get(item_id))
+        out.append(item_copy)
+    return out
+
+
+def _parse_relevance_payload(payload: UpdateRelevanceRequest) -> int | None:
+    if payload.relevance is None:
+        if payload.qualified is None:
+            raise HTTPException(status_code=400, detail="Provide relevance: relevant/non_relevant/unrated.")
+        return 1 if bool(payload.qualified) else 0
+
+    value = str(payload.relevance).strip().lower()
+    if value in {"relevant", "yes", "true", "1"}:
+        return 1
+    if value in {"non_relevant", "non-relevant", "irrelevant", "no", "false", "0"}:
+        return 0
+    if value in {"unrated", "none", "clear", "reset"}:
+        return None
+
+    raise HTTPException(status_code=400, detail="Invalid relevance. Use relevant, non_relevant, or unrated.")
 
 def _title_cluster_key(item: dict[str, Any]) -> str:
     title = str(item.get("title") or "").lower()
@@ -190,7 +226,7 @@ def _build_collections(
                 "article_url": item.get("article_url") or "",
                 "signal_score": score,
                 "published_at": item.get("published_at"),
-                "linkedin_candidate": int(item.get("linkedin_candidate") or 0),
+                "relevance_status": str(item.get("relevance_status") or "unrated"),
                 "is_manual_override": bool(override),
             }
         )
@@ -229,21 +265,24 @@ def _build_collections(
 
 @router.get("/latest")
 def latest(limit: int = 20, source_name: str | None = None):
-    return repo.latest(limit, source_name=_clean_source_filter(source_name))
+    rows = repo.latest(limit, source_name=_clean_source_filter(source_name))
+    return _attach_relevance(rows)
 
 
 @router.get("/top-signals")
 def top_signals(limit: int = 20, source_name: str | None = None):
-    return repo.top_signals(limit, source_name=_clean_source_filter(source_name))
+    rows = repo.top_signals(limit, source_name=_clean_source_filter(source_name))
+    return _attach_relevance(rows)
 
 
 @router.get("/linkedin-candidates")
 def linkedin_candidates(limit: int = 20, source_name: str | None = None):
-    return repo.linkedin_candidates(limit, source_name=_clean_source_filter(source_name))
+    rows = repo.linkedin_candidates(limit, source_name=_clean_source_filter(source_name))
+    return _attach_relevance(rows)
 
 
-@router.post("/items/qualification")
-def update_item_qualification(payload: UpdateQualificationRequest):
+@router.post("/items/relevance")
+def update_item_relevance(payload: UpdateRelevanceRequest):
     item_ids = sorted({int(x) for x in payload.item_ids if int(x) > 0})
     if not item_ids:
         raise HTTPException(status_code=400, detail="Provide at least 1 item id.")
@@ -252,20 +291,28 @@ def update_item_qualification(payload: UpdateQualificationRequest):
     if len(found_items) != len(item_ids):
         raise HTTPException(status_code=404, detail="One or more selected items were not found.")
 
-    updated = repo.set_linkedin_candidate(item_ids, qualified=payload.qualified)
-    return {"updated_count": updated, "qualified": bool(payload.qualified)}
+    relevance = _parse_relevance_payload(payload)
+    updated = repo.set_relevance(item_ids, relevance=relevance)
+    return {"updated_count": updated, "relevance_status": _relevance_status(relevance)}
+
+
+@router.post("/items/qualification")
+def update_item_qualification(payload: UpdateRelevanceRequest):
+    # Backward-compatible endpoint alias.
+    return update_item_relevance(payload)
 
 @router.get("/item/{item_id}")
 def item(item_id: int):
     found = repo.get_item(item_id)
     if not found:
         raise HTTPException(status_code=404, detail="News item not found")
-    return found
+    return _attach_relevance([found])[0]
 
 @router.get("/collections")
 def list_collections(limit: int = 20, items_per_collection: int = 5, lookback_items: int = 400, source_name: str | None = None):
     init_db()
     items = repo.latest(limit=max(lookback_items, 1), source_name=_clean_source_filter(source_name))
+    items = _attach_relevance(items)
     overrides = repo.list_collection_overrides()
     collections = _build_collections(items, overrides, limit=limit, items_per_collection=items_per_collection)
     return {"items": collections}
@@ -406,8 +453,9 @@ def run_fetch_process():
         row["health_reason"] = reason
         health_rows.append({"source": source_name, "health": color, "reason": reason, "items": items})
 
+    collection_items = _attach_relevance(repo.latest(limit=300))
     collections = _build_collections(
-        items=repo.latest(limit=300),
+        items=collection_items,
         overrides=repo.list_collection_overrides(),
         limit=8,
         items_per_collection=3,

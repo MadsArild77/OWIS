@@ -159,6 +159,11 @@
         <button class="tab-btn" data-tab="merged" type="button">Merged</button>
       </div>
 
+
+      <div style="display:flex;gap:8px;margin:10px 0 4px;">
+        <button id="readingModeBtn" class="tab-btn active" type="button">Reading</button>
+        <button id="learningModeBtn" class="tab-btn" type="button">Learning</button>
+      </div>
       <div id="tab-latest" class="tab-panel active">
         <h2>Latest</h2>
         <div id="latest" class="grid"></div>
@@ -195,8 +200,9 @@
         <div style="margin-top:10px;">
           <button id="mergeBtn" class="btn-secondary">Merge Selected</button>
           <button id="unmergeBtn" class="btn-warning">Unmerge Selected</button>
-          <button id="qualifyBtn" class="btn-secondary">Qualify Selected</button>
-          <button id="unqualifyBtn" class="btn-secondary">Unqualify Selected</button>
+          <button id="clearRatingBtn" class="btn-secondary">Clear Rating</button>
+          <button id="relevantBtn" class="btn-secondary">Relevant Selected</button>
+          <button id="nonRelevantBtn" class="btn-secondary">Non-relevant Selected</button>
         </div>
         <div id="collections" class="grid" style="margin-top:12px;"></div>
         <div class="pager">
@@ -215,6 +221,21 @@
     let latestItems = [];
     let topItems = [];
     let mergedItems = [];
+    let viewMode = 'reading';
+
+    function relevanceLabel(status) {
+      if (status === 'relevant') return 'Relevant';
+      if (status === 'non_relevant') return 'Non-relevant';
+      return 'Unrated';
+    }
+
+    function setViewMode(mode) {
+      viewMode = mode === 'learning' ? 'learning' : 'reading';
+      document.getElementById('readingModeBtn')?.classList.toggle('active', viewMode === 'reading');
+      document.getElementById('learningModeBtn')?.classList.toggle('active', viewMode === 'learning');
+      renderLatestPage();
+      renderTopPage();
+    }
 
     const pageSize = { latest: 24, top: 24, merged: 8 };
     const pageState = { latest: 1, top: 1, merged: 1 };
@@ -357,18 +378,35 @@
         const div = document.createElement('article');
         div.className = 'card';
         const itemId = Number(item.id || 0);
+        const relevance = relevanceLabel(item.relevance_status);
+        const leadText = viewMode === 'learning'
+          ? (item.why_it_matters || item.linkedin_angle || item.summary || 'No details')
+          : (item.summary || 'No summary');
+        const learningActions = viewMode === 'learning'
+          ? `
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+              <button class="btn-secondary" type="button" data-relevance-item="${itemId}" data-relevance-value="relevant">Relevant</button>
+              <button class="btn-secondary" type="button" data-relevance-item="${itemId}" data-relevance-value="non_relevant">Non-relevant</button>
+              <button class="btn-secondary" type="button" data-relevance-item="${itemId}" data-relevance-value="unrated">Clear</button>
+              <button class="btn-warning" type="button" data-merge-item="${itemId}">Merge</button>
+              <button class="btn-warning" type="button" data-unmerge-item="${itemId}">Unmerge</button>
+            </div>
+          `
+          : '';
+
         div.innerHTML = `
           <h3>${item.title}${paywalled ? '<span class="badge-paywall">Paywall</span>' : ''}</h3>
-          <p class="muted">${item.summary || 'No summary'}</p>
-          <div class="meta">Score: ${item.signal_score} | Source: ${item.source_name || 'Unknown'} | Qualified: ${item.linkedin_candidate ? 'Yes' : 'No'}</div>
+          <p class="muted">${leadText}</p>
+          <div class="meta">Score: ${item.signal_score} | Source: ${item.source_name || 'Unknown'} | Relevance: ${relevance}</div>
           <div class="meta">Published: ${item.published_at || 'Unknown'}</div>
           <div class="meta"><a href="${item.article_url}" target="_blank" rel="noopener noreferrer">Open source</a></div>
+          ${learningActions}
           <div class="selection-row"><label><input type="checkbox" data-collection-item="${itemId}" ${selectedCollectionItems.has(itemId) ? 'checked' : ''} /> Select</label></div>
         `;
         div.style.cursor = 'pointer';
         div.title = 'Click card to open source';
         div.addEventListener('click', (evt) => {
-          if (evt.target.closest('a') || evt.target.closest('input')) return;
+          if (evt.target.closest('a') || evt.target.closest('input') || evt.target.closest('button')) return;
           const url = item.article_url || '';
           if (url) window.open(url, '_blank', 'noopener,noreferrer');
         });
@@ -376,6 +414,7 @@
       }
 
       bindCollectionCheckboxes(root);
+      bindInlineActions(root);
     }
 
     function updateSelectedCount() {
@@ -417,7 +456,7 @@
           const titleHtml = item.article_url
             ? `<a href="${item.article_url}" target="_blank" rel="noopener noreferrer"><strong>${item.title}</strong></a>`
             : `<strong>${item.title}</strong>`;
-          return `<div class="collection-item"><label><input type="checkbox" data-collection-item="${id}" ${checked} /> ${titleHtml} (${item.source_name || 'Unknown'} | ${item.linkedin_candidate ? 'Qualified' : 'Unqualified'})</label></div>`;
+          return `<div class="collection-item"><label><input type="checkbox" data-collection-item="${id}" ${checked} /> ${titleHtml} (${item.source_name || 'Unknown'} | ${relevanceLabel(item.relevance_status)})</label></div>`;
         }).join('');
 
         div.innerHTML = `
@@ -477,28 +516,105 @@
       await refreshSignals();
     }
 
-    async function setQualificationForSelected(qualified) {
-      const ids = Array.from(selectedCollectionItems.values());
+    async function setRelevanceForIds(ids, relevance, clearSelection = false) {
       if (!ids.length) {
-        setStatus('Select at least 1 card to update qualification.', true);
+        setStatus('Select at least 1 card to update relevance.', true);
         return;
       }
 
-      const result = await postJson('/api/news/items/qualification', { item_ids: ids, qualified });
-      setStatus(`${qualified ? 'Qualified' : 'Unqualified'} ${result.updated_count} cards.`);
-      selectedCollectionItems.clear();
-      updateSelectedCount();
+      const result = await postJson('/api/news/items/relevance', { item_ids: ids, relevance });
+      const label = relevanceLabel(result.relevance_status);
+      setStatus(`${label} ${result.updated_count} cards.`);
+      if (clearSelection) {
+        selectedCollectionItems.clear();
+        updateSelectedCount();
+      }
       await refreshSignals();
       await refreshCollections();
     }
 
-    async function qualifySelected() {
-      await setQualificationForSelected(true);
+    async function setRelevanceForSelected(relevance) {
+      const ids = Array.from(selectedCollectionItems.values());
+      await setRelevanceForIds(ids, relevance, true);
     }
 
-    async function unqualifySelected() {
-      await setQualificationForSelected(false);
+    async function relevantSelected() {
+      await setRelevanceForSelected('relevant');
     }
+
+    async function nonRelevantSelected() {
+      await setRelevanceForSelected('non_relevant');
+    }
+
+    async function clearRatingSelected() {
+      await setRelevanceForSelected('unrated');
+    }
+
+    async function mergeIds(ids) {
+      if (ids.length < 2) {
+        const first = Number(ids[0] || 0);
+        if (first > 0) {
+          selectedCollectionItems.add(first);
+          updateSelectedCount();
+          setStatus('Select one more card, then merge again.', true);
+          return;
+        }
+        setStatus('Select at least 2 cards to merge.', true);
+        return;
+      }
+      const result = await postJson('/api/news/collections/merge', { item_ids: ids });
+      setStatus(`Merged ${result.updated_count} cards into ${result.collection_key}`);
+      await refreshCollections();
+      await refreshSignals();
+    }
+
+    async function unmergeIds(ids) {
+      if (!ids.length) {
+        setStatus('Select at least 1 card to unmerge.', true);
+        return;
+      }
+      const result = await postJson('/api/news/collections/unmerge', { item_ids: ids });
+      setStatus(`Unmerged ${result.updated_count} cards back to automatic grouping.`);
+      await refreshCollections();
+      await refreshSignals();
+    }
+
+    function bindInlineActions(scope) {
+      const root = scope || document;
+      root.querySelectorAll('[data-relevance-item]').forEach(btn => {
+        btn.addEventListener('click', async (evt) => {
+          evt.preventDefault();
+          evt.stopPropagation();
+          const id = Number(btn.getAttribute('data-relevance-item'));
+          const relevance = String(btn.getAttribute('data-relevance-value') || 'unrated');
+          if (!Number.isFinite(id) || id <= 0) return;
+          await setRelevanceForIds([id], relevance, false);
+        });
+      });
+
+      root.querySelectorAll('[data-merge-item]').forEach(btn => {
+        btn.addEventListener('click', async (evt) => {
+          evt.preventDefault();
+          evt.stopPropagation();
+          const id = Number(btn.getAttribute('data-merge-item'));
+          if (!Number.isFinite(id) || id <= 0) return;
+          const selected = Array.from(selectedCollectionItems.values());
+          const ids = selected.length >= 2 ? selected : [id];
+          await mergeIds(ids);
+        });
+      });
+
+      root.querySelectorAll('[data-unmerge-item]').forEach(btn => {
+        btn.addEventListener('click', async (evt) => {
+          evt.preventDefault();
+          evt.stopPropagation();
+          const id = Number(btn.getAttribute('data-unmerge-item'));
+          if (!Number.isFinite(id) || id <= 0) return;
+          await unmergeIds([id]);
+        });
+      });
+    }
+
     function fillEditForm(source) {
       document.getElementById('editIndex').value = source.index;
       document.getElementById('editName').value = source.name || '';
@@ -694,8 +810,11 @@
       document.getElementById('runPipelineBtn').addEventListener('click', runPipeline);
       document.getElementById('mergeBtn').addEventListener('click', mergeSelected);
       document.getElementById('unmergeBtn').addEventListener('click', unmergeSelected);
-      document.getElementById('qualifyBtn').addEventListener('click', qualifySelected);
-      document.getElementById('unqualifyBtn').addEventListener('click', unqualifySelected);
+      document.getElementById('relevantBtn').addEventListener('click', relevantSelected);
+      document.getElementById('nonRelevantBtn').addEventListener('click', nonRelevantSelected);
+      document.getElementById('clearRatingBtn').addEventListener('click', clearRatingSelected);
+      document.getElementById('readingModeBtn').addEventListener('click', () => setViewMode('reading'));
+      document.getElementById('learningModeBtn').addEventListener('click', () => setViewMode('learning'));
       document.getElementById('sourceFilter').addEventListener('change', async () => {
         selectedCollectionItems.clear();
         updateSelectedCount();
