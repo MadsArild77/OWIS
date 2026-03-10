@@ -657,8 +657,15 @@ def run_fetch_process(payload: RunFetchProcessRequest):
             inserted += 1
             inserted_raw_ids.append(int(new_raw_id))
 
-    raws = repo.list_unprocessed_raw_by_ids(inserted_raw_ids)
+    inserted_id_set = {int(x) for x in inserted_raw_ids}
+    raws_new = repo.list_unprocessed_raw_by_ids(inserted_raw_ids)
+    backlog_candidates = repo.list_unprocessed_raw(limit=200)
+    backlog_raws = [r for r in backlog_candidates if int(r.get("id") or 0) not in inserted_id_set]
+    raws = [*raws_new, *backlog_raws]
+
     processed = 0
+    processed_new_items = 0
+    processed_backlog_items = 0
     processing_errors = 0
     processing_error_samples: list[str] = []
     for raw in raws:
@@ -667,6 +674,10 @@ def run_fetch_process(payload: RunFetchProcessRequest):
             repo.save_processed_item(result)
             repo.mark_raw_processed(raw["id"])
             processed += 1
+            if int(raw.get("id") or 0) in inserted_id_set:
+                processed_new_items += 1
+            else:
+                processed_backlog_items += 1
         except Exception as ex:
             processing_errors += 1
             if len(processing_error_samples) < 5:
@@ -713,10 +724,14 @@ def run_fetch_process(payload: RunFetchProcessRequest):
         "since_last": since_last,
         "new_raw_items": inserted,
         "processed_items": processed,
+        "processed_new_items": processed_new_items,
+        "processed_backlog_items": processed_backlog_items,
         "processing_errors": processing_errors,
         "processing_error_samples": processing_error_samples,
         "source_report": source_report,
         "source_health": health_rows,
         "collection_preview": collections,
     }
+
+
 

@@ -156,10 +156,10 @@
         <div>
           <label class="muted">Domain filter</label>
           <select id="domainFilter">
-            <option value="offshore_wind" selected>Offshore wind</option>
+            <option value="offshore_wind">Offshore wind</option>
             <option value="adjacent_energy">Adjacent energy</option>
             <option value="other_energy">Other energy</option>
-            <option value="all">All domains</option>
+            <option value="all" selected>All domains</option>
           </select>
         </div>
       </div>
@@ -335,7 +335,7 @@
 
     function currentDomainFilter() {
       const el = document.getElementById("domainFilter");
-      return (el?.value || "offshore_wind").trim() || "offshore_wind";
+      return (el?.value || "all").trim() || "all";
     }
 
     function sourceFilterQuery() {
@@ -949,7 +949,7 @@
       try {
         const result = await postJson('/api/news/run/fetch-process', { days_back, since_last });
 
-        let msg = `Done. fetched=${result.fetched_candidates}, dropped_old=${result.dropped_old_items || 0}, new=${result.new_raw_items}, processed=${result.processed_items}`;
+        let msg = `Done. fetched=${result.fetched_candidates}, dropped_old=${result.dropped_old_items || 0}, new=${result.new_raw_items}, processed=${result.processed_items} (new=${result.processed_new_items || 0}, backlog=${result.processed_backlog_items || 0})`;
         if ((result.fetched_candidates || 0) === 0 && Array.isArray(result.source_report)) {
           const summary = result.source_report.map(r => `${r.source}:items=${r.items},filtered=${r.filtered || 0}${r.error ? ` (${r.error})` : ''}`).join(' | ');
           msg += ` | sources => ${summary}`;
@@ -1028,3 +1028,4 @@
   </script>
 </body>
 </html>
+
