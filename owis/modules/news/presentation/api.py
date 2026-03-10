@@ -663,6 +663,7 @@ def run_fetch_process(payload: RunFetchProcessRequest):
     backlog_raws = [r for r in backlog_candidates if int(r.get("id") or 0) not in inserted_id_set]
     raws = [*raws_new, *backlog_raws]
 
+    queued_for_processing = len(raws)
     processed = 0
     processed_new_items = 0
     processed_backlog_items = 0
@@ -723,6 +724,7 @@ def run_fetch_process(payload: RunFetchProcessRequest):
         "days_back": days_back,
         "since_last": since_last,
         "new_raw_items": inserted,
+        "queued_for_processing": queued_for_processing,
         "processed_items": processed,
         "processed_new_items": processed_new_items,
         "processed_backlog_items": processed_backlog_items,
@@ -732,6 +734,4 @@ def run_fetch_process(payload: RunFetchProcessRequest):
         "source_health": health_rows,
         "collection_preview": collections,
     }
-
-
 

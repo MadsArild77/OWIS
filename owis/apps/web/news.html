@@ -949,7 +949,10 @@
       try {
         const result = await postJson('/api/news/run/fetch-process', { days_back, since_last });
 
-        let msg = `Done. fetched=${result.fetched_candidates}, dropped_old=${result.dropped_old_items || 0}, new=${result.new_raw_items}, processed=${result.processed_items} (new=${result.processed_new_items || 0}, backlog=${result.processed_backlog_items || 0})`;
+        let msg = `Done. fetched=${result.fetched_candidates}, dropped_old=${result.dropped_old_items || 0}, new=${result.new_raw_items}, queue=${result.queued_for_processing || 0}, processed=${result.processed_items} (new=${result.processed_new_items || 0}, backlog=${result.processed_backlog_items || 0}), errors=${result.processing_errors || 0}`;
+        if (Array.isArray(result.processing_error_samples) && result.processing_error_samples.length ) {
+          msg += ` | sample_error=${result.processing_error_samples[0]}`;
+        }
         if ((result.fetched_candidates || 0) === 0 && Array.isArray(result.source_report)) {
           const summary = result.source_report.map(r => `${r.source}:items=${r.items},filtered=${r.filtered || 0}${r.error ? ` (${r.error})` : ''}`).join(' | ');
           msg += ` | sources => ${summary}`;
