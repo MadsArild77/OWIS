@@ -18,16 +18,16 @@ class NewsRepository:
         cleaned = str(source_name).strip()
         return cleaned or None
 
-    def upsert_raw_item(self, item: dict[str, Any]) -> bool:
+    def upsert_raw_item_get_id(self, item: dict[str, Any]) -> int | None:
         with get_conn() as conn:
             existing = conn.execute(
                 "SELECT id FROM news_raw_items WHERE article_url = ?",
                 (item["article_url"],),
             ).fetchone()
             if existing:
-                return False
+                return None
 
-            conn.execute(
+            cur = conn.execute(
                 """
                 INSERT INTO news_raw_items (
                     source_name, article_url, title_raw, summary_raw,
@@ -46,7 +46,10 @@ class NewsRepository:
                     "new",
                 ),
             )
-            return True
+            return int(cur.lastrowid)
+
+    def upsert_raw_item(self, item: dict[str, Any]) -> bool:
+        return self.upsert_raw_item_get_id(item) is not None
 
     def list_unprocessed_raw(self, limit: int = 50) -> list[dict[str, Any]]:
         with get_conn() as conn:
@@ -58,6 +61,23 @@ class NewsRepository:
                 LIMIT ?
                 """,
                 (limit,),
+            ).fetchall()
+            return [dict(row) for row in rows]
+
+    def list_unprocessed_raw_by_ids(self, raw_ids: list[int]) -> list[dict[str, Any]]:
+        cleaned = self._clean_ids(raw_ids)
+        if not cleaned:
+            return []
+
+        placeholders = ",".join("?" for _ in cleaned)
+        with get_conn() as conn:
+            rows = conn.execute(
+                f"""
+                SELECT * FROM news_raw_items
+                WHERE id IN ({placeholders}) AND status IN ('new', 'parsed')
+                ORDER BY fetched_at DESC
+                """,
+                tuple(cleaned),
             ).fetchall()
             return [dict(row) for row in rows]
 
@@ -569,3 +589,4 @@ class NewsRepository:
                 """
             ).fetchall()
             return [dict(row) for row in rows]
+

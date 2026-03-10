@@ -650,11 +650,14 @@ def run_fetch_process(payload: RunFetchProcessRequest):
         fetched_items.append(item)
 
     inserted = 0
+    inserted_raw_ids: list[int] = []
     for item in fetched_items:
-        if repo.upsert_raw_item(item):
+        new_raw_id = repo.upsert_raw_item_get_id(item)
+        if new_raw_id is not None:
             inserted += 1
+            inserted_raw_ids.append(int(new_raw_id))
 
-    raws = repo.list_unprocessed_raw(limit=200)
+    raws = repo.list_unprocessed_raw_by_ids(inserted_raw_ids)
     processed = 0
     processing_errors = 0
     processing_error_samples: list[str] = []
@@ -716,3 +719,4 @@ def run_fetch_process(payload: RunFetchProcessRequest):
         "source_health": health_rows,
         "collection_preview": collections,
     }
+
