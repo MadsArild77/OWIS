@@ -53,6 +53,44 @@ class AIClient:
             return None
         return None
 
+    def _coerce_confidence(self, value: Any, fallback: float = 0.5) -> float:
+        if value is None:
+            return max(0.0, min(float(fallback), 1.0))
+
+        if isinstance(value, (int, float)):
+            n = float(value)
+            if n > 1.0:
+                n = n / 100.0 if n <= 100.0 else 1.0
+            return max(0.0, min(n, 1.0))
+
+        raw = str(value).strip().lower()
+        if not raw:
+            return max(0.0, min(float(fallback), 1.0))
+
+        labels = {
+            "high": 0.85,
+            "medium": 0.60,
+            "med": 0.60,
+            "low": 0.35,
+            "hoy": 0.85,
+            
+            "middels": 0.60,
+            "lav": 0.35,
+        }
+        if raw in labels:
+            return labels[raw]
+
+        if raw.endswith("%"):
+            raw = raw[:-1].strip()
+
+        try:
+            n = float(raw)
+            if n > 1.0:
+                n = n / 100.0 if n <= 100.0 else 1.0
+            return max(0.0, min(n, 1.0))
+        except Exception:
+            return max(0.0, min(float(fallback), 1.0))
+
     def _post_json_prompt(self, system_prompt: str, user_text: str, max_tokens: int | None = None) -> dict[str, Any] | None:
         if not self.enabled:
             self.last_error = "ai_disabled_or_missing_api_key"
@@ -129,7 +167,7 @@ class AIClient:
             "actors": parsed.get("actors", []),
             "why_it_matters": parsed.get("why_it_matters", ""),
             "linkedin_angle": parsed.get("linkedin_angle", ""),
-            "confidence": float(parsed.get("confidence", 0.65)),
+            "confidence": self._coerce_confidence(parsed.get("confidence"), 0.65),
         }
 
     def classify_news_domain(self, title: str, summary: str, themes: str) -> dict[str, Any] | None:
@@ -154,7 +192,7 @@ class AIClient:
             return None
         return {
             "domain_bucket": bucket,
-            "confidence": max(0.0, min(float(parsed.get("confidence", 0.5)), 1.0)),
+            "confidence": self._coerce_confidence(parsed.get("confidence"), 0.5),
             "reason_short": str(parsed.get("reason_short") or ""),
         }
 
@@ -191,7 +229,7 @@ class AIClient:
 
         return {
             "same_story": same_story,
-            "confidence": max(0.0, min(float(parsed.get("confidence", 0.0)), 1.0)),
+            "confidence": self._coerce_confidence(parsed.get("confidence"), 0.0),
             "reason_short": str(parsed.get("reason_short") or ""),
             "overlap_entities": [str(x).strip() for x in entities if str(x).strip()],
             "overlap_timeframe": str(parsed.get("overlap_timeframe") or ""),
@@ -217,3 +255,4 @@ class AIClient:
             data["probe_ok"] = probe is not None
             data["last_error"] = self.last_error
         return data
+
