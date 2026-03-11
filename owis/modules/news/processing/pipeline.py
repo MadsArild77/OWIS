@@ -150,7 +150,10 @@ def process_raw_item(raw: dict) -> dict:
     text = _clean_text(raw.get("content_raw") or raw.get("summary_raw") or raw.get("title_raw") or "")
 
     ai = AIClient()
-    ai_data = ai.enrich_news(text)
+    try:
+        ai_data = ai.enrich_news(text)
+    except Exception:
+        ai_data = None
 
     theme_tags = _safe_list(ai_data.get("theme_tags") if ai_data else None, _classify_theme(text))
     geo_tags = _safe_list(ai_data.get("geography_tags") if ai_data else None, _classify_geo(text))
@@ -196,6 +199,4 @@ def process_raw_item(raw: dict) -> dict:
         "linkedin_candidate": linkedin_candidate,
         "processed_at": datetime.now(timezone.utc).isoformat(),
     }
-
-
 
