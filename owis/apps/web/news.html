@@ -73,6 +73,35 @@
     .tab-panel.active { display:block; }
     .pager { display:flex; align-items:center; gap:10px; margin-top:12px; }
     .pager button { margin-top:0; padding:6px 10px; font-size:0.82rem; }
+    .card.is-clickable { cursor:pointer; transition:transform 0.14s ease, box-shadow 0.14s ease; }
+    .card.is-clickable:hover { transform:translateY(-2px); box-shadow:0 12px 24px rgba(15,23,42,0.08); }
+    .detail-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15,23,42,0.44);
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 24px;
+      z-index: 1000;
+    }
+    .detail-overlay.open { display: flex; }
+    .detail-panel {
+      width: min(920px, 100%);
+      max-height: calc(100vh - 48px);
+      overflow: auto;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 24px 56px rgba(15,23,42,0.22);
+      padding: 18px;
+    }
+    .detail-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+    .detail-close { margin-top:0; background:#0f172a; }
+    .detail-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-top:14px; }
+    .detail-block { border:1px solid var(--line); border-radius:12px; padding:12px; background:#f8fafc; }
+    .detail-block h4 { margin:0 0 8px; font-size:0.9rem; }
+    .detail-body { white-space:pre-wrap; line-height:1.5; }
   </style>
 </head>
 <body>
@@ -245,6 +274,19 @@
     </section>
   </div>
 
+  <div id="detailOverlay" class="detail-overlay" aria-hidden="true">
+    <div class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+      <div class="detail-head">
+        <div>
+          <h2 id="detailTitle" style="margin:0;">News basis</h2>
+          <div id="detailMeta" class="meta"></div>
+        </div>
+        <button id="detailCloseBtn" class="detail-close" type="button">Close</button>
+      </div>
+      <div id="detailContent" class="detail-body muted" style="margin-top:12px;">Select a card to view details.</div>
+    </div>
+  </div>
+
   <script>
     let currentSources = [];
     let healthStateBySource = {};
@@ -254,6 +296,7 @@
     let mergedItems = [];
     let matchReviewItems = [];
     let viewMode = 'reading';
+    let activeDetailItemId = null;
 
     function relevanceLabel(status) {
       if (status === 'relevant') return 'Relevant';
@@ -309,6 +352,102 @@
         btn.textContent = btn.dataset.defaultLabel || btn.textContent;
       }
     }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function formatCsv(value) {
+      const items = String(value || '')
+        .split(',')
+        .map(x => x.trim())
+        .filter(Boolean);
+      return items.length ? items.join(', ') : 'n/a';
+    }
+
+    function openDetailOverlay() {
+      const overlay = document.getElementById('detailOverlay');
+      overlay?.classList.add('open');
+      overlay?.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeDetailOverlay() {
+      const overlay = document.getElementById('detailOverlay');
+      overlay?.classList.remove('open');
+      overlay?.setAttribute('aria-hidden', 'true');
+      activeDetailItemId = null;
+    }
+
+    async function showItemDetails(itemId) {
+      if (!Number.isFinite(itemId) || itemId <= 0) return;
+
+      activeDetailItemId = itemId;
+      openDetailOverlay();
+      document.getElementById('detailMeta').textContent = `Item #${itemId}`;
+      document.getElementById('detailContent').innerHTML = '<p class="muted">Loading detail...</p>';
+
+      try {
+        const item = await getJson(`/api/news/item/${itemId}`);
+        if (activeDetailItemId !== itemId) return;
+
+        const meta = [
+          item.source_name || 'Unknown source',
+          item.published_at || 'Unknown published date',
+          `Score ${item.signal_score ?? 'n/a'}`,
+          `Confidence ${item.confidence ?? 'n/a'}`,
+        ].join(' | ');
+
+        document.getElementById('detailTitle').textContent = item.title || 'Untitled';
+        document.getElementById('detailMeta').textContent = meta;
+        document.getElementById('detailContent').innerHTML = `
+          <div class="detail-grid">
+            <div class="detail-block">
+              <h4>Why it matters</h4>
+              <div>${escapeHtml(item.why_it_matters || 'n/a')}</div>
+            </div>
+            <div class="detail-block">
+              <h4>Themes</h4>
+              <div>${escapeHtml(formatCsv(item.theme_tags))}</div>
+            </div>
+            <div class="detail-block">
+              <h4>Geography</h4>
+              <div>${escapeHtml(formatCsv(item.geography_tags))}</div>
+            </div>
+            <div class="detail-block">
+              <h4>Actors</h4>
+              <div>${escapeHtml(formatCsv(item.actors))}</div>
+            </div>
+          </div>
+          <div class="detail-grid">
+            <div class="detail-block">
+              <h4>Summary</h4>
+              <div>${escapeHtml(item.summary || 'n/a')}</div>
+            </div>
+            <div class="detail-block">
+              <h4>LinkedIn angle</h4>
+              <div>${escapeHtml(item.linkedin_angle || 'n/a')}</div>
+            </div>
+          </div>
+          <div class="detail-block" style="margin-top:14px;">
+            <h4>Underlying text used in processing</h4>
+            <div>${escapeHtml(item.cleaned_text || 'n/a')}</div>
+          </div>
+          <div class="detail-block" style="margin-top:14px;">
+            <h4>Source article</h4>
+            <div><a href="${escapeHtml(item.article_url || '#')}" target="_blank" rel="noopener noreferrer">Open original source</a></div>
+          </div>
+        `;
+      } catch (error) {
+        if (activeDetailItemId !== itemId) return;
+        document.getElementById('detailContent').innerHTML = '<p class="muted">Failed to load detail for this item.</p>';
+      }
+    }
+
     function renderAiStatus(data) {
       const el = document.getElementById('aiStatus');
       if (!el) return;
@@ -449,7 +588,7 @@
       for (const item of items) {
         const paywalled = isPaywalled(item);
         const div = document.createElement('article');
-        div.className = 'card';
+        div.className = 'card is-clickable';
         const itemId = Number(item.id || 0);
         const relevance = relevanceLabel(item.relevance_status);
         const leadText = viewMode === 'learning'
@@ -476,10 +615,13 @@
           ${learningActions}
           <div class="selection-row"><label><input type="checkbox" data-collection-item="${itemId}" ${selectedCollectionItems.has(itemId) ? 'checked' : ''} /> Select</label></div>
         `;
-        div.style.cursor = 'pointer';
-        div.title = 'Click card to open source';
+        div.title = 'Click card to view basis';
         div.addEventListener('click', (evt) => {
           if (evt.target.closest('a') || evt.target.closest('input') || evt.target.closest('button')) return;
+          if (itemId > 0) {
+            showItemDetails(itemId);
+            return;
+          }
           const url = item.article_url || '';
           if (url) window.open(url, '_blank', 'noopener,noreferrer');
         });
@@ -997,6 +1139,13 @@
       document.getElementById('clearRatingBtn').addEventListener('click', clearRatingSelected);
       document.getElementById('readingModeBtn').addEventListener('click', () => setViewMode('reading'));
       document.getElementById('learningModeBtn').addEventListener('click', () => setViewMode('learning'));
+      document.getElementById('detailCloseBtn').addEventListener('click', closeDetailOverlay);
+      document.getElementById('detailOverlay').addEventListener('click', (evt) => {
+        if (evt.target === evt.currentTarget) closeDetailOverlay();
+      });
+      document.addEventListener('keydown', (evt) => {
+        if (evt.key === 'Escape') closeDetailOverlay();
+      });
       const onGlobalFilterChange = async () => {
         selectedCollectionItems.clear();
         updateSelectedCount();
