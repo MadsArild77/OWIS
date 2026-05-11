@@ -42,6 +42,9 @@ def _render_index() -> str:
         "PORTAL_INTRO",
         "One clean front door for the apps we build and run. Keep one stable landing page and jump straight into the right tool.",
     ).strip()
+    home_url = os.getenv("PORTAL_HOME_URL", "https://northernblue.eu").strip() or "https://northernblue.eu"
+    about_url = os.getenv("PORTAL_ABOUT_URL", "https://northernblue.eu/about").strip() or "https://northernblue.eu/about"
+    contact_url = os.getenv("PORTAL_CONTACT_URL", "https://northernblue.eu/contact").strip() or "https://northernblue.eu/contact"
 
     cards = []
     for item in _app_cards():
@@ -56,9 +59,9 @@ def _render_index() -> str:
         cards.append(
             f"""
             <article class="card">
-              <div class="orb">{initial}</div>
               <div class="card-top">
                 <div>
+                  <div class="orb">{initial}</div>
                   <p class="eyebrow">{escape(str(item["host"]))}</p>
                   <h2>{escape(str(item["name"]))}</h2>
                 </div>
@@ -78,18 +81,17 @@ def _render_index() -> str:
   <title>{escape(title)}</title>
   <style>
     :root {{
-      --bg: #f4efe6;
-      --bg-soft: #fbf8f2;
-      --ink: #16233b;
-      --muted: #5f6c83;
-      --panel: rgba(255,255,255,0.82);
-      --line: rgba(22,35,59,0.10);
-      --brand: #0f766e;
-      --brand-strong: #115e59;
-      --warning: #9a3412;
-      --warning-bg: #fff1e7;
-      --live-bg: #ecfdf5;
-      --shadow: 0 24px 60px rgba(22,35,59,0.10);
+      --page: #ffffff;
+      --ink: #0c1a2b;
+      --muted: rgba(12,26,43,0.64);
+      --line: #e2e8f0;
+      --accent: #0ea5e9;
+      --accent-soft: rgba(14,165,233,0.12);
+      --accent-strong: #0284c7;
+      --live-bg: rgba(14,165,233,0.10);
+      --warn-bg: #fff7ed;
+      --warn-ink: #9a3412;
+      --footer: #0c1a2b;
     }}
     * {{ box-sizing: border-box; }}
     body {{
@@ -97,244 +99,288 @@ def _render_index() -> str:
       min-height: 100vh;
       font-family: Georgia, "Times New Roman", serif;
       color: var(--ink);
-      background:
-        radial-gradient(circle at top left, rgba(15,118,110,0.18), transparent 30%),
-        radial-gradient(circle at 85% 18%, rgba(217,119,6,0.14), transparent 22%),
-        radial-gradient(circle at 50% 100%, rgba(22,35,59,0.06), transparent 26%),
-        linear-gradient(180deg, var(--bg-soft) 0%, var(--bg) 100%);
+      background: var(--page);
     }}
-    .wrap {{
-      max-width: 1180px;
-      margin: 0 auto;
-      padding: 40px 24px 64px;
+    a {{
+      color: inherit;
     }}
-    .hero {{
-      display: grid;
-      grid-template-columns: 1.4fr 0.8fr;
-      gap: 24px;
-      align-items: stretch;
-      margin-bottom: 24px;
-    }}
-    .hero-panel, .meta-panel, .card {{
-      border: 1px solid var(--line);
-      border-radius: 28px;
-      background: var(--panel);
-      backdrop-filter: blur(12px);
-      box-shadow: var(--shadow);
-    }}
-    .hero-panel {{
-      position: relative;
-      overflow: hidden;
-      padding: 32px;
-    }}
-    .meta-panel {{
-      padding: 24px;
+    .shell {{
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
+    }}
+    .topbar {{
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }}
+    .topbar-inner {{
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
       justify-content: space-between;
+      gap: 16px;
     }}
-    .hero-panel::before {{
-      content: "";
-      position: absolute;
-      inset: auto -60px -70px auto;
-      width: 220px;
-      height: 220px;
-      border-radius: 999px;
-      background: radial-gradient(circle, rgba(15,118,110,0.22), rgba(15,118,110,0));
-      pointer-events: none;
+    .brand {{
+      text-decoration: none;
+      font: 700 1.05rem/1 "Segoe UI", Tahoma, sans-serif;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink);
     }}
-    .hero-panel::after {{
-      content: "";
-      position: absolute;
-      top: 22px;
-      right: 22px;
-      width: 86px;
-      height: 86px;
-      border-radius: 24px;
-      border: 1px solid rgba(17,94,89,0.16);
-      background: linear-gradient(180deg, rgba(255,255,255,0.7), rgba(236,253,245,0.72));
-      transform: rotate(10deg);
+    .brand span {{
+      color: var(--accent);
+    }}
+    .topnav {{
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      font: 600 0.92rem/1.2 "Segoe UI", Tahoma, sans-serif;
+      color: var(--muted);
+    }}
+    .topnav a {{
+      text-decoration: none;
+    }}
+    .topnav a:hover {{
+      color: var(--accent-strong);
+    }}
+    .wrap {{
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 56px 24px 72px;
     }}
     .eyebrow {{
-      margin: 0 0 10px;
-      color: var(--brand-strong);
+      margin: 0 0 14px;
+      color: var(--accent);
       text-transform: uppercase;
-      letter-spacing: 0.12em;
+      letter-spacing: 0.16em;
       font: 700 0.75rem/1.2 "Segoe UI", Tahoma, sans-serif;
+    }}
+    .hero {{
+      max-width: 860px;
+      margin-bottom: 44px;
     }}
     h1 {{
       margin: 0;
-      max-width: 10ch;
-      font-size: clamp(2.7rem, 5vw, 5rem);
-      line-height: 0.9;
+      max-width: 9ch;
+      font-size: clamp(3rem, 5vw, 5.4rem);
+      line-height: 0.92;
       font-weight: 700;
       letter-spacing: -0.04em;
     }}
     .lead {{
-      max-width: 52ch;
-      margin: 18px 0 0;
+      max-width: 62ch;
+      margin: 20px 0 0;
       color: var(--muted);
-      font: 400 1.02rem/1.75 "Segoe UI", Tahoma, sans-serif;
+      font: 400 1.08rem/1.8 "Segoe UI", Tahoma, sans-serif;
     }}
-    .meta-panel h3 {{
-      margin: 0 0 12px;
-      font-size: 1.15rem;
-    }}
-    .meta-panel p {{
-      margin: 0 0 10px;
+    .intro-strip {{
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
       color: var(--muted);
+      font: 600 0.88rem/1.5 "Segoe UI", Tahoma, sans-serif;
+    }}
+    .intro-pill {{
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+    }}
+    .section-head {{
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 16px;
+      margin-bottom: 18px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+    }}
+    .section-head h2 {{
+      margin: 0;
+      font-size: 2rem;
+      letter-spacing: -0.03em;
+    }}
+    .section-head p {{
+      margin: 0;
+      max-width: 48ch;
+      color: var(--muted);
+      text-align: right;
       font: 400 0.95rem/1.6 "Segoe UI", Tahoma, sans-serif;
-    }}
-    .meta-panel code {{
-      font-family: Consolas, monospace;
-      font-size: 0.9rem;
     }}
     .grid {{
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 18px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0;
+      border-top: 1px solid var(--line);
     }}
     .card {{
-      position: relative;
-      overflow: hidden;
-      padding: 22px;
-      min-height: 260px;
+      padding: 28px 0 28px 26px;
+      min-height: 0;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+      border-bottom: 1px solid var(--line);
+      border-left: 4px solid transparent;
+      transition: border-color 160ms ease, background 160ms ease;
     }}
     .card:hover {{
-      transform: translateY(-4px);
-      box-shadow: 0 30px 70px rgba(22,35,59,0.14);
-      border-color: rgba(17,94,89,0.18);
-    }}
-    .card::after {{
-      content: "";
-      position: absolute;
-      right: -30px;
-      bottom: -30px;
-      width: 120px;
-      height: 120px;
-      border-radius: 999px;
-      background: radial-gradient(circle, rgba(15,118,110,0.10), rgba(15,118,110,0));
-      pointer-events: none;
+      border-left-color: var(--accent);
+      background: linear-gradient(90deg, rgba(14,165,233,0.04), rgba(14,165,233,0));
     }}
     .orb {{
-      width: 52px;
-      height: 52px;
+      width: 34px;
+      height: 34px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      border-radius: 16px;
-      margin-bottom: 22px;
-      color: var(--ink);
-      background: linear-gradient(135deg, rgba(15,118,110,0.18), rgba(217,119,6,0.12));
-      border: 1px solid rgba(17,94,89,0.10);
-      font: 700 1.1rem/1 "Segoe UI", Tahoma, sans-serif;
+      border-radius: 999px;
+      margin-bottom: 14px;
+      color: var(--accent-strong);
+      background: var(--accent-soft);
+      font: 700 0.88rem/1 "Segoe UI", Tahoma, sans-serif;
     }}
     .card-top {{
       display: flex;
       justify-content: space-between;
-      gap: 12px;
+      gap: 16px;
       align-items: start;
     }}
     .card h2 {{
       margin: 0;
-      font-size: 1.55rem;
+      font-size: 1.6rem;
       letter-spacing: -0.03em;
     }}
     .summary {{
-      margin: 16px 0 20px;
+      margin: 14px 0 18px;
       color: var(--muted);
-      font: 400 0.96rem/1.68 "Segoe UI", Tahoma, sans-serif;
+      max-width: 48ch;
+      font: 400 0.96rem/1.72 "Segoe UI", Tahoma, sans-serif;
     }}
     .badge {{
       display: inline-flex;
       align-items: center;
-      border-radius: 999px;
-      padding: 6px 10px;
+      border-radius: 4px;
+      padding: 6px 9px;
       white-space: nowrap;
       font: 700 0.74rem/1 "Segoe UI", Tahoma, sans-serif;
     }}
     .badge-live {{
-      color: var(--brand-strong);
+      color: var(--accent-strong);
       background: var(--live-bg);
     }}
     .badge-missing {{
-      color: var(--warning);
-      background: var(--warning-bg);
+      color: var(--warn-ink);
+      background: var(--warn-bg);
     }}
     .cta {{
       display: inline-flex;
       width: fit-content;
       align-items: center;
       gap: 8px;
-      border-radius: 999px;
-      padding: 12px 18px;
+      border-radius: 0;
+      padding: 0 0 4px;
       text-decoration: none;
-      background: linear-gradient(135deg, var(--brand), var(--brand-strong));
-      color: #fff;
-      font: 700 0.92rem/1 "Segoe UI", Tahoma, sans-serif;
-      box-shadow: 0 12px 24px rgba(15,118,110,0.20);
+      border-bottom: 2px solid var(--accent);
+      color: var(--accent-strong);
+      font: 700 0.92rem/1.2 "Segoe UI", Tahoma, sans-serif;
     }}
     .cta-disabled {{
-      background: #e5e7eb;
-      color: #6b7280;
+      border-bottom-color: #cbd5e1;
+      color: #94a3b8;
       cursor: default;
-      box-shadow: none;
     }}
     .footer {{
-      margin-top: 18px;
-      color: var(--muted);
+      margin-top: auto;
+      background: var(--footer);
+      color: rgba(255,255,255,0.72);
+    }}
+    .footer-inner {{
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 26px 24px 30px;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
       font: 400 0.9rem/1.6 "Segoe UI", Tahoma, sans-serif;
     }}
+    .footer a {{
+      color: #fff;
+      text-decoration: none;
+    }}
     @media (max-width: 860px) {{
-      .hero {{
-        grid-template-columns: 1fr;
+      .topbar-inner,
+      .section-head,
+      .footer-inner {{
+        flex-direction: column;
+        align-items: flex-start;
       }}
       .wrap {{
         padding: 24px 16px 40px;
       }}
-      .hero-panel,
-      .meta-panel,
-      .card {{
-        border-radius: 22px;
-      }}
-      .hero-panel {{
-        padding: 24px;
-      }}
       h1 {{
         max-width: none;
+      }}
+      .section-head p {{
+        text-align: left;
+      }}
+      .grid {{
+        grid-template-columns: 1fr;
+      }}
+      .card {{
+        padding-left: 18px;
       }}
     }}
   </style>
 </head>
 <body>
-  <main class="wrap">
-    <section class="hero">
-      <div class="hero-panel">
+  <div class="shell">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="{escape(home_url, quote=True)}" target="_blank" rel="noopener noreferrer">Northern<span>Blue</span></a>
+        <nav class="topnav" aria-label="NorthernBlue navigation">
+          <a href="{escape(home_url, quote=True)}" target="_blank" rel="noopener noreferrer">Home</a>
+          <a href="{escape(about_url, quote=True)}" target="_blank" rel="noopener noreferrer">About</a>
+          <a href="{escape(contact_url, quote=True)}" target="_blank" rel="noopener noreferrer">Contact</a>
+        </nav>
+      </div>
+    </header>
+    <main class="wrap">
+      <section class="hero">
         <p class="eyebrow">Shared Entry Point</p>
         <h1>{escape(title)}</h1>
         <p class="lead">{escape(intro)}</p>
-      </div>
-      <aside class="meta-panel">
-        <div>
-          <h3>Configuration</h3>
-          <p>Set each app URL as an environment variable on the Railway service.</p>
-          <p><code>PORTAL_MARKETINGHUB_URL</code></p>
-          <p><code>PORTAL_OWIS_URL</code></p>
-          <p><code>PORTAL_OPPORTUNITIES_URL</code></p>
-          <p><code>PORTAL_UMAMU_URL</code></p>
+        <div class="intro-strip">
+          <span class="intro-pill">Independent advisory</span>
+          <span class="intro-pill">Operational tools</span>
+          <span class="intro-pill">One canonical entry point</span>
         </div>
-        <p>Missing URLs are shown clearly so the landing page still works before everything is wired up.</p>
-      </aside>
-    </section>
-    <section class="grid">
-      {''.join(cards)}
-    </section>
-    <p class="footer">Deploy this as its own Railway service and use it as the canonical index for your app stack.</p>
-  </main>
+      </section>
+      <section>
+        <div class="section-head">
+          <h2>Applications</h2>
+          <p>Fast access to the systems behind NorthernBlue operations, market intelligence, outreach, and analytics.</p>
+        </div>
+        <div class="grid">
+          {''.join(cards)}
+        </div>
+      </section>
+    </main>
+    <footer class="footer">
+      <div class="footer-inner">
+        <span>NorthernBlue is an independent offshore wind advisory firm based in Haugesund, Norway.</span>
+        <a href="{escape(contact_url, quote=True)}" target="_blank" rel="noopener noreferrer">Get in touch</a>
+      </div>
+    </footer>
+  </div>
 </body>
 </html>"""
 
