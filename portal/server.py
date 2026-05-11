@@ -81,17 +81,21 @@ def _render_index() -> str:
   <title>{escape(title)}</title>
   <style>
     :root {{
-      --page: #ffffff;
-      --ink: #0c1a2b;
-      --muted: rgba(12,26,43,0.64);
-      --line: #e2e8f0;
-      --accent: #0ea5e9;
-      --accent-soft: rgba(14,165,233,0.12);
-      --accent-strong: #0284c7;
-      --live-bg: rgba(14,165,233,0.10);
-      --warn-bg: #fff7ed;
-      --warn-ink: #9a3412;
-      --footer: #0c1a2b;
+      --page: #06101d;
+      --page-top: #0a1424;
+      --page-bottom: #040914;
+      --ink: #eef6ff;
+      --muted: rgba(220,232,248,0.74);
+      --line: rgba(148, 184, 224, 0.14);
+      --panel: rgba(10, 19, 34, 0.56);
+      --panel-strong: rgba(13, 25, 44, 0.72);
+      --accent: #60a5fa;
+      --accent-soft: rgba(96,165,250,0.16);
+      --accent-strong: #93c5fd;
+      --live-bg: rgba(96,165,250,0.12);
+      --warn-bg: rgba(245, 158, 11, 0.12);
+      --warn-ink: #fcd34d;
+      --footer: rgba(5, 11, 21, 0.86);
     }}
     * {{ box-sizing: border-box; }}
     body {{
@@ -99,7 +103,11 @@ def _render_index() -> str:
       min-height: 100vh;
       font-family: Georgia, "Times New Roman", serif;
       color: var(--ink);
-      background: var(--page);
+      background:
+        radial-gradient(circle at 12% 12%, rgba(96,165,250,0.18), transparent 24%),
+        radial-gradient(circle at 82% 18%, rgba(45,212,191,0.12), transparent 20%),
+        radial-gradient(circle at 50% 100%, rgba(59,130,246,0.10), transparent 26%),
+        linear-gradient(180deg, var(--page-top) 0%, var(--page) 44%, var(--page-bottom) 100%);
     }}
     a {{
       color: inherit;
@@ -110,8 +118,12 @@ def _render_index() -> str:
       flex-direction: column;
     }}
     .topbar {{
+      position: sticky;
+      top: 0;
+      z-index: 20;
       border-bottom: 1px solid var(--line);
-      background: #fff;
+      background: rgba(6, 16, 29, 0.62);
+      backdrop-filter: blur(18px) saturate(140%);
     }}
     .topbar-inner {{
       max-width: 1160px;
@@ -128,6 +140,7 @@ def _render_index() -> str:
       letter-spacing: 0.14em;
       text-transform: uppercase;
       color: var(--ink);
+      text-shadow: 0 0 20px rgba(96,165,250,0.16);
     }}
     .brand span {{
       color: var(--accent);
@@ -137,18 +150,18 @@ def _render_index() -> str:
       gap: 18px;
       flex-wrap: wrap;
       font: 600 0.92rem/1.2 "Segoe UI", Tahoma, sans-serif;
-      color: var(--muted);
+      color: rgba(220,232,248,0.66);
     }}
     .topnav a {{
       text-decoration: none;
     }}
     .topnav a:hover {{
-      color: var(--accent-strong);
+      color: #dbeafe;
     }}
     .wrap {{
       max-width: 1160px;
       margin: 0 auto;
-      padding: 56px 24px 72px;
+      padding: 64px 24px 84px;
     }}
     .eyebrow {{
       margin: 0 0 14px;
@@ -159,7 +172,18 @@ def _render_index() -> str:
     }}
     .hero {{
       max-width: 860px;
-      margin-bottom: 44px;
+      margin-bottom: 48px;
+      position: relative;
+      padding: 30px 32px;
+      border: 1px solid rgba(148, 184, 224, 0.12);
+      border-radius: 28px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
+        var(--panel);
+      backdrop-filter: blur(18px) saturate(150%);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.05),
+        0 24px 70px rgba(0,0,0,0.26);
     }}
     h1 {{
       margin: 0;
@@ -191,8 +215,9 @@ def _render_index() -> str:
       gap: 8px;
       padding: 8px 12px;
       border-radius: 999px;
-      background: #f8fafc;
+      background: rgba(255,255,255,0.04);
       border: 1px solid var(--line);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
     }}
     .section-head {{
       display: flex;
@@ -218,33 +243,51 @@ def _render_index() -> str:
     .grid {{
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 0;
-      border-top: 1px solid var(--line);
+      gap: 16px;
+      border-top: 0;
     }}
     .card {{
-      padding: 28px 0 28px 26px;
+      padding: 28px 26px 26px;
       min-height: 0;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      border-bottom: 1px solid var(--line);
-      border-left: 4px solid transparent;
-      transition: border-color 160ms ease, background 160ms ease;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
+        var(--panel);
+      backdrop-filter: blur(20px) saturate(150%);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.04),
+        0 18px 48px rgba(0,0,0,0.22);
+      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
     }}
     .card:hover {{
-      border-left-color: var(--accent);
-      background: linear-gradient(90deg, rgba(14,165,233,0.04), rgba(14,165,233,0));
+      transform: translateY(-4px);
+      border-color: rgba(147,197,253,0.26);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03)),
+        var(--panel-strong);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.05),
+        0 24px 64px rgba(0,0,0,0.28),
+        0 0 0 1px rgba(96,165,250,0.05);
     }}
     .orb {{
-      width: 34px;
-      height: 34px;
+      width: 38px;
+      height: 38px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       border-radius: 999px;
       margin-bottom: 14px;
-      color: var(--accent-strong);
-      background: var(--accent-soft);
+      color: #dbeafe;
+      background: linear-gradient(135deg, rgba(96,165,250,0.26), rgba(45,212,191,0.14));
+      border: 1px solid rgba(148, 184, 224, 0.18);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.08),
+        0 10px 24px rgba(96,165,250,0.12);
       font: 700 0.88rem/1 "Segoe UI", Tahoma, sans-serif;
     }}
     .card-top {{
@@ -267,39 +310,45 @@ def _render_index() -> str:
     .badge {{
       display: inline-flex;
       align-items: center;
-      border-radius: 4px;
+      border-radius: 999px;
       padding: 6px 9px;
       white-space: nowrap;
       font: 700 0.74rem/1 "Segoe UI", Tahoma, sans-serif;
+      border: 1px solid transparent;
     }}
     .badge-live {{
-      color: var(--accent-strong);
+      color: #dbeafe;
       background: var(--live-bg);
+      border-color: rgba(96,165,250,0.16);
     }}
     .badge-missing {{
       color: var(--warn-ink);
       background: var(--warn-bg);
+      border-color: rgba(245,158,11,0.14);
     }}
     .cta {{
       display: inline-flex;
       width: fit-content;
       align-items: center;
       gap: 8px;
-      border-radius: 0;
-      padding: 0 0 4px;
+      border-radius: 999px;
+      padding: 10px 14px;
       text-decoration: none;
-      border-bottom: 2px solid var(--accent);
-      color: var(--accent-strong);
+      border: 1px solid rgba(148, 184, 224, 0.16);
+      background: rgba(255,255,255,0.04);
+      color: #eff6ff;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
       font: 700 0.92rem/1.2 "Segoe UI", Tahoma, sans-serif;
     }}
     .cta-disabled {{
-      border-bottom-color: #cbd5e1;
-      color: #94a3b8;
+      border-color: rgba(148, 184, 224, 0.10);
+      color: rgba(220,232,248,0.42);
       cursor: default;
     }}
     .footer {{
       margin-top: auto;
       background: var(--footer);
+      border-top: 1px solid rgba(148, 184, 224, 0.10);
       color: rgba(255,255,255,0.72);
     }}
     .footer-inner {{
@@ -313,7 +362,7 @@ def _render_index() -> str:
       font: 400 0.9rem/1.6 "Segoe UI", Tahoma, sans-serif;
     }}
     .footer a {{
-      color: #fff;
+      color: var(--accent-strong);
       text-decoration: none;
     }}
     @media (max-width: 860px) {{
@@ -336,7 +385,10 @@ def _render_index() -> str:
         grid-template-columns: 1fr;
       }}
       .card {{
-        padding-left: 18px;
+        padding: 22px 18px;
+      }}
+      .hero {{
+        padding: 24px 20px;
       }}
     }}
   </style>
