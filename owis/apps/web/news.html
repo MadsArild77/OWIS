@@ -344,6 +344,34 @@
       display: none;
     }
     .run-progress-warning.active { display: block; }
+    .source-progress-list {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 8px;
+    }
+    .source-progress-item {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.055);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+    .source-progress-name {
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: var(--ink);
+    }
+    .source-progress-detail {
+      margin-top: 3px;
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+    .source-progress-item.is-error {
+      border-color: rgba(248,113,113,0.38);
+      background: rgba(127,29,29,0.18);
+    }
     .sources-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
     .sources-table th, .sources-table td { border-bottom: 1px solid var(--line); padding: 8px; text-align: left; }
     .count-badge {
@@ -450,7 +478,7 @@
     .detail-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-top:12px; }
     .detail-block { border:1px solid var(--line); border-radius:12px; padding:12px; background:rgba(255,255,255,0.06); }
     .detail-block h4 { margin:0 0 8px; font-size:0.9rem; }
-    .detail-body { white-space:pre-wrap; line-height:1.5; }
+    .detail-body { white-space:normal; line-height:1.5; }
     .detail-summary {
       padding: 10px 12px;
       border: 1px solid var(--line);
@@ -546,6 +574,9 @@
       grid-template-columns: minmax(0, 1.3fr) minmax(220px, 0.8fr);
       gap: 12px;
       align-items: start;
+    }
+    .detail-topline.no-image {
+      grid-template-columns: 1fr;
     }
     .detail-preview-text {
       min-width: 0;
@@ -732,6 +763,7 @@
         <div id="runProgressWarning" class="run-progress-warning">
           This run is taking longer than expected. It may still be working, but it could also be waiting on a slow source.
         </div>
+        <div id="sourceProgressList" class="source-progress-list"></div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
         <span id="aiStatus" class="muted">AI: unknown</span>
@@ -892,6 +924,37 @@
       renderRunProgress();
     }
 
+    function sourceProgressKey(row) {
+      const source = String(row?.source || 'unknown').trim() || 'unknown';
+      const method = String(row?.type || row?.method || 'fetch').trim() || 'fetch';
+      return `[${source}:${method}]`;
+    }
+
+    function renderSourceProgress(rows = []) {
+      const root = document.getElementById('sourceProgressList');
+      if (!root) return;
+      if (!Array.isArray(rows) || rows.length === 0) {
+        root.innerHTML = '';
+        return;
+      }
+      root.innerHTML = rows.map(row => {
+        const items = Number(row.items || 0);
+        const filtered = Number(row.filtered || 0);
+        const error = row.error ? String(row.error) : '';
+        const health = row.health ? ` | health=${escapeHtml(row.health)}` : '';
+        const paywalled = row.paywalled ? ` | paywall=${Number(row.paywalled || 0)}` : '';
+        const detail = error
+          ? `error=${escapeHtml(error.slice(0, 110))}`
+          : `items=${items} | filtered=${filtered}${paywalled}${health}`;
+        return `
+          <div class="source-progress-item ${error ? 'is-error' : ''}">
+            <div class="source-progress-name">${escapeHtml(sourceProgressKey(row))}</div>
+            <div class="source-progress-detail">${detail}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
     function stopRunProgress(success = true, finalStep = '') {
       if (runProgressTimer) {
         clearInterval(runProgressTimer);
@@ -936,6 +999,7 @@
       if (step) step.textContent = `Starting run (days_back=${daysBack}, since_last=${sinceLast})`;
       if (warning) warning.classList.remove('active');
       if (time) time.textContent = '00:00';
+      renderSourceProgress([]);
       renderRunProgress();
 
       if (runProgressTimer) clearInterval(runProgressTimer);
@@ -1113,6 +1177,23 @@
       return out;
     }
 
+    function truncateDetailText(value, maxLength = 1200) {
+      const text = String(value || '').trim();
+      if (text.length <= maxLength) return text;
+      const clipped = text.slice(0, maxLength);
+      const sentenceEnd = Math.max(clipped.lastIndexOf('. '), clipped.lastIndexOf('! '), clipped.lastIndexOf('? '));
+      return `${clipped.slice(0, sentenceEnd > 420 ? sentenceEnd + 1 : maxLength).trim()} ...`;
+    }
+
+    function buildCaseDescription(summaryText, ...contextValues) {
+      const summary = String(summaryText || '').trim();
+      const [context = ''] = uniqueDetailBlocks(...contextValues);
+      if (!summary) return truncateDetailText(context || 'n/a');
+      if (!context || isDuplicateDetailText(context, [summary])) return summary;
+      if (summary.length >= 520) return summary;
+      return `${summary}\n\n${truncateDetailText(context, 850)}`;
+    }
+
     function openDetailOverlay() {
       const overlay = document.getElementById('detailOverlay');
       overlay?.classList.add('open');
@@ -1149,7 +1230,8 @@
           `Confidence ${item.confidence ?? 'n/a'}`,
         ].join(' | ');
         const summaryText = item.summary || preview.description || '';
-        const [leadText = '', excerptText = '', sourceContext = ''] = uniqueDetailBlocks(
+        const caseDescription = buildCaseDescription(
+          summaryText,
           preview.description,
           preview.preview_excerpt,
           item.cleaned_text,
@@ -1158,19 +1240,20 @@
         const hasLinkedInSuggestion = Boolean(item.linkedin_angle);
         const detailImageUrl = preview.image_url || item.image_url || '';
         const imageHtml = detailImageUrl
-          ? `<img class="detail-preview-image" src="${escapeHtml(detailImageUrl)}" alt="${escapeHtml(item.title || 'Article image')}" />`
+          ? `<img class="detail-preview-image" src="${escapeHtml(detailImageUrl)}" alt="${escapeHtml(item.title || 'Article image')}" onerror="this.remove()" />`
           : '';
+        const imagePanelHtml = imageHtml ? `<div>${imageHtml}</div>` : '';
 
         document.getElementById('detailTitle').textContent = item.title || 'Untitled';
         document.getElementById('detailMeta').textContent = meta;
         updateDetailNavButtons(itemId);
         document.getElementById('detailContent').innerHTML = `
-          <div class="detail-topline">
+          <div class="detail-topline ${imageHtml ? 'has-image' : 'no-image'}">
             <div class="detail-summary">
-              <strong>Summary</strong>
-              <div>${escapeHtml(summaryText || leadText || 'n/a')}</div>
+              <strong>Case description</strong>
+              <div>${escapeHtml(caseDescription)}</div>
             </div>
-            <div>${imageHtml}</div>
+            ${imagePanelHtml}
           </div>
           <div class="detail-why">
             <strong>Why it matters</strong>
@@ -1193,20 +1276,6 @@
             ${detailMetaChip('Score', String(item.signal_score ?? 'n/a'))}
             ${detailMetaChip('Confidence', String(item.confidence ?? 'n/a'))}
           </div>
-          ${(leadText || excerptText) ? `
-            <div class="detail-preview">
-              <div class="detail-preview-text">
-                ${leadText ? `<div class="detail-preview-lead">${escapeHtml(leadText)}</div>` : ''}
-                ${excerptText ? `<div class="detail-preview-excerpt">${escapeHtml(excerptText)}</div>` : ''}
-              </div>
-            </div>
-          ` : ''}
-          ${sourceContext ? `
-            <div class="detail-source-context">
-              <h4>From source article</h4>
-              <div class="detail-source-context-text">${escapeHtml(sourceContext)}</div>
-            </div>
-          ` : ''}
           <div class="detail-source-link"><a href="${escapeHtml(item.article_url || '#')}" target="_blank" rel="noopener noreferrer">Open original source</a></div>
         `;
         document.querySelectorAll('[data-toggle-linkedin]').forEach(btn => {
@@ -1966,6 +2035,7 @@
         const result = await postJson('/api/news/run/fetch-process', { days_back, since_last });
         latestSourceReportBySource = {};
         if (Array.isArray(result.source_report)) {
+          renderSourceProgress(result.source_report);
           for (const row of result.source_report) {
             if (row?.source) latestSourceReportBySource[row.source] = row;
           }

@@ -54,7 +54,7 @@ def _summary(text: str) -> str:
     if not text:
         return "No summary available."
     sentences = re.split(r"(?<=[.!?])\s+", text)
-    return " ".join(sentences[:3]).strip()[:700]
+    return " ".join(sentences[:5]).strip()[:1100]
 
 
 def _contains_token(text: str, token: str) -> bool:
