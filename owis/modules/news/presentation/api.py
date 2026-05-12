@@ -361,6 +361,7 @@ def _build_collections(
                 "primary_theme": top_themes[0][0] if top_themes else "general_news",
                 "primary_geography": top_geos[0][0] if top_geos else "Global",
                 "master": {
+                    "lead_item_id": int(lead_item.get("id") or 0),
                     "title": lead_item.get("title") or "Merged story",
                     "summary": lead_item.get("summary") or "",
                     "why_it_matters": lead_item.get("why_it_matters") or "",

@@ -6,31 +6,130 @@
   <title>OWIS News</title>
   <style>
     :root {
-      --bg: #f6f8fa;
-      --panel: #ffffff;
-      --ink: #0f172a;
-      --muted: #475569;
-      --line: #e2e8f0;
-      --brand: #0b5fff;
-      --ok: #0f766e;
-      --warn: #b45309;
+      --bg: #07111f;
+      --bg-2: #0b1d33;
+      --panel: rgba(8, 21, 38, 0.72);
+      --panel-strong: rgba(12, 28, 50, 0.86);
+      --glass: rgba(255, 255, 255, 0.075);
+      --ink: #e7f0fb;
+      --muted: rgba(217, 230, 245, 0.68);
+      --line: rgba(167, 199, 231, 0.18);
+      --brand: #38bdf8;
+      --accent: #2dd4bf;
+      --ok: #5eead4;
+      --warn: #fbbf24;
+      --navy: #06101d;
     }
     body {
       margin: 0;
       font-family: "Segoe UI", Tahoma, sans-serif;
-      background: radial-gradient(circle at top left, #e2ecff, var(--bg) 40%);
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 12% 6%, rgba(56,189,248,0.24), transparent 27%),
+        radial-gradient(circle at 86% 12%, rgba(45,212,191,0.14), transparent 22%),
+        radial-gradient(circle at 52% 96%, rgba(14,165,233,0.12), transparent 30%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 48%, #050b14 100%);
       color: var(--ink);
     }
-    .wrap { max-width: 1100px; margin: 0 auto; padding: 24px; }
-    h1 { margin: 0 0 16px; font-size: 2rem; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 12px; }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: linear-gradient(180deg, rgba(0,0,0,0.7), transparent 72%);
+    }
+    .wrap { max-width: 1240px; margin: 0 auto; padding: 24px; position: relative; }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      margin: -24px -24px 24px;
+      padding: 14px 24px;
+      background: rgba(5, 13, 24, 0.74);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(18px) saturate(150%);
+    }
+    .topbar-inner {
+      max-width: 1240px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.84rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    .brand-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--brand), var(--accent));
+      box-shadow: 0 0 24px rgba(45,212,191,0.46);
+    }
+    .topnav { display:flex; gap:14px; color:var(--muted); font-size:0.9rem; }
+    .hero {
+      margin-bottom: 18px;
+      padding: 30px;
+      border: 1px solid var(--line);
+      border-radius: 30px;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.09), rgba(255,255,255,0.025)),
+        rgba(8, 21, 38, 0.62);
+      backdrop-filter: blur(22px) saturate(160%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 28px 80px rgba(0,0,0,0.32);
+      overflow: hidden;
+      position: relative;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -80px;
+      top: -90px;
+      width: 280px;
+      height: 280px;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(56,189,248,0.24), transparent 68%);
+    }
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 0.74rem;
+      font-weight: 800;
+    }
+    h1 { margin: 0; font-size: clamp(2.6rem, 5vw, 5.2rem); line-height: 0.92; letter-spacing: -0.06em; }
+    .hero-lead { max-width: 760px; margin: 18px 0 0; color: var(--muted); font-size: 1.02rem; line-height: 1.7; }
+    .hero-metrics { display:flex; flex-wrap:wrap; gap:10px; margin-top:22px; }
+    .metric-pill {
+      padding: 9px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.055);
+      color: rgba(231,240,251,0.82);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(300px,1fr)); gap: 14px; }
     .card {
       background: var(--panel);
       border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 12px;
-      box-shadow: 0 8px 18px rgba(15,23,42,0.05);
+      border-radius: 24px;
+      padding: 16px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 18px 48px rgba(0,0,0,0.22);
+      backdrop-filter: blur(18px) saturate(145%);
     }
+    .card:hover { border-color: rgba(125,211,252,0.32); }
     .card h3 { margin: 0 0 6px; font-size: 1rem; }
     .muted { color: var(--muted); font-size: 0.9rem; }
     .meta { margin-top: 8px; font-size: 0.85rem; color: var(--muted); }
@@ -104,19 +203,19 @@
       border-radius: 999px;
       font-size: 0.74rem;
       line-height: 1.2;
-      background: #eef4ff;
-      color: #204898;
-      border: 1px solid #d4e2ff;
+      background: rgba(56,189,248,0.12);
+      color: #bae6fd;
+      border: 1px solid rgba(125,211,252,0.28);
     }
     .inline-tag.is-geo {
-      background: #f1f5f9;
-      color: #475569;
-      border-color: #dbe3ee;
+      background: rgba(255,255,255,0.07);
+      color: rgba(231,240,251,0.82);
+      border-color: var(--line);
     }
     .inline-tag.is-actor {
-      background: #ecfeff;
-      color: #0f766e;
-      border-color: #c6f4f7;
+      background: rgba(45,212,191,0.12);
+      color: #99f6e4;
+      border-color: rgba(45,212,191,0.28);
     }
     .card-actions-inline {
       display: flex;
@@ -167,21 +266,25 @@
       flex: 0 0 auto;
     }
     section { margin: 20px 0 30px; }
-    a { color: var(--brand); text-decoration: none; }
+    a { color: #7dd3fc; text-decoration: none; }
     a:hover { text-decoration: underline; }
     textarea, input, select {
-      width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 8px;
+      width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 9px 10px;
       font-family: ui-monospace, Consolas, monospace;
+      background: rgba(255,255,255,0.07);
+      color: var(--ink);
     }
+    select option { color: #0f172a; }
     textarea { min-height: 110px; }
     button {
       margin-top: 8px; border: 0; border-radius: 8px; padding: 10px 14px;
-      background: var(--brand); color: #fff; cursor: pointer; font-weight: 600;
+      background: linear-gradient(135deg, #0284c7, #0f766e); color: #fff; cursor: pointer; font-weight: 700;
+      box-shadow: 0 10px 24px rgba(14,165,233,0.18);
     }
     button[disabled] { opacity: 0.65; cursor: not-allowed; }
     button.is-busy { filter: saturate(0.8); }
-    .btn-secondary { background: #334155; }
-    .btn-warning { background: #b45309; }
+    .btn-secondary { background: rgba(148,163,184,0.18); border:1px solid var(--line); }
+    .btn-warning { background: linear-gradient(135deg, #b45309, #92400e); }
     .status { margin-top: 8px; color: var(--ok); font-size: 0.9rem; }
     .status.warn { color: var(--warn); }
     .run-progress {
@@ -190,7 +293,7 @@
       padding: 12px;
       border: 1px solid var(--line);
       border-radius: 12px;
-      background: linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
+      background: linear-gradient(180deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.04) 100%);
     }
     .run-progress.active { display: block; }
     .run-progress-head {
@@ -216,14 +319,14 @@
       height: 10px;
       border-radius: 999px;
       overflow: hidden;
-      background: #dbe7ff;
+      background: rgba(148,184,224,0.18);
       border: 1px solid #c9dafd;
     }
     .run-progress-fill {
       width: 0%;
       height: 100%;
       border-radius: 999px;
-      background: linear-gradient(90deg, #0b5fff 0%, #4f8cff 100%);
+      background: linear-gradient(90deg, var(--brand) 0%, var(--accent) 100%);
       transition: width 0.6s ease;
     }
     .run-progress-meta {
@@ -248,15 +351,15 @@
       min-width: 32px;
       padding: 2px 8px;
       border-radius: 999px;
-      background: #e0ecff;
-      color: #0b3ea8;
+      background: rgba(56,189,248,0.18);
+      color: #bae6fd;
       font-size: 0.78rem;
       font-weight: 700;
       text-align: center;
     }
     .count-badge.is-zero {
-      background: #f1f5f9;
-      color: #64748b;
+      background: rgba(255,255,255,0.06);
+      color: var(--muted);
     }
     .row-actions button { margin: 0 4px 0 0; padding: 6px 10px; font-size: 0.8rem; }
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -267,14 +370,15 @@
     .health-gray { background:#94a3b8; }
     .badge-paywall { display:inline-block; margin-left:8px; padding:2px 8px; border-radius:999px; font-size:0.72rem; font-weight:700; background:#fee2e2; color:#991b1b; }
     .collection-head { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
-    .collection-key { font-family: ui-monospace, Consolas, monospace; font-size:0.8rem; color:#334155; }
-    .collection-item { margin:6px 0; font-size:0.9rem; color:#334155; }
+    .collection-key { font-family: ui-monospace, Consolas, monospace; font-size:0.8rem; color:var(--muted); }
+    .collection-item { margin:6px 0; font-size:0.9rem; color:rgba(231,240,251,0.78); }
     .master-card {
       margin-bottom: 10px;
       border: 1px solid var(--line);
-      border-radius: 14px;
+      border-radius: 20px;
       padding: 14px;
-      background: #f8fafc;
+      background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
     }
     .master-card.has-image {
       min-height: 210px;
@@ -294,14 +398,25 @@
       text-shadow: 0 1px 2px rgba(15,23,42,0.55);
     }
     .master-title { font-size:1.05rem; font-weight:800; margin-bottom:6px; }
-    .master-summary, .master-why { color:#334155; line-height:1.45; font-size:0.9rem; margin-top:6px; }
+    .master-summary, .master-why { color:var(--muted); line-height:1.45; font-size:0.9rem; margin-top:6px; }
     .master-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
-    .selection-row { margin-top:8px; font-size:0.84rem; color:#334155; }
+    .selection-row { margin-top:8px; font-size:0.84rem; color:var(--muted); }
     .tab-bar { display:flex; gap:8px; margin-bottom:14px; }
-    .tab-btn { background:#e2e8f0; color:#0f172a; border:1px solid #cbd5e1; margin-top:0; }
-    .tab-btn.active { background:#0f172a; color:#ffffff; border-color:#0f172a; }
+    .tab-btn { background:rgba(255,255,255,0.07); color:var(--muted); border:1px solid var(--line); margin-top:0; }
+    .tab-btn.active { background:linear-gradient(135deg, rgba(56,189,248,0.22), rgba(45,212,191,0.14)); color:#ffffff; border-color:rgba(125,211,252,0.38); }
     .tab-panel { display:none; }
     .tab-panel.active { display:block; }
+    .story-card { animation: storyEnter 0.28s ease both; }
+    .story-card.is-updated { animation: storyPulse 1.2s ease both; }
+    @keyframes storyEnter {
+      from { opacity:0; transform:translateY(8px) scale(0.98); }
+      to { opacity:1; transform:translateY(0) scale(1); }
+    }
+    @keyframes storyPulse {
+      0% { box-shadow:0 0 0 0 rgba(11,95,255,0.42); transform:scale(0.99); }
+      45% { box-shadow:0 0 0 8px rgba(11,95,255,0.12); transform:scale(1.01); }
+      100% { box-shadow:0 8px 18px rgba(15,23,42,0.05); transform:scale(1); }
+    }
     .pager { display:flex; align-items:center; gap:10px; margin-top:12px; }
     .pager button { margin-top:0; padding:6px 10px; font-size:0.82rem; }
     .card.is-clickable { cursor:pointer; transition:transform 0.14s ease, box-shadow 0.14s ease; }
@@ -309,7 +424,7 @@
     .detail-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(15,23,42,0.44);
+      background: rgba(3,7,18,0.68);
       display: none;
       align-items: flex-start;
       justify-content: center;
@@ -321,26 +436,27 @@
       width: min(920px, 100%);
       max-height: calc(100vh - 48px);
       overflow: auto;
-      background: var(--panel);
+      background: rgba(8,21,38,0.9);
       border: 1px solid var(--line);
       border-radius: 16px;
       box-shadow: 0 24px 56px rgba(15,23,42,0.22);
       padding: 18px;
+      backdrop-filter: blur(22px) saturate(150%);
     }
     .detail-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
     .detail-controls { display:flex; gap:8px; align-items:center; }
-    .detail-close { margin-top:0; background:#0f172a; }
-    .detail-nav-btn { margin-top:0; padding:8px 10px; background:#334155; }
+    .detail-close { margin-top:0; background:rgba(255,255,255,0.12); }
+    .detail-nav-btn { margin-top:0; padding:8px 10px; background:rgba(255,255,255,0.1); }
     .detail-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-top:12px; }
-    .detail-block { border:1px solid var(--line); border-radius:12px; padding:12px; background:#f8fafc; }
+    .detail-block { border:1px solid var(--line); border-radius:12px; padding:12px; background:rgba(255,255,255,0.06); }
     .detail-block h4 { margin:0 0 8px; font-size:0.9rem; }
     .detail-body { white-space:pre-wrap; line-height:1.5; }
     .detail-summary {
       padding: 10px 12px;
       border: 1px solid var(--line);
       border-radius: 12px;
-      background: #f8fafc;
-      color: #334155;
+      background: rgba(255,255,255,0.06);
+      color: var(--muted);
       line-height: 1.45;
     }
     .detail-summary strong {
@@ -354,8 +470,8 @@
       margin-top: 10px;
       padding: 10px 12px;
       border-radius: 12px;
-      background: linear-gradient(180deg, #eef4ff 0%, #e4eeff 100%);
-      border: 1px solid #cfe0ff;
+      background: linear-gradient(180deg, rgba(56,189,248,0.14) 0%, rgba(45,212,191,0.08) 100%);
+      border: 1px solid rgba(125,211,252,0.22);
     }
     .detail-linkedin-suggestion.open {
       display: block;
@@ -363,11 +479,11 @@
     .detail-linkedin-suggestion strong {
       display: block;
       margin-bottom: 4px;
-      color: #173f8a;
+      color: #bae6fd;
       font-size: 0.86rem;
     }
     .detail-linkedin-text {
-      color: #1e3a5f;
+      color: var(--muted);
       line-height: 1.45;
       font-size: 0.9rem;
     }
@@ -376,8 +492,8 @@
       padding: 10px 12px;
       border: 1px solid var(--line);
       border-radius: 12px;
-      background: #ffffff;
-      color: #1e293b;
+      background: rgba(255,255,255,0.055);
+      color: var(--muted);
       line-height: 1.48;
     }
     .detail-why strong {
@@ -616,39 +732,25 @@
 
     <section class="card">
       <div class="tab-bar">
-        <button class="tab-btn active" data-tab="latest" type="button">Latest</button>
-        <button class="tab-btn" data-tab="top" type="button">Top</button>
-        <button class="tab-btn" data-tab="merged" type="button">Merged</button>
+        <button class="tab-btn active" data-tab="reading" type="button">Reading</button>
+        <button class="tab-btn" data-tab="review" type="button">Review</button>
       </div>
 
 
-      <div style="display:flex;gap:8px;margin:10px 0 4px;">
-        <button id="readingModeBtn" class="tab-btn active" type="button">Reading</button>
-        <button id="learningModeBtn" class="tab-btn" type="button">Learning</button>
-      </div>
-      <div id="tab-latest" class="tab-panel active">
-        <h2>Latest</h2>
-        <div id="latest" class="grid"></div>
+      <div id="tab-reading" class="tab-panel active">
+        <h2>Reading</h2>
+        <p class="muted">Merged stories are shown as one master story. Open sources from the story when needed.</p>
+        <div id="readingStories" class="grid"></div>
         <div class="pager">
-          <button id="latestPrev" class="btn-secondary" type="button">Prev</button>
-          <span id="latestPageInfo" class="muted"></span>
-          <button id="latestNext" class="btn-secondary" type="button">Next</button>
+          <button id="readingPrev" class="btn-secondary" type="button">Prev</button>
+          <span id="readingPageInfo" class="muted"></span>
+          <button id="readingNext" class="btn-secondary" type="button">Next</button>
         </div>
       </div>
 
-      <div id="tab-top" class="tab-panel">
-        <h2>Top Signals</h2>
-        <div id="top" class="grid"></div>
-        <div class="pager">
-          <button id="topPrev" class="btn-secondary" type="button">Prev</button>
-          <span id="topPageInfo" class="muted"></span>
-          <button id="topNext" class="btn-secondary" type="button">Next</button>
-        </div>
-      </div>
-
-      <div id="tab-merged" class="tab-panel">
-        <h2>Merged</h2>
-        <p class="muted">Merge related cards manually, and unmerge if grouping is wrong.</p>
+      <div id="tab-review" class="tab-panel">
+        <h2>Review</h2>
+        <p class="muted">Merge related articles, accept/reject AI matches and train grouping decisions.</p>
         <div class="two-col">
           <div>
             <label class="muted">Manual collection key (optional)</label>
@@ -668,7 +770,7 @@
           <button id="runMatchBtn" class="btn-secondary">Run Match AI</button>
         </div>
         <div id="collections" class="grid" style="margin-top:12px;"></div>
-        <h3 style="margin-top:16px;">Match Review (Learning)</h3>
+        <h3 style="margin-top:16px;">AI Match Review</h3>
         <p class="muted">AI foreslår par som kan være samme sak. Godkjenn eller avvis.</p>
         <div id="matchReview" class="grid" style="margin-top:10px;"></div>
         <div class="pager">
@@ -721,16 +823,14 @@
     }
 
     function setViewMode(mode) {
-      viewMode = mode === 'learning' ? 'learning' : 'reading';
-      document.getElementById('readingModeBtn')?.classList.toggle('active', viewMode === 'reading');
-      document.getElementById('learningModeBtn')?.classList.toggle('active', viewMode === 'learning');
-      renderLatestPage();
-      renderTopPage();
+      viewMode = mode === 'review' ? 'review' : 'reading';
+      renderReadingPage();
+      renderMergedPage();
       renderMatchReview();
     }
 
-    const pageSize = { latest: 24, top: 24, merged: 8 };
-    const pageState = { latest: 1, top: 1, merged: 1 };
+    const pageSize = { latest: 24, top: 24, reading: 12, merged: 8 };
+    const pageState = { latest: 1, top: 1, reading: 1, merged: 1 };
 
     async function getJson(path) {
       const res = await fetch(path);
@@ -904,10 +1004,8 @@
     }
 
     function currentVisibleItems() {
-      const latestOpen = document.getElementById('tab-latest')?.classList.contains('active');
-      const topOpen = document.getElementById('tab-top')?.classList.contains('active');
-      if (latestOpen) return latestItems;
-      if (topOpen) return topItems;
+      const reviewOpen = document.getElementById('tab-review')?.classList.contains('active');
+      if (reviewOpen) return latestItems;
       return latestItems;
     }
 
@@ -1127,24 +1225,25 @@
       }
     }
     function setActiveTab(tabName) {
-      const target = `tab-${tabName}`;
+      const normalized = tabName === 'review' ? 'review' : 'reading';
+      setViewMode(normalized);
       document.querySelectorAll('.tab-btn').forEach(btn => {
-        const isActive = btn.getAttribute('data-tab') === tabName;
+        const isActive = btn.getAttribute('data-tab') === normalized;
         btn.classList.toggle('active', isActive);
       });
       document.querySelectorAll('.tab-panel').forEach(panel => {
-        panel.classList.toggle('active', panel.id === target);
+        panel.classList.toggle('active', panel.id === `tab-${normalized}`);
       });
     }
 
     function setupTabs() {
       document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
         btn.addEventListener('click', () => {
-          const tab = btn.getAttribute('data-tab') || 'latest';
+          const tab = btn.getAttribute('data-tab') || 'reading';
           setActiveTab(tab);
         });
       });
-      setActiveTab('latest');
+      setActiveTab('reading');
     }
     function getPageSlice(kind, items) {
       const size = pageSize[kind] || 12;
@@ -1185,9 +1284,15 @@
       updatePager('top', topItems.length);
     }
 
+    function renderReadingPage() {
+      const { pageItems } = getPageSlice('reading', mergedItems);
+      renderCollections('readingStories', pageItems, { showItems: false, pulseManual: false });
+      updatePager('reading', mergedItems.length);
+    }
+
     function renderMergedPage() {
       const { pageItems } = getPageSlice('merged', mergedItems);
-      renderCollections(pageItems);
+      renderCollections('collections', pageItems, { showItems: true, pulseManual: viewMode === 'review' });
       updatePager('merged', mergedItems.length);
     }
 
@@ -1195,6 +1300,7 @@
       pageState[kind] = (pageState[kind] || 1) + delta;
       if (kind === 'latest') renderLatestPage();
       if (kind === 'top') renderTopPage();
+      if (kind === 'reading') renderReadingPage();
       if (kind === 'merged') renderMergedPage();
     }
     function isPaywalled(item) {
@@ -1205,6 +1311,7 @@
 
     function renderCards(elId, items) {
       const root = document.getElementById(elId);
+      if (!root) return;
       root.innerHTML = '';
       if (!items.length) {
         root.innerHTML = '<p class="muted">No data yet. Run fetch + processing.</p>';
@@ -1223,7 +1330,7 @@
         }
         const itemId = Number(item.id || 0);
         const relevance = relevanceLabel(item.relevance_status);
-        const leadText = viewMode === 'learning'
+        const leadText = viewMode === 'review'
           ? (item.why_it_matters || item.linkedin_angle || item.summary || 'No details')
           : (item.summary || 'No summary');
         const themeTags = parseCsvTags(item.theme_tags).slice(0, 3);
@@ -1234,8 +1341,8 @@
           tagBadgeHtml(geoTags, 'is-geo'),
           tagBadgeHtml(actorTags, 'is-actor'),
         ].join('');
-        const related = viewMode === 'learning' ? relatedItemsFor(item, relatedPool, 3) : [];
-        const learningActions = viewMode === 'learning'
+        const related = viewMode === 'review' ? relatedItemsFor(item, relatedPool, 3) : [];
+        const learningActions = viewMode === 'review'
           ? `
             <div class="card-actions-inline">
               <button class="btn-secondary" type="button" data-relevance-item="${itemId}" data-relevance-value="relevant">Relevant</button>
@@ -1316,8 +1423,11 @@
       updateSelectedCount();
     }
 
-    function renderCollections(items) {
-      const root = document.getElementById('collections');
+    function renderCollections(elId, items, options = {}) {
+      const root = document.getElementById(elId);
+      if (!root) return;
+      const showItems = options.showItems !== false;
+      const pulseManual = Boolean(options.pulseManual);
       root.innerHTML = '';
 
       if (!items.length) {
@@ -1327,8 +1437,9 @@
 
       for (const col of items) {
         const div = document.createElement('article');
-        div.className = 'card';
+        div.className = `card story-card${pulseManual && col.is_manual ? ' is-updated' : ''}`;
         const master = col.master || {};
+        const leadItemId = Number(master.lead_item_id || 0);
         const masterImage = cssImageUrl(master.image_url);
         const masterTagsHtml = [
           tagBadgeHtml((master.themes || []).slice(0, 4)),
@@ -1338,14 +1449,14 @@
         const masterStyle = masterImage
           ? ` style="background-image:linear-gradient(180deg, rgba(15,23,42,0.16) 0%, rgba(15,23,42,0.86) 100%), url('${masterImage}')"`
           : '';
-        const rows = (col.items || []).map(item => {
+        const rows = showItems ? (col.items || []).map(item => {
           const id = Number(item.id || 0);
           const checked = selectedCollectionItems.has(id) ? 'checked' : '';
           const titleHtml = item.article_url
             ? `<a href="${item.article_url}" target="_blank" rel="noopener noreferrer"><strong>${item.title}</strong></a>`
             : `<strong>${item.title}</strong>`;
           return `<div class="collection-item"><label><input type="checkbox" data-collection-item="${id}" ${checked} /> ${titleHtml} (${item.source_name || 'Unknown'} | ${relevanceLabel(item.relevance_status)})</label></div>`;
-        }).join('');
+        }).join('') : '';
 
         div.innerHTML = `
           <div class="master-card ${masterImage ? 'has-image' : ''}"${masterStyle}>
@@ -1362,8 +1473,16 @@
             </div>
             <div class="meta">items=${col.article_count} | avg=${col.avg_signal_score} | top=${col.top_signal_score}</div>
           </div>
-          ${rows}
+          ${showItems ? rows : `<div class="collection-item muted">${col.article_count} source article${Number(col.article_count || 0) === 1 ? '' : 's'} grouped into this story.</div>`}
         `;
+        if (leadItemId > 0) {
+          div.title = 'Click story to view lead article';
+          div.classList.add('is-clickable');
+          div.addEventListener('click', (evt) => {
+            if (evt.target.closest('a') || evt.target.closest('input') || evt.target.closest('button')) return;
+            showItemDetails(leadItemId);
+          });
+        }
         root.appendChild(div);
       }
 
@@ -1374,8 +1493,8 @@
       const root = document.getElementById("matchReview");
       if (!root) return;
       root.innerHTML = "";
-      if (viewMode !== "learning") {
-        root.innerHTML = "<p class=\"muted\">Bytt til Learning for å reviewe AI-match forslag.</p>";
+      if (viewMode !== "review") {
+        root.innerHTML = "<p class=\"muted\">Open Review to handle AI match suggestions.</p>";
         return;
       }
       if (!matchReviewItems.length) {
@@ -1432,7 +1551,9 @@
     async function refreshCollections() {
       const result = await getJson(`/api/news/collections?limit=120&items_per_collection=8${sourceFilterQuery()}`);
       mergedItems = Array.isArray(result.items) ? result.items : [];
+      pageState.reading = 1;
       pageState.merged = 1;
+      renderReadingPage();
       renderMergedPage();
     }
 
@@ -1849,8 +1970,6 @@
       document.getElementById('relevantBtn').addEventListener('click', relevantSelected);
       document.getElementById('nonRelevantBtn').addEventListener('click', nonRelevantSelected);
       document.getElementById('clearRatingBtn').addEventListener('click', clearRatingSelected);
-      document.getElementById('readingModeBtn').addEventListener('click', () => setViewMode('reading'));
-      document.getElementById('learningModeBtn').addEventListener('click', () => setViewMode('learning'));
       document.getElementById('detailCloseBtn').addEventListener('click', closeDetailOverlay);
       document.getElementById('detailPrevBtn').addEventListener('click', () => stepDetailItem(-1));
       document.getElementById('detailNextBtn').addEventListener('click', () => stepDetailItem(1));
@@ -1872,10 +1991,8 @@
       document.getElementById('sourceFilter').addEventListener('change', onGlobalFilterChange);
       document.getElementById('domainFilter').addEventListener('change', onGlobalFilterChange);
 
-      document.getElementById('latestPrev').addEventListener('click', () => changePage('latest', -1));
-      document.getElementById('latestNext').addEventListener('click', () => changePage('latest', 1));
-      document.getElementById('topPrev').addEventListener('click', () => changePage('top', -1));
-      document.getElementById('topNext').addEventListener('click', () => changePage('top', 1));
+      document.getElementById('readingPrev').addEventListener('click', () => changePage('reading', -1));
+      document.getElementById('readingNext').addEventListener('click', () => changePage('reading', 1));
       document.getElementById('mergedPrev').addEventListener('click', () => changePage('merged', -1));
       document.getElementById('mergedNext').addEventListener('click', () => changePage('merged', 1));
       setupTabs();
