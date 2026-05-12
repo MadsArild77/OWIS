@@ -172,6 +172,32 @@ class AIClient:
             "confidence": self._coerce_confidence(parsed.get("confidence"), 0.65),
         }
 
+    def synthesize_news_master(self, text: str) -> dict[str, Any] | None:
+        parsed = self._post_json_prompt(
+            system_prompt=(
+                "Synthesize multiple articles about the same or related news story. "
+                "Return compact JSON only: title,summary,theme_tags,geography_tags,actors,why_it_matters,confidence. "
+                "The summary must be one coherent case description in 5-8 concrete sentences, combining the sources without repetition. "
+                "Explain what happened, who is involved, where, why now, and the key context. "
+                "Do not mention that this is a synthesis. Do not include boilerplate, subscription, newsletter, copyright, or press ethics text. "
+                "Keep tags specific and include obvious story tags."
+            ),
+            user_text=text,
+            max_tokens=max(AI_MAX_TOKENS, 560),
+        )
+        if not parsed:
+            return None
+
+        return {
+            "title": parsed.get("title", ""),
+            "summary": parsed.get("summary", ""),
+            "theme_tags": parsed.get("theme_tags", []),
+            "geography_tags": parsed.get("geography_tags", []),
+            "actors": parsed.get("actors", []),
+            "why_it_matters": parsed.get("why_it_matters", ""),
+            "confidence": self._coerce_confidence(parsed.get("confidence"), 0.65),
+        }
+
     def classify_news_domain(self, title: str, summary: str, themes: str) -> dict[str, Any] | None:
         parsed = self._post_json_prompt(
             system_prompt=(

@@ -379,6 +379,60 @@ class NewsRepository:
             )
             return int(cur.rowcount)
 
+    def upsert_collection_master(self, master: dict[str, Any]) -> None:
+        collection_key = str(master.get("collection_key") or "").strip()
+        if not collection_key:
+            return
+
+        with get_conn() as conn:
+            conn.execute(
+                """
+                INSERT INTO news_collection_masters (
+                    collection_key, title, summary, why_it_matters,
+                    theme_tags, geography_tags, actors, sources,
+                    image_url, lead_item_id, article_count, synthesized_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(collection_key) DO UPDATE SET
+                    title = excluded.title,
+                    summary = excluded.summary,
+                    why_it_matters = excluded.why_it_matters,
+                    theme_tags = excluded.theme_tags,
+                    geography_tags = excluded.geography_tags,
+                    actors = excluded.actors,
+                    sources = excluded.sources,
+                    image_url = excluded.image_url,
+                    lead_item_id = excluded.lead_item_id,
+                    article_count = excluded.article_count,
+                    synthesized_at = excluded.synthesized_at
+                """,
+                (
+                    collection_key,
+                    str(master.get("title") or "Merged story"),
+                    str(master.get("summary") or ""),
+                    str(master.get("why_it_matters") or ""),
+                    str(master.get("theme_tags") or ""),
+                    str(master.get("geography_tags") or ""),
+                    str(master.get("actors") or ""),
+                    str(master.get("sources") or ""),
+                    str(master.get("image_url") or ""),
+                    int(master.get("lead_item_id") or 0) or None,
+                    int(master.get("article_count") or 0),
+                    str(master.get("synthesized_at") or datetime.now(timezone.utc).isoformat()),
+                ),
+            )
+
+    def list_collection_masters(self) -> dict[str, dict[str, Any]]:
+        with get_conn() as conn:
+            rows = conn.execute(
+                """
+                SELECT collection_key, title, summary, why_it_matters,
+                       theme_tags, geography_tags, actors, sources,
+                       image_url, lead_item_id, article_count, synthesized_at
+                FROM news_collection_masters
+                """
+            ).fetchall()
+            return {str(row["collection_key"]): dict(row) for row in rows}
+
     def upsert_match_review_pair(
         self,
         item_a_id: int,

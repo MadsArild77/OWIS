@@ -65,6 +65,21 @@ def init_db() -> None:
                 FOREIGN KEY(processed_id) REFERENCES news_processed_items(id)
             );
 
+            CREATE TABLE IF NOT EXISTS news_collection_masters (
+                collection_key TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                summary TEXT NOT NULL,
+                why_it_matters TEXT NOT NULL,
+                theme_tags TEXT NOT NULL,
+                geography_tags TEXT NOT NULL,
+                actors TEXT NOT NULL,
+                sources TEXT NOT NULL,
+                image_url TEXT,
+                lead_item_id INTEGER,
+                article_count INTEGER NOT NULL,
+                synthesized_at TEXT NOT NULL
+            );
+
             CREATE TABLE IF NOT EXISTS news_item_relevance (
                 processed_id INTEGER PRIMARY KEY,
                 relevance INTEGER NOT NULL CHECK (relevance IN (0, 1)),
