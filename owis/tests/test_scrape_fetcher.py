@@ -103,3 +103,24 @@ def test_extract_article_metadata_uses_custom_published_fallback():
     assert metadata["title"] == "Fallback title"
     assert metadata["published_at"] == "2026-05-12"
     assert "fallback summary" in str(metadata["description"]).lower()
+
+
+def test_extract_paragraphs_skips_publisher_boilerplate():
+    soup = scrape_fetcher.BeautifulSoup(
+        """
+        <html>
+          <body>
+            <article>
+              <p>This article paragraph contains the relevant offshore wind content and should remain visible in previews.</p>
+              <p>EnergiWatch arbeider etter Vær Varsom-plakatens regler for god presseskikk. Redaktørplakaten. Prøv EnergiWatch gratis eller få tilbud på et abonnement tilpasset deg eller din virksomhet. Copyright © EnergiWatch.</p>
+            </article>
+          </body>
+        </html>
+        """,
+        "html.parser",
+    )
+
+    paragraphs = scrape_fetcher._extract_paragraphs(soup)
+
+    assert len(paragraphs) == 1
+    assert "offshore wind content" in paragraphs[0].lower()

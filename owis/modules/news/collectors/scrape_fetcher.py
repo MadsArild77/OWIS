@@ -17,6 +17,18 @@ from owis.modules.news.registry.source_discovery import load_source_registry
 
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 PAYWALL_MARKERS = ["subscribe", "subscriber", "subscription", "sign in", "log in", "paywall", "abonner", "abonnement"]
+BOILERPLATE_MARKERS = [
+    "vær varsom-plakaten",
+    "vaer varsom-plakaten",
+    "redaktørplakaten",
+    "redaktorplakaten",
+    "copyright ©",
+    "copyright ",
+    "alt materiale på denne siden er omfattet",
+    "prøv energiwatch gratis",
+    "få tilbud på et abonnement",
+    "arbeider etter vær varsom-plakatens regler",
+]
 
 
 def _resolve_auth_value(value: Any) -> str:
@@ -86,11 +98,25 @@ def _extract_paragraphs(soup: BeautifulSoup) -> list[str]:
     # Prefer article/main area over full page to avoid nav/footer noise.
     container = soup.find("article") or soup.find("main") or soup
     paragraphs = [p.get_text(" ", strip=True) for p in container.find_all("p")]
+    paragraphs = [p for p in paragraphs if not _looks_like_boilerplate(p)]
     text = " ".join([p for p in paragraphs if p])
     if text.strip():
         return paragraphs
 
-    return [p.get_text(" ", strip=True) for p in soup.find_all("p")]
+    return [
+        p.get_text(" ", strip=True)
+        for p in soup.find_all("p")
+        if not _looks_like_boilerplate(p.get_text(" ", strip=True))
+    ]
+
+
+def _looks_like_boilerplate(text: str) -> bool:
+    cleaned = _clean_text(text).lower()
+    if not cleaned:
+        return True
+    if len(cleaned) < 40:
+        return False
+    return any(marker in cleaned for marker in BOILERPLATE_MARKERS)
 
 
 def _clean_text(value: Any) -> str:
@@ -244,8 +270,9 @@ def _extract_article_metadata(html: str, url: str, anchor_title: str = "") -> di
     )
     site_name = _get_meta_content(soup, "og:site_name")
 
-    paragraphs = [p for p in _extract_paragraphs(soup) if len(p) >= 60]
+    paragraphs = [_clean_text(p) for p in _extract_paragraphs(soup) if len(_clean_text(p)) >= 60]
     preview_excerpt = _clean_text(" ".join(paragraphs[:3]))[:1600]
+    source_context = "\n\n".join(paragraphs[:6])[:3600]
 
     return {
         "title": title or _clean_text(anchor_title),
@@ -255,6 +282,7 @@ def _extract_article_metadata(html: str, url: str, anchor_title: str = "") -> di
         "image_url": image_url,
         "site_name": site_name,
         "preview_excerpt": preview_excerpt,
+        "source_context": source_context,
     }
 
 
@@ -272,6 +300,7 @@ def fetch_article_preview(url: str, fallback_title: str = "", fallback_summary: 
             "author": str(metadata.get("author") or ""),
             "published_at": str(metadata.get("published_at") or ""),
             "preview_excerpt": str(metadata.get("preview_excerpt") or ""),
+            "source_context": str(metadata.get("source_context") or ""),
         }
     except Exception:
         return {
@@ -282,6 +311,7 @@ def fetch_article_preview(url: str, fallback_title: str = "", fallback_summary: 
             "author": "",
             "published_at": "",
             "preview_excerpt": "",
+            "source_context": "",
         }
 
 

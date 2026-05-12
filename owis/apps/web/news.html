@@ -289,6 +289,24 @@
       color: var(--ink);
       font-size: 0.86rem;
     }
+    .detail-angle {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #eef4ff 0%, #e4eeff 100%);
+      border: 1px solid #cfe0ff;
+    }
+    .detail-angle strong {
+      display: block;
+      margin-bottom: 4px;
+      color: #173f8a;
+      font-size: 0.86rem;
+    }
+    .detail-angle-text {
+      color: #1e3a5f;
+      line-height: 1.45;
+      font-size: 0.9rem;
+    }
     .detail-meta-strip {
       margin-top: 10px;
       display: flex;
@@ -349,6 +367,23 @@
       color: #334155;
       line-height: 1.6;
       font-size: 0.9rem;
+    }
+    .detail-source-context {
+      margin-top: 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #f8fafc;
+      padding: 14px;
+    }
+    .detail-source-context h4 {
+      margin: 0 0 8px;
+      font-size: 0.92rem;
+    }
+    .detail-source-context-text {
+      white-space: pre-wrap;
+      line-height: 1.62;
+      color: #334155;
+      font-size: 0.92rem;
     }
     .detail-article {
       margin-top: 12px;
@@ -883,6 +918,7 @@
         ].join(' | ');
         const leadText = preview.description || item.summary || '';
         const excerptText = preview.preview_excerpt || item.cleaned_text || '';
+        const sourceContext = preview.source_context || preview.preview_excerpt || '';
         const imageHtml = preview.image_url
           ? `<img class="detail-preview-image" src="${escapeHtml(preview.image_url)}" alt="${escapeHtml(item.title || 'Article image')}" />`
           : '';
@@ -895,12 +931,17 @@
             <strong>Why it matters</strong>
             <div>${escapeHtml(item.why_it_matters || item.summary || 'n/a')}</div>
           </div>
+          <div class="detail-angle">
+            <strong>LinkedIn angle</strong>
+            <div class="detail-angle-text">${escapeHtml(item.linkedin_angle || 'n/a')}</div>
+          </div>
           <div class="detail-meta-strip">
             ${detailMetaChip('Themes', formatCsv(item.theme_tags))}
             ${detailMetaChip('Geography', formatCsv(item.geography_tags))}
             ${detailMetaChip('Actors', formatCsv(item.actors))}
             ${preview.author ? detailMetaChip('Author', preview.author) : ''}
-            ${detailMetaChip('LinkedIn angle', item.linkedin_angle || 'n/a')}
+            ${detailMetaChip('Score', String(item.signal_score ?? 'n/a'))}
+            ${detailMetaChip('Confidence', String(item.confidence ?? 'n/a'))}
           </div>
           <div class="detail-preview">
             <div class="detail-preview-text">
@@ -909,6 +950,12 @@
             </div>
             <div>${imageHtml}</div>
           </div>
+          ${sourceContext ? `
+            <div class="detail-source-context">
+              <h4>From source article</h4>
+              <div class="detail-source-context-text">${escapeHtml(sourceContext)}</div>
+            </div>
+          ` : ''}
           <div class="detail-article">
             <h4>Underlying text used in processing</h4>
             <div class="detail-article-text">${escapeHtml(item.cleaned_text || 'n/a')}</div>

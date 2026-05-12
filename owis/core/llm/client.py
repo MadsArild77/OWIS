@@ -152,7 +152,8 @@ class AIClient:
         parsed = self._post_json_prompt(
             system_prompt=(
                 "Return compact JSON only: summary,theme_tags,geography_tags,actors,why_it_matters,linkedin_angle,confidence. "
-                "Keep summary short (max 3 sentences) and keep tags minimal."
+                "Keep summary short (max 3 sentences) and keep tags minimal. "
+                "Make why_it_matters concrete and decision-useful in 1-2 sentences: explain the commercial, regulatory, competitive, supply-chain, or timing implication."
             ),
             user_text=text,
             max_tokens=AI_MAX_TOKENS,
