@@ -39,9 +39,19 @@ def _domain_compatible(a: str, b: str) -> bool:
     return pair == {"offshore_wind", "adjacent_energy"}
 
 
-def build_candidate_pairs(items: list[dict[str, Any]], days_window: int = 7, top_k: int = 8) -> list[tuple[dict[str, Any], dict[str, Any], float]]:
+def _pair_key(a: int, b: int) -> tuple[int, int]:
+    return tuple(sorted((int(a), int(b))))
+
+
+def build_candidate_pairs(
+    items: list[dict[str, Any]],
+    days_window: int = 7,
+    top_k: int = 8,
+    learned_pairs: dict[tuple[int, int], str] | None = None,
+) -> list[tuple[dict[str, Any], dict[str, Any], float]]:
     by_id = {int(x.get("id") or 0): x for x in items if int(x.get("id") or 0) > 0}
     rows = [x for x in by_id.values()]
+    learned_pairs = learned_pairs or {}
 
     pairs: list[tuple[dict[str, Any], dict[str, Any], float]] = []
     for i, left in enumerate(rows):
@@ -55,6 +65,9 @@ def build_candidate_pairs(items: list[dict[str, Any]], days_window: int = 7, top
         for right in rows[i + 1 :]:
             right_id = int(right.get("id") or 0)
             if right_id <= 0 or right_id == left_id:
+                continue
+            learned_decision = learned_pairs.get(_pair_key(left_id, right_id))
+            if learned_decision == "reject":
                 continue
 
             right_bucket = str(right.get("domain_bucket") or "other_energy")
@@ -72,6 +85,8 @@ def build_candidate_pairs(items: list[dict[str, Any]], days_window: int = 7, top
             title_sim = _jaccard(left_tokens, right_tokens)
             actor_sim = _jaccard(left_actors, right_actors)
             heuristic = (0.75 * title_sim) + (0.25 * actor_sim)
+            if learned_decision == "merge":
+                heuristic = max(heuristic, 0.98)
 
             if heuristic < 0.14:
                 continue

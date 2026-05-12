@@ -1,5 +1,6 @@
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
+from itertools import combinations
 import re
 from typing import Any
 
@@ -258,6 +259,11 @@ def _default_collection_key(item: dict[str, Any]) -> str:
     title_key = _title_cluster_key(item)
     return f"auto:{theme}|{geo}|{title_key}"
 
+
+def _top_values(counter: defaultdict[str, int], limit: int = 5) -> list[str]:
+    return [name for name, _ in sorted(counter.items(), key=lambda x: x[1], reverse=True)[:limit]]
+
+
 def _build_collections(
     items: list[dict],
     overrides: dict[int, dict],
@@ -282,6 +288,10 @@ def _build_collections(
                 "latest_published_at": None,
                 "themes": defaultdict(int),
                 "geographies": defaultdict(int),
+                "actors": defaultdict(int),
+                "sources": defaultdict(int),
+                "image_url": "",
+                "lead_item": None,
                 "items": [],
             }
             groups[collection_key] = group
@@ -297,11 +307,20 @@ def _build_collections(
 
         themes = _split_csv(item.get("theme_tags"))
         geographies = _split_csv(item.get("geography_tags"))
+        actors = _split_csv(item.get("actors"))
 
         for theme in themes:
             group["themes"][theme] += 1
         for geo in geographies:
             group["geographies"][geo] += 1
+        for actor in actors:
+            group["actors"][actor] += 1
+        if item.get("source_name"):
+            group["sources"][str(item.get("source_name"))] += 1
+        if not group["image_url"] and item.get("image_url"):
+            group["image_url"] = item.get("image_url")
+        if group["lead_item"] is None or score > int(group["lead_item"].get("signal_score") or 0):
+            group["lead_item"] = item
 
         group["items"].append(
             {
@@ -309,6 +328,7 @@ def _build_collections(
                 "title": item.get("title") or "Untitled",
                 "source_name": item.get("source_name") or "Unknown",
                 "article_url": item.get("article_url") or "",
+                "image_url": item.get("image_url") or "",
                 "signal_score": score,
                 "published_at": item.get("published_at"),
                 "relevance_status": str(item.get("relevance_status") or "unrated"),
@@ -328,6 +348,7 @@ def _build_collections(
         top_themes = sorted(group["themes"].items(), key=lambda x: x[1], reverse=True)
         top_geos = sorted(group["geographies"].items(), key=lambda x: x[1], reverse=True)
         avg_score = round(group["signal_score_sum"] / max(group["article_count"], 1), 1)
+        lead_item = group["lead_item"] or {}
 
         result.append(
             {
@@ -339,6 +360,16 @@ def _build_collections(
                 "latest_published_at": group["latest_published_at"],
                 "primary_theme": top_themes[0][0] if top_themes else "general_news",
                 "primary_geography": top_geos[0][0] if top_geos else "Global",
+                "master": {
+                    "title": lead_item.get("title") or "Merged story",
+                    "summary": lead_item.get("summary") or "",
+                    "why_it_matters": lead_item.get("why_it_matters") or "",
+                    "image_url": group["image_url"] or lead_item.get("image_url") or "",
+                    "themes": _top_values(group["themes"]),
+                    "geographies": _top_values(group["geographies"]),
+                    "actors": _top_values(group["actors"]),
+                    "sources": _top_values(group["sources"]),
+                },
                 "items": item_rows[: max(items_per_collection, 1)],
             }
         )
@@ -458,6 +489,8 @@ def merge_collections(payload: MergeCollectionRequest):
             feedback_value=collection_key,
             processed_id=item_id,
         )
+    for left_id, right_id in combinations(item_ids, 2):
+        repo.upsert_pair_learning(left_id, right_id, decision="merge", source="manual_collection_merge")
     return {
         "updated_count": updated,
         "collection_key": collection_key,
@@ -492,7 +525,16 @@ def run_match_review(payload: MatchRunRequest):
     items = repo.list_processed_since(since_iso=since_iso, limit=max(payload.lookback_items, 50))
     items = _filter_domain(_attach_domain_data(items), bucket)
 
-    candidates = build_candidate_pairs(items, days_window=payload.days_window, top_k=payload.top_k)
+    learned_pairs = {
+        (int(row["item_a_id"]), int(row["item_b_id"])): str(row["decision"])
+        for row in repo.list_pair_learning()
+    }
+    candidates = build_candidate_pairs(
+        items,
+        days_window=payload.days_window,
+        top_k=payload.top_k,
+        learned_pairs=learned_pairs,
+    )
     ai = AIClient()
 
     enqueued = 0
@@ -555,6 +597,9 @@ def decide_match_review(payload: MatchReviewDecisionRequest):
     if decision == "accept":
         collection_key = make_manual_collection_key()
         repo.set_collection_overrides(item_ids, collection_key=collection_key, note="accepted_from_match_review")
+        repo.upsert_pair_learning(item_ids[0], item_ids[1], decision="merge", source="match_review_accept")
+    else:
+        repo.upsert_pair_learning(item_ids[0], item_ids[1], decision="reject", source="match_review_reject")
 
     repo.log_learning_feedback(
         feedback_type="match_review_decision",

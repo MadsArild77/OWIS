@@ -39,6 +39,40 @@
       line-height: 1.28;
       margin-bottom: 4px;
     }
+    .compact-card.has-image {
+      min-height: 220px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      background-size: cover;
+      background-position: center;
+      color: #ffffff;
+      border-color: rgba(15,23,42,0.16);
+      box-shadow: 0 14px 30px rgba(15,23,42,0.18);
+      overflow: hidden;
+    }
+    .compact-card.has-image h3,
+    .compact-card.has-image .compact-summary,
+    .compact-card.has-image .compact-meta-row,
+    .compact-card.has-image .selection-row,
+    .compact-card.has-image .related-item-title,
+    .compact-card.has-image .related-item-meta {
+      color: #ffffff;
+      text-shadow: 0 1px 2px rgba(15,23,42,0.55);
+    }
+    .compact-card.has-image a { color: #dbeafe; }
+    .compact-card.has-image .inline-tag {
+      background: rgba(255,255,255,0.18);
+      color: #ffffff;
+      border-color: rgba(255,255,255,0.34);
+      backdrop-filter: blur(5px);
+    }
+    .compact-card.has-image .related-strip {
+      border-top-color: rgba(255,255,255,0.34);
+    }
+    .compact-card.has-image .related-item {
+      border-top-color: rgba(255,255,255,0.18);
+    }
     .compact-summary {
       margin: 6px 0 0;
       font-size: 0.87rem;
@@ -235,6 +269,33 @@
     .collection-head { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
     .collection-key { font-family: ui-monospace, Consolas, monospace; font-size:0.8rem; color:#334155; }
     .collection-item { margin:6px 0; font-size:0.9rem; color:#334155; }
+    .master-card {
+      margin-bottom: 10px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      background: #f8fafc;
+    }
+    .master-card.has-image {
+      min-height: 210px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      background-size: cover;
+      background-position: center;
+      color: #ffffff;
+      border-color: rgba(15,23,42,0.16);
+      overflow: hidden;
+    }
+    .master-card.has-image .muted,
+    .master-card.has-image .master-summary,
+    .master-card.has-image .master-why {
+      color: #ffffff;
+      text-shadow: 0 1px 2px rgba(15,23,42,0.55);
+    }
+    .master-title { font-size:1.05rem; font-weight:800; margin-bottom:6px; }
+    .master-summary, .master-why { color:#334155; line-height:1.45; font-size:0.9rem; margin-top:6px; }
+    .master-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
     .selection-row { margin-top:8px; font-size:0.84rem; color:#334155; }
     .tab-bar { display:flex; gap:8px; margin-bottom:14px; }
     .tab-btn { background:#e2e8f0; color:#0f172a; border:1px solid #cbd5e1; margin-top:0; }
@@ -275,7 +336,6 @@
     .detail-block h4 { margin:0 0 8px; font-size:0.9rem; }
     .detail-body { white-space:pre-wrap; line-height:1.5; }
     .detail-summary {
-      margin-top: 12px;
       padding: 10px 12px;
       border: 1px solid var(--line);
       border-radius: 12px;
@@ -364,6 +424,13 @@
       gap: 12px;
       align-items: start;
     }
+    .detail-topline {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(220px, 0.8fr);
+      gap: 12px;
+      align-items: start;
+    }
     .detail-preview-text {
       min-width: 0;
     }
@@ -420,7 +487,8 @@
       font-size: 0.8rem;
     }
     @media (max-width: 760px) {
-      .detail-preview {
+      .detail-preview,
+      .detail-topline {
         grid-template-columns: 1fr;
       }
     }
@@ -820,6 +888,12 @@
       return tags.map(tag => `<span class="inline-tag ${cls}">${escapeHtml(tag)}</span>`).join('');
     }
 
+    function cssImageUrl(value) {
+      const url = String(value || '').trim();
+      if (!url || !/^https?:\/\//i.test(url)) return '';
+      return url.replace(/["'\\\n\r]/g, encodeURIComponent);
+    }
+
     function detailMetaChip(label, value) {
       return `
         <div class="detail-meta-chip">
@@ -933,17 +1007,21 @@
         const excerptText = preview.preview_excerpt || item.cleaned_text || '';
         const sourceContext = preview.source_context || preview.preview_excerpt || '';
         const hasLinkedInSuggestion = Boolean(item.linkedin_angle);
-        const imageHtml = preview.image_url
-          ? `<img class="detail-preview-image" src="${escapeHtml(preview.image_url)}" alt="${escapeHtml(item.title || 'Article image')}" />`
+        const detailImageUrl = preview.image_url || item.image_url || '';
+        const imageHtml = detailImageUrl
+          ? `<img class="detail-preview-image" src="${escapeHtml(detailImageUrl)}" alt="${escapeHtml(item.title || 'Article image')}" />`
           : '';
 
         document.getElementById('detailTitle').textContent = item.title || 'Untitled';
         document.getElementById('detailMeta').textContent = meta;
         updateDetailNavButtons(itemId);
         document.getElementById('detailContent').innerHTML = `
-          <div class="detail-summary">
-            <strong>Summary</strong>
-            <div>${escapeHtml(item.summary || leadText || 'n/a')}</div>
+          <div class="detail-topline">
+            <div class="detail-summary">
+              <strong>Summary</strong>
+              <div>${escapeHtml(item.summary || leadText || 'n/a')}</div>
+            </div>
+            <div>${imageHtml}</div>
           </div>
           <div class="detail-why">
             <strong>Why it matters</strong>
@@ -971,7 +1049,6 @@
               <div class="detail-preview-lead">${escapeHtml(leadText || 'n/a')}</div>
               ${excerptText ? `<div class="detail-preview-excerpt">${escapeHtml(excerptText)}</div>` : ''}
             </div>
-            <div>${imageHtml}</div>
           </div>
           ${sourceContext ? `
             <div class="detail-source-context">
@@ -1139,6 +1216,11 @@
         const paywalled = isPaywalled(item);
         const div = document.createElement('article');
         div.className = 'card compact-card is-clickable';
+        const imageUrl = cssImageUrl(item.image_url);
+        if (imageUrl) {
+          div.classList.add('has-image');
+          div.style.backgroundImage = `linear-gradient(180deg, rgba(15,23,42,0.18) 0%, rgba(15,23,42,0.86) 100%), url("${imageUrl}")`;
+        }
         const itemId = Number(item.id || 0);
         const relevance = relevanceLabel(item.relevance_status);
         const leadText = viewMode === 'learning'
@@ -1246,6 +1328,16 @@
       for (const col of items) {
         const div = document.createElement('article');
         div.className = 'card';
+        const master = col.master || {};
+        const masterImage = cssImageUrl(master.image_url);
+        const masterTagsHtml = [
+          tagBadgeHtml((master.themes || []).slice(0, 4)),
+          tagBadgeHtml((master.geographies || []).slice(0, 3), 'is-geo'),
+          tagBadgeHtml((master.actors || []).slice(0, 3), 'is-actor'),
+        ].join('');
+        const masterStyle = masterImage
+          ? ` style="background-image:linear-gradient(180deg, rgba(15,23,42,0.16) 0%, rgba(15,23,42,0.86) 100%), url('${masterImage}')"`
+          : '';
         const rows = (col.items || []).map(item => {
           const id = Number(item.id || 0);
           const checked = selectedCollectionItems.has(id) ? 'checked' : '';
@@ -1256,6 +1348,13 @@
         }).join('');
 
         div.innerHTML = `
+          <div class="master-card ${masterImage ? 'has-image' : ''}"${masterStyle}>
+            <div class="muted">Master view | ${escapeHtml((master.sources || []).join(', ') || 'Sources')}</div>
+            <div class="master-title">${escapeHtml(master.title || `${col.primary_theme || 'general_news'} / ${col.primary_geography || 'Global'}`)}</div>
+            ${master.summary ? `<div class="master-summary">${escapeHtml(master.summary)}</div>` : ''}
+            ${master.why_it_matters ? `<div class="master-why"><strong>Why it matters:</strong> ${escapeHtml(master.why_it_matters)}</div>` : ''}
+            <div class="master-tags">${masterTagsHtml || '<span class="inline-tag is-geo">No tags</span>'}</div>
+          </div>
           <div class="collection-head">
             <div>
               <strong>${col.primary_theme || 'general_news'} / ${col.primary_geography || 'Global'}</strong>

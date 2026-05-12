@@ -31,8 +31,8 @@ class NewsRepository:
                 """
                 INSERT INTO news_raw_items (
                     source_name, article_url, title_raw, summary_raw,
-                    content_raw, content_hash, published_at, fetched_at, status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    content_raw, content_hash, image_url, published_at, fetched_at, status
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     item["source_name"],
@@ -41,6 +41,7 @@ class NewsRepository:
                     item.get("summary_raw", ""),
                     item.get("content_raw", ""),
                     item["content_hash"],
+                    item.get("image_url", ""),
                     item.get("published_at"),
                     item["fetched_at"],
                     "new",
@@ -139,7 +140,7 @@ class NewsRepository:
         with get_conn() as conn:
             rows = conn.execute(
                 f"""
-                SELECT p.*, r.source_name, r.article_url, r.published_at
+                SELECT p.*, r.source_name, r.article_url, r.image_url, r.published_at
                 FROM news_processed_items p
                 JOIN news_raw_items r ON r.id = p.raw_item_id
                 {where}
@@ -159,7 +160,7 @@ class NewsRepository:
         with get_conn() as conn:
             rows = conn.execute(
                 f"""
-                SELECT p.*, r.source_name, r.article_url, r.published_at
+                SELECT p.*, r.source_name, r.article_url, r.image_url, r.published_at
                 FROM news_processed_items p
                 JOIN news_raw_items r ON r.id = p.raw_item_id
                 {where}
@@ -182,7 +183,7 @@ class NewsRepository:
         with get_conn() as conn:
             rows = conn.execute(
                 f"""
-                SELECT p.*, r.source_name, r.article_url, r.published_at
+                SELECT p.*, r.source_name, r.article_url, r.image_url, r.published_at
                 FROM news_processed_items p
                 JOIN news_raw_items r ON r.id = p.raw_item_id
                 {where}
@@ -288,7 +289,7 @@ class NewsRepository:
         with get_conn() as conn:
             row = conn.execute(
                 """
-                SELECT p.*, r.source_name, r.article_url, r.published_at
+                SELECT p.*, r.source_name, r.article_url, r.image_url, r.published_at
                 FROM news_processed_items p
                 JOIN news_raw_items r ON r.id = p.raw_item_id
                 WHERE p.id = ?
@@ -306,7 +307,7 @@ class NewsRepository:
         with get_conn() as conn:
             rows = conn.execute(
                 f"""
-                SELECT p.*, r.source_name, r.article_url, r.published_at
+                SELECT p.*, r.source_name, r.article_url, r.image_url, r.published_at
                 FROM news_processed_items p
                 JOIN news_raw_items r ON r.id = p.raw_item_id
                 WHERE p.id IN ({placeholders})
@@ -319,7 +320,7 @@ class NewsRepository:
         with get_conn() as conn:
             rows = conn.execute(
                 """
-                SELECT p.*, r.source_name, r.article_url, r.published_at
+                SELECT p.*, r.source_name, r.article_url, r.image_url, r.published_at
                 FROM news_processed_items p
                 JOIN news_raw_items r ON r.id = p.raw_item_id
                 WHERE COALESCE(r.published_at, p.processed_at) >= ?
@@ -541,6 +542,50 @@ class NewsRepository:
                     datetime.now(timezone.utc).isoformat(),
                 ),
             )
+
+    def upsert_pair_learning(self, item_a_id: int, item_b_id: int, decision: str, source: str) -> None:
+        a, b = sorted([int(item_a_id), int(item_b_id)])
+        if a <= 0 or b <= 0 or a == b:
+            return
+        if decision not in {"merge", "reject"}:
+            return
+
+        with get_conn() as conn:
+            conn.execute(
+                """
+                INSERT INTO news_pair_learning (item_a_id, item_b_id, decision, source, updated_at)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(item_a_id, item_b_id) DO UPDATE SET
+                    decision = excluded.decision,
+                    source = excluded.source,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    a,
+                    b,
+                    decision,
+                    source,
+                    datetime.now(timezone.utc).isoformat(),
+                ),
+            )
+
+    def list_pair_learning(self, decision: str | None = None) -> list[dict[str, Any]]:
+        params: list[Any] = []
+        where = ""
+        if decision:
+            where = "WHERE decision = ?"
+            params.append(decision)
+
+        with get_conn() as conn:
+            rows = conn.execute(
+                f"""
+                SELECT item_a_id, item_b_id, decision, source, updated_at
+                FROM news_pair_learning
+                {where}
+                """,
+                tuple(params),
+            ).fetchall()
+            return [dict(row) for row in rows]
 
     def get_source_health_state(self, source_name: str) -> dict[str, Any] | None:
         with get_conn() as conn:

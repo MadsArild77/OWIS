@@ -34,6 +34,34 @@ def _normalized_published_at(entry: dict[str, Any]) -> str | None:
     except Exception:
         return raw
 
+
+def _entry_image_url(entry: dict[str, Any]) -> str:
+    for key in ("media_thumbnail", "media_content"):
+        values = entry.get(key)
+        if isinstance(values, list):
+            for value in values:
+                if isinstance(value, dict) and value.get("url"):
+                    return str(value.get("url") or "")
+
+    image = entry.get("image")
+    if isinstance(image, dict):
+        value = image.get("href") or image.get("url")
+        if value:
+            return str(value)
+
+    for link in entry.get("links") or []:
+        if not isinstance(link, dict):
+            continue
+        content_type = str(link.get("type") or "").lower()
+        rel = str(link.get("rel") or "").lower()
+        if "image" in content_type or rel in {"enclosure", "thumbnail"}:
+            href = link.get("href")
+            if href:
+                return str(href)
+
+    return ""
+
+
 def load_sources() -> list[dict[str, Any]]:
     return [s for s in load_source_registry() if s.get("enabled")]
 
@@ -79,6 +107,7 @@ def fetch_rss_items_with_report() -> tuple[list[dict[str, Any]], list[dict[str, 
                         "summary_raw": summary,
                         "content_raw": summary,
                         "content_hash": content_hash,
+                        "image_url": _entry_image_url(entry),
                         "published_at": _normalized_published_at(entry),
                         "fetched_at": now,
                     }

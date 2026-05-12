@@ -349,6 +349,7 @@ def _make_raw_item(
     content: str,
     now: str,
     published_at: str | None = None,
+    image_url: str | None = None,
 ) -> dict[str, Any]:
     content_hash = hashlib.sha256(f"{url}|{title}".encode("utf-8")).hexdigest()
     return {
@@ -358,6 +359,7 @@ def _make_raw_item(
         "summary_raw": summary[:500],
         "content_raw": content,
         "content_hash": content_hash,
+        "image_url": image_url or "",
         "published_at": published_at,
         "fetched_at": now,
     }
@@ -433,7 +435,18 @@ def fetch_scrape_items_with_report(limit_per_source: int = 20) -> tuple[list[dic
                             note = "Likely paywalled; only partial/open text available."
                             summary = final_summary or article_text[:500] or note
                             content = f"{final_title}. {summary}"
-                            items.append(_make_raw_item(src_name, url, final_title, summary, content, now, published_at=published_at))
+                            items.append(
+                                _make_raw_item(
+                                    src_name,
+                                    url,
+                                    final_title,
+                                    summary,
+                                    content,
+                                    now,
+                                    published_at=published_at,
+                                    image_url=str(metadata.get("image_url") or ""),
+                                )
+                            )
                             source_count += 1
                             if source_count >= limit_per_source:
                                 break
@@ -447,7 +460,18 @@ def fetch_scrape_items_with_report(limit_per_source: int = 20) -> tuple[list[dic
                         continue
 
                     summary = final_summary or article_text[:500]
-                    items.append(_make_raw_item(src_name, url, final_title, summary, article_text, now, published_at=published_at))
+                    items.append(
+                        _make_raw_item(
+                            src_name,
+                            url,
+                            final_title,
+                            summary,
+                            article_text,
+                            now,
+                            published_at=published_at,
+                            image_url=str(metadata.get("image_url") or ""),
+                        )
+                    )
                     source_count += 1
                     if source_count >= limit_per_source:
                         break

@@ -24,6 +24,7 @@ def init_db() -> None:
                 summary_raw TEXT,
                 content_raw TEXT,
                 content_hash TEXT NOT NULL,
+                image_url TEXT,
                 published_at TEXT,
                 fetched_at TEXT NOT NULL,
                 status TEXT NOT NULL DEFAULT 'new'
@@ -109,6 +110,17 @@ def init_db() -> None:
                 FOREIGN KEY(pair_id) REFERENCES news_match_review_pairs(id)
             );
 
+            CREATE TABLE IF NOT EXISTS news_pair_learning (
+                item_a_id INTEGER NOT NULL,
+                item_b_id INTEGER NOT NULL,
+                decision TEXT NOT NULL CHECK (decision IN ('merge', 'reject')),
+                source TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                PRIMARY KEY(item_a_id, item_b_id),
+                FOREIGN KEY(item_a_id) REFERENCES news_processed_items(id),
+                FOREIGN KEY(item_b_id) REFERENCES news_processed_items(id)
+            );
+
             CREATE TABLE IF NOT EXISTS news_source_registry (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 position INTEGER NOT NULL,
@@ -158,3 +170,9 @@ def init_db() -> None:
             );
             """
         )
+        raw_columns = {
+            str(row["name"])
+            for row in conn.execute("PRAGMA table_info(news_raw_items)").fetchall()
+        }
+        if "image_url" not in raw_columns:
+            conn.execute("ALTER TABLE news_raw_items ADD COLUMN image_url TEXT")
