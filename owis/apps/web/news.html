@@ -138,39 +138,14 @@
       line-height: 1.28;
       margin-bottom: 4px;
     }
-    .compact-card.has-image {
-      min-height: 220px;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      background-size: cover;
-      background-position: center;
-      color: #ffffff;
-      border-color: rgba(15,23,42,0.16);
-      box-shadow: 0 14px 30px rgba(15,23,42,0.18);
-      overflow: hidden;
-    }
-    .compact-card.has-image h3,
-    .compact-card.has-image .compact-summary,
-    .compact-card.has-image .compact-meta-row,
-    .compact-card.has-image .selection-row,
-    .compact-card.has-image .related-item-title,
-    .compact-card.has-image .related-item-meta {
-      color: #ffffff;
-      text-shadow: 0 1px 2px rgba(15,23,42,0.55);
-    }
-    .compact-card.has-image a { color: #dbeafe; }
-    .compact-card.has-image .inline-tag {
-      background: rgba(255,255,255,0.18);
-      color: #ffffff;
-      border-color: rgba(255,255,255,0.34);
-      backdrop-filter: blur(5px);
-    }
-    .compact-card.has-image .related-strip {
-      border-top-color: rgba(255,255,255,0.34);
-    }
-    .compact-card.has-image .related-item {
-      border-top-color: rgba(255,255,255,0.18);
+    .compact-image {
+      width: 100%;
+      height: 118px;
+      border-radius: 16px;
+      object-fit: cover;
+      margin-bottom: 10px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
     }
     .compact-summary {
       margin: 6px 0 0;
@@ -372,6 +347,16 @@
       border-color: rgba(248,113,113,0.38);
       background: rgba(127,29,29,0.18);
     }
+    .source-progress-item.is-active {
+      border-color: rgba(45,212,191,0.42);
+      background: rgba(20,184,166,0.12);
+    }
+    .source-progress-item.is-pending {
+      opacity: 0.78;
+    }
+    .source-progress-item.is-done {
+      border-color: rgba(94,234,212,0.26);
+    }
     .sources-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
     .sources-table th, .sources-table td { border-bottom: 1px solid var(--line); padding: 8px; text-align: left; }
     .count-badge {
@@ -409,21 +394,10 @@
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
     }
     .master-card.has-image {
-      min-height: 210px;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      background-size: cover;
-      background-position: center;
-      color: #ffffff;
-      border-color: rgba(15,23,42,0.16);
-      overflow: hidden;
-    }
-    .master-card.has-image .muted,
-    .master-card.has-image .master-summary,
-    .master-card.has-image .master-why {
-      color: #ffffff;
-      text-shadow: 0 1px 2px rgba(15,23,42,0.55);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 156px;
+      gap: 12px;
+      align-items: stretch;
     }
     .master-title { font-size:1.05rem; font-weight:800; margin-bottom:6px; }
     .master-summary, .master-why { color:var(--muted); line-height:1.45; font-size:0.9rem; margin-top:6px; }
@@ -477,29 +451,16 @@
       padding: 12px;
       background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.025));
     }
-    .story-list .master-card.has-image {
-      color: var(--ink);
-      background-image: none !important;
-    }
     .story-list .master-content {
       min-width: 0;
     }
     .story-thumb {
-      display: none;
+      display: block;
       border-radius: 14px;
       min-height: 112px;
       background-size: cover;
       background-position: center;
       border: 1px solid rgba(255,255,255,0.14);
-    }
-    .story-list .story-thumb {
-      display: block;
-    }
-    .story-list .master-card.has-image .muted,
-    .story-list .master-card.has-image .master-summary,
-    .story-list .master-card.has-image .master-why {
-      color: var(--muted);
-      text-shadow: none;
     }
     .story-list .master-title {
       font-size: 0.98rem;
@@ -742,6 +703,9 @@
       .story-list .master-card {
         grid-template-columns: 1fr;
       }
+      .master-card.has-image {
+        grid-template-columns: 1fr;
+      }
       .story-list .story-thumb {
         min-height: 150px;
       }
@@ -978,6 +942,8 @@
     let runProgressCurrent = 0;
     let runProgressTarget = 0;
     let runProgressWarningShown = false;
+    let runProgressSourceRows = [];
+    let runProgressSourceCursor = 0;
     let latestSourceReportBySource = {};
     let readingLayout = localStorage.getItem('owisReadingLayout') === 'cards' ? 'cards' : 'list';
 
@@ -1046,6 +1012,17 @@
       return `[${source}:${method}]`;
     }
 
+    function sourceProgressRowsForCurrentSources(status = 'pending', detail = 'Waiting for backend') {
+      return (currentSources || [])
+        .filter(source => source && source.enabled !== false)
+        .map(source => ({
+          source: source.name || 'Unknown',
+          type: source.type || 'source',
+          status,
+          detail,
+        }));
+    }
+
     function renderSourceProgress(rows = []) {
       const root = document.getElementById('sourceProgressList');
       if (!root) return;
@@ -1057,13 +1034,16 @@
         const items = Number(row.items || 0);
         const filtered = Number(row.filtered || 0);
         const error = row.error ? String(row.error) : '';
+        const status = String(row.status || '').trim();
         const health = row.health ? ` | health=${escapeHtml(row.health)}` : '';
         const paywalled = row.paywalled ? ` | paywall=${Number(row.paywalled || 0)}` : '';
         const detail = error
           ? `error=${escapeHtml(error.slice(0, 110))}`
-          : `items=${items} | filtered=${filtered}${paywalled}${health}`;
+          : row.detail
+            ? escapeHtml(row.detail)
+            : `items=${items} | filtered=${filtered}${paywalled}${health}`;
         return `
-          <div class="source-progress-item ${error ? 'is-error' : ''}">
+          <div class="source-progress-item ${error ? 'is-error' : status ? `is-${escapeHtml(status)}` : 'is-done'}">
             <div class="source-progress-name">${escapeHtml(sourceProgressKey(row))}</div>
             <div class="source-progress-detail">${detail}</div>
           </div>
@@ -1071,7 +1051,7 @@
       }).join('');
     }
 
-    function stopRunProgress(success = true, finalStep = '') {
+    function stopRunProgress(success = true, finalStep = '', titleText = '') {
       if (runProgressTimer) {
         clearInterval(runProgressTimer);
         runProgressTimer = null;
@@ -1086,7 +1066,7 @@
       const warning = document.getElementById('runProgressWarning');
       const time = document.getElementById('runProgressTime');
 
-      if (title) title.textContent = success ? 'Pipeline completed' : 'Pipeline stopped';
+      if (title) title.textContent = titleText || (success ? 'Operation completed' : 'Operation stopped');
       if (step && finalStep) step.textContent = finalStep;
       if (warning) warning.classList.remove('active');
       if (time && runProgressStartedAt) {
@@ -1098,7 +1078,7 @@
       }, success ? 2200 : 4000);
     }
 
-    function startRunProgress(daysBack, sinceLast) {
+    function startOperationProgress(options = {}) {
       const root = document.getElementById('runProgress');
       const title = document.getElementById('runProgressTitle');
       const step = document.getElementById('runProgressStep');
@@ -1106,22 +1086,36 @@
       const time = document.getElementById('runProgressTime');
 
       runProgressStartedAt = Date.now();
-      runProgressCurrent = 4;
-      runProgressTarget = 12;
+      runProgressCurrent = Number(options.initialPercent || 4);
+      runProgressTarget = Number(options.targetPercent || 12);
       runProgressWarningShown = false;
+      runProgressSourceRows = Array.isArray(options.sourceRows) ? options.sourceRows : [];
+      runProgressSourceCursor = 0;
 
       if (root) root.classList.add('active');
-      if (title) title.textContent = 'Pipeline running';
-      if (step) step.textContent = `Starting run (days_back=${daysBack}, since_last=${sinceLast})`;
+      if (title) title.textContent = options.title || 'Operation running';
+      if (step) step.textContent = options.step || 'Starting...';
       if (warning) warning.classList.remove('active');
       if (time) time.textContent = '00:00';
-      renderSourceProgress([]);
+      renderSourceProgress(runProgressSourceRows);
       renderRunProgress();
 
       if (runProgressTimer) clearInterval(runProgressTimer);
       runProgressTimer = window.setInterval(() => {
         const elapsed = Date.now() - runProgressStartedAt;
         if (time) time.textContent = formatDuration(elapsed);
+
+        if (runProgressSourceRows.length) {
+          runProgressSourceRows = runProgressSourceRows.map((row, index) => {
+            if (index < runProgressSourceCursor) return { ...row, status: row.status === 'pending' ? 'done' : row.status, detail: row.detail || 'Checked' };
+            if (index === runProgressSourceCursor) return { ...row, status: 'active', detail: row.detail || 'Working...' };
+            return row;
+          });
+          if (elapsed > (runProgressSourceCursor + 1) * 2500 && runProgressSourceCursor < runProgressSourceRows.length - 1) {
+            runProgressSourceCursor += 1;
+          }
+          renderSourceProgress(runProgressSourceRows);
+        }
 
         if (runProgressCurrent < runProgressTarget) {
           runProgressCurrent = Math.min(runProgressTarget, runProgressCurrent + 1);
@@ -1136,6 +1130,16 @@
           if (warning) warning.classList.add('active');
         }
       }, 1000);
+    }
+
+    function startRunProgress(daysBack, sinceLast) {
+      startOperationProgress({
+        title: 'Fetch + processing running',
+        step: `Starting run (days_back=${daysBack}, since_last=${sinceLast})`,
+        initialPercent: 4,
+        targetPercent: 12,
+        sourceRows: sourceProgressRowsForCurrentSources('pending', 'Queued for fetch'),
+      });
     }
 
     function setButtonBusy(buttonId, isBusy, busyLabel = 'Working...') {
@@ -1683,10 +1687,10 @@
         const div = document.createElement('article');
         div.className = 'card compact-card is-clickable';
         const imageUrl = cssImageUrl(item.image_url);
-        if (imageUrl) {
-          div.classList.add('has-image');
-          div.style.backgroundImage = `linear-gradient(180deg, rgba(15,23,42,0.18) 0%, rgba(15,23,42,0.86) 100%), url("${imageUrl}")`;
-        }
+        if (imageUrl) div.classList.add('has-image');
+        const imageHtml = imageUrl
+          ? `<img class="compact-image" src="${escapeHtml(item.image_url)}" alt="${escapeHtml(item.title || 'Article image')}" onerror="this.remove()" />`
+          : '';
         const itemId = Number(item.id || 0);
         const relevance = relevanceLabel(item.relevance_status);
         const leadText = viewMode === 'review'
@@ -1730,6 +1734,7 @@
           : '';
 
         div.innerHTML = `
+          ${imageHtml}
           <h3>${item.title}${paywalled ? '<span class="badge-paywall">Paywall</span>' : ''}</h3>
           <p class="compact-summary">${escapeHtml(leadText)}</p>
           <div class="compact-meta-row">
@@ -1804,9 +1809,6 @@
           tagBadgeHtml((master.geographies || []).slice(0, 3), 'is-geo'),
           tagBadgeHtml((master.actors || []).slice(0, 3), 'is-actor'),
         ].join('');
-        const masterStyle = masterImage
-          ? ` style="background-image:linear-gradient(180deg, rgba(15,23,42,0.16) 0%, rgba(15,23,42,0.86) 100%), url('${masterImage}')"`
-          : '';
         const isReadingPreview = elId === 'readingStories';
         const summaryText = isReadingPreview ? shortText(master.summary, 230) : (master.summary || '');
         const whyText = isReadingPreview ? shortText(master.why_it_matters, 130) : (master.why_it_matters || '');
@@ -1821,7 +1823,7 @@
         }).join('') : '';
 
         div.innerHTML = `
-          <div class="master-card ${masterImage ? 'has-image' : ''}"${masterStyle}>
+          <div class="master-card ${masterImage ? 'has-image' : ''}">
             <div class="master-content">
               <div class="muted">Master view | ${escapeHtml((master.sources || []).join(', ') || 'Sources')}</div>
               <div class="master-title">${escapeHtml(master.title || `${col.primary_theme || 'general_news'} / ${col.primary_geography || 'Global'}`)}</div>
@@ -2225,42 +2227,114 @@
     }
 
     async function rediscoverRSS() {
-      const result = await postJson('/api/news/sources/rediscover-rss', { only_scrape: false, with_debug: true });
-      let msg = `Rediscover done. updated=${result.updated_count}, checked=${result.checked_count || 0}`;
-      if (Array.isArray(result.details)) {
-        const misses = result.details.filter(d => d.status === 'no_feed_found');
-        if (misses.length) {
-          const sample = misses.slice(0, 2).map(m => {
-            const base = `${m.source_name || m.homepage}: candidates=${m.candidate_count || 0}`;
-            return m.homepage_error ? `${base}, homeErr=${m.homepage_error}` : base;
-          }).join(' | ');
-          msg += ` | no-feed sample: ${sample}`;
+      setButtonBusy('rediscoverBtn', true, 'Checking RSS...');
+      startOperationProgress({
+        title: 'RSS discovery running',
+        step: 'Checking source homepages and RSS candidates...',
+        initialPercent: 8,
+        targetPercent: 18,
+        sourceRows: sourceProgressRowsForCurrentSources('pending', 'Queued for RSS discovery'),
+      });
+      setStatus('Checking RSS feeds and source homepages...');
+      try {
+        const result = await postJson('/api/news/sources/rediscover-rss', { only_scrape: false, with_debug: true });
+        if (Array.isArray(result.details)) {
+          renderSourceProgress(result.details.map(row => ({
+            source: row.source_name || row.homepage || 'Unknown',
+            type: 'rss',
+            status: row.status === 'updated' || row.status === 'rss_found' ? 'done' : 'pending',
+            detail: `status=${row.status || 'checked'} | candidates=${row.candidate_count || 0}${row.homepage_error ? ` | error=${row.homepage_error}` : ''}`,
+            error: row.homepage_error || '',
+          })));
         }
+        let msg = `Rediscover done. updated=${result.updated_count}, checked=${result.checked_count || 0}`;
+        if (Array.isArray(result.details)) {
+          const misses = result.details.filter(d => d.status === 'no_feed_found');
+          if (misses.length) {
+            const sample = misses.slice(0, 2).map(m => {
+              const base = `${m.source_name || m.homepage}: candidates=${m.candidate_count || 0}`;
+              return m.homepage_error ? `${base}, homeErr=${m.homepage_error}` : base;
+            }).join(' | ');
+            msg += ` | no-feed sample: ${sample}`;
+          }
+        }
+        setStatus(msg, (result.updated_count || 0) === 0);
+        await refreshSources();
+        stopRunProgress(true, 'RSS discovery completed.', 'RSS discovery completed');
+      } catch (err) {
+        console.error(err);
+        stopRunProgress(false, 'RSS discovery failed.', 'RSS discovery failed');
+        setStatus('RSS discovery failed: ' + (err?.message || 'Unknown error'), true);
+      } finally {
+        setButtonBusy('rediscoverBtn', false);
       }
-      setStatus(msg, (result.updated_count || 0) === 0);
-      await refreshSources();
     }
 
     async function sourceHealth() {
-      const result = await postJson('/api/news/sources/health', { only_enabled: true });
-      const items = Array.isArray(result.items) ? result.items : [];
-      if (!items.length) {
-        setStatus('Health: no enabled sources found.', true);
-        return;
+      setButtonBusy('healthBtn', true, 'Checking health...');
+      startOperationProgress({
+        title: 'Source health running',
+        step: 'Checking enabled sources...',
+        initialPercent: 8,
+        targetPercent: 20,
+        sourceRows: sourceProgressRowsForCurrentSources('pending', 'Queued for health check'),
+      });
+      setStatus('Checking source health...');
+      try {
+        const result = await postJson('/api/news/sources/health', { only_enabled: true });
+        const items = Array.isArray(result.items) ? result.items : [];
+        renderSourceProgress(items.map(row => ({
+          source: row.source || 'Unknown',
+          type: 'health',
+          status: row.status === 'healthy' ? 'done' : 'error',
+          detail: `status=${row.status || 'unknown'}${row.detail ? ` | ${row.detail}` : ''}`,
+          error: row.status === 'healthy' ? '' : row.detail || row.status || 'issue',
+        })));
+        if (!items.length) {
+          setStatus('Health: no enabled sources found.', true);
+          stopRunProgress(false, 'No enabled sources found.', 'Source health stopped');
+          return;
+        }
+        const bad = items.filter(x => x.status !== 'healthy');
+        const sample = bad.slice(0, 2).map(x => `${x.source}:${x.status}${x.detail ? `(${x.detail})` : ''}`).join(' | ');
+        const msg = `Health done. total=${items.length}, issues=${bad.length}${sample ? ` | sample: ${sample}` : ''}`;
+        setStatus(msg, bad.length > 0);
+        await refreshSources();
+        stopRunProgress(true, 'Source health completed.', 'Source health completed');
+      } catch (err) {
+        console.error(err);
+        stopRunProgress(false, 'Source health failed.', 'Source health failed');
+        setStatus('Source health failed: ' + (err?.message || 'Unknown error'), true);
+      } finally {
+        setButtonBusy('healthBtn', false);
       }
-      const bad = items.filter(x => x.status !== 'healthy');
-      const sample = bad.slice(0, 2).map(x => `${x.source}:${x.status}${x.detail ? `(${x.detail})` : ''}`).join(' | ');
-      const msg = `Health done. total=${items.length}, issues=${bad.length}${sample ? ` | sample: ${sample}` : ''}`;
-      setStatus(msg, bad.length > 0);
-      await refreshSources();
     }
 
     async function runMatchReviewQueue() {
-      const result = await postJson("/api/news/match/run", {
-        domain_bucket: currentDomainFilter(),
+      setButtonBusy('runMatchBtn', true, 'Running match AI...');
+      startOperationProgress({
+        title: 'Match review AI running',
+        step: 'Checking candidate article pairs...',
+        initialPercent: 10,
+        targetPercent: 24,
+        sourceRows: [],
       });
-      setStatus(`Match run done. checked=${result.checked_pairs}, queued=${result.enqueued_pairs}, fallback=${result.fallback_pairs}`);
-      await refreshMatchReview();
+      setStatus('Running match review AI...');
+      try {
+        const result = await postJson("/api/news/match/run", {
+          domain_bucket: currentDomainFilter(),
+        });
+        setStatus(`Match run done. checked=${result.checked_pairs}, queued=${result.enqueued_pairs}, fallback=${result.fallback_pairs}`);
+        setRunProgressStep('Refreshing match review queue...', 86);
+        await refreshMatchReview();
+        stopRunProgress(true, 'Match review queue refreshed.', 'Match review AI completed');
+      } catch (err) {
+        console.error(err);
+        stopRunProgress(false, 'Match review AI failed.', 'Match review AI failed');
+        setStatus('Match review AI failed: ' + (err?.message || 'Unknown error'), true);
+      } finally {
+        setButtonBusy('runMatchBtn', false);
+      }
     }
 
     async function runPipeline() {
@@ -2300,10 +2374,10 @@
         await refreshMatchReview();
         setRunProgressStep('Review queue refreshed. Updating source table...', 96);
         await refreshSources();
-        stopRunProgress(true, 'Fetch, processing and UI refresh completed.');
+        stopRunProgress(true, 'Fetch, processing and UI refresh completed.', 'Fetch + processing completed');
       } catch (err) {
         console.error(err);
-        stopRunProgress(false, 'Run failed before the pipeline returned a complete result.');
+        stopRunProgress(false, 'Run failed before the pipeline returned a complete result.', 'Fetch + processing failed');
         setStatus('Fetch + processing failed: ' + (err?.message || 'Unknown error'), true);
       } finally {
         setButtonBusy('runPipelineBtn', false);
