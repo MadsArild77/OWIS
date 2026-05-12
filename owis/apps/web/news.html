@@ -376,6 +376,24 @@
     }
     .row-actions button { margin: 0 4px 0 0; padding: 6px 10px; font-size: 0.8rem; }
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .settings-details > summary {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      list-style: none;
+    }
+    .settings-details > summary::-webkit-details-marker { display: none; }
+    .settings-title { display: flex; flex-direction: column; gap: 3px; }
+    .settings-title h2 { margin: 0; }
+    .settings-chevron {
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+    .settings-details[open] .settings-chevron::after { content: "Hide"; }
+    .settings-details:not([open]) .settings-chevron::after { content: "Show"; }
+    .settings-body { margin-top: 16px; }
     .health-dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle; border:1px solid #cbd5e1; }
     .health-green { background:#16a34a; }
     .health-yellow { background:#f59e0b; }
@@ -741,82 +759,91 @@
     </section>
 
     <section class="card">
-      <h2>Source Admin</h2>
-      <p class="muted">Import, edit, activate/deactivate, dedupe and trigger pipeline.</p>
+      <details id="sourceSettings" class="settings-details">
+        <summary>
+          <span class="settings-title">
+            <h2>Settings</h2>
+            <span class="muted">Sources, filters, RSS checks, health and pipeline controls.</span>
+          </span>
+          <span class="settings-chevron" aria-hidden="true"></span>
+        </summary>
+        <div class="settings-body">
 
-      <h3>Import sources</h3>
-      <textarea id="sourceInput" placeholder="Recharge - https://www.rechargenews.com\nhttps://windeurope.org"></textarea>
-      <button id="importBtn">Import Sources</button>
+          <h3>Import sources</h3>
+          <textarea id="sourceInput" placeholder="Recharge - https://www.rechargenews.com\nhttps://windeurope.org"></textarea>
+          <button id="importBtn">Import Sources</button>
 
-      <h3>Edit source</h3>
-      <div class="two-col">
-        <div>
-          <label class="muted">Index</label>
-          <input id="editIndex" type="number" readonly />
-        </div>
-        <div>
-          <label class="muted">Name</label>
-          <input id="editName" />
-        </div>
-        <div>
-          <label class="muted">Homepage</label>
-          <input id="editHomepage" />
-        </div>
-        <div>
-          <label class="muted">Type</label>
-          <select id="editType">
-            <option value="rss">rss</option>
-            <option value="scrape">scrape</option>
-          </select>
-        </div>
-        <div>
-          <label class="muted">URL</label>
-          <input id="editUrl" />
-        </div>
-        <div>
-          <label class="muted">Priority</label>
-          <input id="editPriority" />
-        </div>
-      </div>
-      <button id="saveEditBtn" class="btn-secondary">Save Edit</button>
+          <h3>Edit source</h3>
+          <div class="two-col">
+            <div>
+              <label class="muted">Index</label>
+              <input id="editIndex" type="number" readonly />
+            </div>
+            <div>
+              <label class="muted">Name</label>
+              <input id="editName" />
+            </div>
+            <div>
+              <label class="muted">Homepage</label>
+              <input id="editHomepage" />
+            </div>
+            <div>
+              <label class="muted">Type</label>
+              <select id="editType">
+                <option value="rss">rss</option>
+                <option value="scrape">scrape</option>
+              </select>
+            </div>
+            <div>
+              <label class="muted">URL</label>
+              <input id="editUrl" />
+            </div>
+            <div>
+              <label class="muted">Priority</label>
+              <input id="editPriority" />
+            </div>
+          </div>
+          <button id="saveEditBtn" class="btn-secondary">Save Edit</button>
 
-      <div style="margin-top:10px;">
-        <button id="dedupeBtn" class="btn-warning">Remove Duplicates</button>
-        <button id='rediscoverBtn' class='btn-secondary'>Rediscover RSS</button>
-        <button id='healthBtn' class='btn-secondary'>Source Health</button>
-        <button id="runPipelineBtn">Run Fetch + Processing</button>
-      </div>
-      <div class="two-col" style="margin-top:8px;">
-        <div>
-          <label class="muted">Days back</label>
-          <input id="fetchDaysBack" type="number" min="1" max="90" value="7" />
-        </div>
-        <div>
-          <label class="muted">Since last run</label>
-          <select id="fetchSinceLast">
-            <option value="false" selected>No</option>
-            <option value="true">Yes</option>
-          </select>
-        </div>
-      </div>
+          <div style="margin-top:10px;">
+            <button id="dedupeBtn" class="btn-warning">Remove Duplicates</button>
+            <button id='rediscoverBtn' class='btn-secondary'>Rediscover RSS</button>
+            <button id='healthBtn' class='btn-secondary'>Source Health</button>
+            <button id="runPipelineBtn">Run Fetch + Processing</button>
+          </div>
+          <div class="two-col" style="margin-top:8px;">
+            <div>
+              <label class="muted">Days back</label>
+              <input id="fetchDaysBack" type="number" min="1" max="90" value="7" />
+            </div>
+            <div>
+              <label class="muted">Since last run</label>
+              <select id="fetchSinceLast">
+                <option value="false" selected>No</option>
+                <option value="true">Yes</option>
+              </select>
+            </div>
+          </div>
 
-      <div class="two-col" style="margin-top:10px;">
-        <div>
-          <label class="muted">Filter cards by source</label>
-          <select id="sourceFilter">
-            <option value="">All sources</option>
-          </select>
+          <div class="two-col" style="margin-top:10px;">
+            <div>
+              <label class="muted">Filter cards by source</label>
+              <select id="sourceFilter">
+                <option value="">All sources</option>
+              </select>
+            </div>
+            <div>
+              <label class="muted">Domain filter</label>
+              <select id="domainFilter">
+                <option value="offshore_wind">Offshore wind</option>
+                <option value="adjacent_energy">Adjacent energy</option>
+                <option value="other_energy">Other energy</option>
+                <option value="all" selected>All domains</option>
+              </select>
+            </div>
+          </div>
         </div>
-        <div>
-          <label class="muted">Domain filter</label>
-          <select id="domainFilter">
-            <option value="offshore_wind">Offshore wind</option>
-            <option value="adjacent_energy">Adjacent energy</option>
-            <option value="other_energy">Other energy</option>
-            <option value="all" selected>All domains</option>
-          </select>
-        </div>
-      </div>
+      </details>
 
       <div id="adminStatus" class="status"></div>
       <div id="runProgress" class="run-progress" aria-live="polite">
@@ -944,6 +971,7 @@
     let runProgressWarningShown = false;
     let runProgressSourceRows = [];
     let runProgressSourceCursor = 0;
+    let activeJobPollTimer = null;
     let latestSourceReportBySource = {};
     let readingLayout = localStorage.getItem('owisReadingLayout') === 'cards' ? 'cards' : 'list';
 
@@ -997,6 +1025,76 @@
       const percent = document.getElementById('runProgressPercent');
       if (fill) fill.style.width = `${Math.max(0, Math.min(100, runProgressCurrent))}%`;
       if (percent) percent.textContent = `${Math.round(runProgressCurrent)}%`;
+    }
+
+    function applyJobProgress(job) {
+      if (!job) return;
+      const root = document.getElementById('runProgress');
+      const title = document.getElementById('runProgressTitle');
+      const step = document.getElementById('runProgressStep');
+      const warning = document.getElementById('runProgressWarning');
+      const time = document.getElementById('runProgressTime');
+      if (root) root.classList.add('active');
+      if (title) title.textContent = jobTitle(job.operation, job.status);
+      if (step) step.textContent = job.error ? `${job.step || 'Failed'}: ${job.error}` : (job.step || 'Working...');
+      if (warning) warning.classList.toggle('active', job.status === 'running' && runProgressStartedAt && Date.now() - runProgressStartedAt >= 45000);
+      runProgressCurrent = Number(job.percent || 0);
+      runProgressTarget = runProgressCurrent;
+      if (time && runProgressStartedAt) time.textContent = formatDuration(Date.now() - runProgressStartedAt);
+      renderSourceProgress(job.source_progress || []);
+      renderRunProgress();
+    }
+
+    function jobTitle(operation, status) {
+      const names = {
+        fetch_process: 'Fetch + processing',
+        rediscover_rss: 'RSS discovery',
+        source_health: 'Source health',
+        match_review: 'Match review AI',
+      };
+      const suffix = status === 'completed' ? 'completed' : status === 'failed' ? 'failed' : 'running';
+      return `${names[operation] || 'Operation'} ${suffix}`;
+    }
+
+    async function startBackendJob(operation, payload, options = {}) {
+      if (activeJobPollTimer) {
+        clearInterval(activeJobPollTimer);
+        activeJobPollTimer = null;
+      }
+      startOperationProgress({
+        title: options.title || jobTitle(operation, 'running'),
+        step: options.step || 'Starting backend job...',
+        initialPercent: 2,
+        targetPercent: 8,
+        sourceRows: options.sourceRows || [],
+      });
+      const started = await postJson('/api/news/jobs/start', { operation, payload });
+      const jobId = started.job_id;
+      if (!jobId) throw new Error('Backend did not return a job_id');
+
+      return await new Promise((resolve, reject) => {
+        const poll = async () => {
+          try {
+            const job = await getJson(`/api/news/jobs/${encodeURIComponent(jobId)}`);
+            applyJobProgress(job);
+            if (job.status === 'completed') {
+              clearInterval(activeJobPollTimer);
+              activeJobPollTimer = null;
+              resolve(job.result || {});
+            } else if (job.status === 'failed') {
+              clearInterval(activeJobPollTimer);
+              activeJobPollTimer = null;
+              reject(new Error(job.error || 'Job failed'));
+            }
+          } catch (err) {
+            clearInterval(activeJobPollTimer);
+            activeJobPollTimer = null;
+            reject(err);
+          }
+        };
+        activeJobPollTimer = window.setInterval(poll, 1200);
+        poll();
+      });
     }
 
     function setRunProgressStep(label, percent) {
@@ -1055,6 +1153,10 @@
       if (runProgressTimer) {
         clearInterval(runProgressTimer);
         runProgressTimer = null;
+      }
+      if (activeJobPollTimer) {
+        clearInterval(activeJobPollTimer);
+        activeJobPollTimer = null;
       }
       runProgressCurrent = success ? 100 : runProgressCurrent;
       runProgressTarget = runProgressCurrent;
@@ -1687,8 +1789,9 @@
         const div = document.createElement('article');
         div.className = 'card compact-card is-clickable';
         const imageUrl = cssImageUrl(item.image_url);
-        if (imageUrl) div.classList.add('has-image');
-        const imageHtml = imageUrl
+        const showCardImage = viewMode !== 'review' && Boolean(imageUrl);
+        if (showCardImage) div.classList.add('has-image');
+        const imageHtml = showCardImage
           ? `<img class="compact-image" src="${escapeHtml(item.image_url)}" alt="${escapeHtml(item.title || 'Article image')}" onerror="this.remove()" />`
           : '';
         const itemId = Number(item.id || 0);
@@ -1804,6 +1907,7 @@
         div.className = `card story-card${pulseManual && col.is_manual ? ' is-updated' : ''}`;
         const master = col.master || {};
         const masterImage = cssImageUrl(master.image_url);
+        const showMasterImage = !showItems && Boolean(masterImage);
         const masterTagsHtml = [
           tagBadgeHtml((master.themes || []).slice(0, 4)),
           tagBadgeHtml((master.geographies || []).slice(0, 3), 'is-geo'),
@@ -1812,7 +1916,7 @@
         const isReadingPreview = elId === 'readingStories';
         const summaryText = isReadingPreview ? shortText(master.summary, 230) : (master.summary || '');
         const whyText = isReadingPreview ? shortText(master.why_it_matters, 130) : (master.why_it_matters || '');
-        const thumbStyle = masterImage ? ` style="background-image:url('${masterImage}')"` : '';
+        const thumbStyle = showMasterImage ? ` style="background-image:url('${masterImage}')"` : '';
         const rows = showItems ? (col.items || []).map(item => {
           const id = Number(item.id || 0);
           const checked = selectedCollectionItems.has(id) ? 'checked' : '';
@@ -1823,7 +1927,7 @@
         }).join('') : '';
 
         div.innerHTML = `
-          <div class="master-card ${masterImage ? 'has-image' : ''}">
+          <div class="master-card ${showMasterImage ? 'has-image' : ''}">
             <div class="master-content">
               <div class="muted">Master view | ${escapeHtml((master.sources || []).join(', ') || 'Sources')}</div>
               <div class="master-title">${escapeHtml(master.title || `${col.primary_theme || 'general_news'} / ${col.primary_geography || 'Global'}`)}</div>
@@ -1831,7 +1935,7 @@
               ${whyText ? `<div class="master-why"><strong>Why it matters:</strong> ${escapeHtml(whyText)}</div>` : ''}
               <div class="master-tags">${masterTagsHtml || '<span class="inline-tag is-geo">No tags</span>'}</div>
             </div>
-            ${masterImage ? `<div class="story-thumb"${thumbStyle}></div>` : ''}
+            ${showMasterImage ? `<div class="story-thumb"${thumbStyle}></div>` : ''}
           </div>
           <div class="collection-head">
             <div>
@@ -2237,16 +2341,11 @@
       });
       setStatus('Checking RSS feeds and source homepages...');
       try {
-        const result = await postJson('/api/news/sources/rediscover-rss', { only_scrape: false, with_debug: true });
-        if (Array.isArray(result.details)) {
-          renderSourceProgress(result.details.map(row => ({
-            source: row.source_name || row.homepage || 'Unknown',
-            type: 'rss',
-            status: row.status === 'updated' || row.status === 'rss_found' ? 'done' : 'pending',
-            detail: `status=${row.status || 'checked'} | candidates=${row.candidate_count || 0}${row.homepage_error ? ` | error=${row.homepage_error}` : ''}`,
-            error: row.homepage_error || '',
-          })));
-        }
+        const result = await startBackendJob('rediscover_rss', { only_scrape: false, with_debug: true }, {
+          title: 'RSS discovery running',
+          step: 'Starting backend RSS discovery job...',
+          sourceRows: sourceProgressRowsForCurrentSources('pending', 'Queued for RSS discovery'),
+        });
         let msg = `Rediscover done. updated=${result.updated_count}, checked=${result.checked_count || 0}`;
         if (Array.isArray(result.details)) {
           const misses = result.details.filter(d => d.status === 'no_feed_found');
@@ -2281,15 +2380,12 @@
       });
       setStatus('Checking source health...');
       try {
-        const result = await postJson('/api/news/sources/health', { only_enabled: true });
+        const result = await startBackendJob('source_health', { only_enabled: true }, {
+          title: 'Source health running',
+          step: 'Starting backend source health job...',
+          sourceRows: sourceProgressRowsForCurrentSources('pending', 'Queued for health check'),
+        });
         const items = Array.isArray(result.items) ? result.items : [];
-        renderSourceProgress(items.map(row => ({
-          source: row.source || 'Unknown',
-          type: 'health',
-          status: row.status === 'healthy' ? 'done' : 'error',
-          detail: `status=${row.status || 'unknown'}${row.detail ? ` | ${row.detail}` : ''}`,
-          error: row.status === 'healthy' ? '' : row.detail || row.status || 'issue',
-        })));
         if (!items.length) {
           setStatus('Health: no enabled sources found.', true);
           stopRunProgress(false, 'No enabled sources found.', 'Source health stopped');
@@ -2321,8 +2417,11 @@
       });
       setStatus('Running match review AI...');
       try {
-        const result = await postJson("/api/news/match/run", {
+        const result = await startBackendJob('match_review', {
           domain_bucket: currentDomainFilter(),
+        }, {
+          title: 'Match review AI running',
+          step: 'Starting backend match review job...',
         });
         setStatus(`Match run done. checked=${result.checked_pairs}, queued=${result.enqueued_pairs}, fallback=${result.fallback_pairs}`);
         setRunProgressStep('Refreshing match review queue...', 86);
@@ -2347,7 +2446,11 @@
       setStatus(`Running fetch + processing (days_back=${days_back}, since_last=${since_last}) ...`);
       try {
         setRunProgressStep('Contacting backend and preparing fetch pipeline...', 18);
-        const result = await postJson('/api/news/run/fetch-process', { days_back, since_last });
+        const result = await startBackendJob('fetch_process', { days_back, since_last }, {
+          title: 'Fetch + processing running',
+          step: 'Starting backend fetch/process job...',
+          sourceRows: sourceProgressRowsForCurrentSources('pending', 'Queued for fetch'),
+        });
         latestSourceReportBySource = {};
         if (Array.isArray(result.source_report)) {
           renderSourceProgress(result.source_report);

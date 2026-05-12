@@ -1,7 +1,10 @@
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from itertools import combinations
 import re
+from threading import Lock
+from uuid import uuid4
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -34,6 +37,9 @@ from owis.modules.news.storage.repository import NewsRepository
 
 router = APIRouter(prefix="/api/news", tags=["news"])
 repo = NewsRepository()
+_JOB_EXECUTOR = ThreadPoolExecutor(max_workers=3, thread_name_prefix="owis-news-job")
+_JOBS: dict[str, dict[str, Any]] = {}
+_JOBS_LOCK = Lock()
 
 _CLUSTER_STOPWORDS = {
     "a", "an", "and", "are", "as", "at", "be", "by", "for", "from",
@@ -112,12 +118,189 @@ class MatchReviewDecisionRequest(BaseModel):
     actor: str | None = None
 
 
+class StartJobRequest(BaseModel):
+    operation: str
+    payload: dict[str, Any] = Field(default_factory=dict)
+
+
 def _base_health(items: int, error: str | None) -> tuple[int, str]:
     if error:
         return 0, "red"
     if items <= 0:
         return 1, "yellow"
     return 2, "green"
+
+
+def _job_snapshot(job_id: str) -> dict[str, Any]:
+    with _JOBS_LOCK:
+        job = _JOBS.get(job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail="Job not found")
+        return dict(job)
+
+
+def _update_job(job_id: str, **updates: Any) -> None:
+    with _JOBS_LOCK:
+        job = _JOBS.get(job_id)
+        if not job:
+            return
+        job.update(updates)
+        job["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+
+def _source_progress_from_registry(detail: str) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    registry = load_source_registry()
+    sources = registry.get("sources", []) if isinstance(registry, dict) else registry
+    for source in sources:
+        if source.get("enabled") is False:
+            continue
+        rows.append(
+            {
+                "source": source.get("name") or "Unknown",
+                "type": source.get("type") or "source",
+                "status": "pending",
+                "detail": detail,
+            }
+        )
+    return rows
+
+
+def _mark_sources_active(rows: list[dict[str, Any]], active_index: int, done_detail: str = "Checked") -> list[dict[str, Any]]:
+    updated: list[dict[str, Any]] = []
+    for idx, row in enumerate(rows):
+        next_row = dict(row)
+        if idx < active_index:
+            next_row["status"] = "done"
+            next_row["detail"] = next_row.get("detail_done") or done_detail
+        elif idx == active_index:
+            next_row["status"] = "active"
+            next_row["detail"] = "Working..."
+        else:
+            next_row["status"] = next_row.get("status") or "pending"
+        updated.append(next_row)
+    return updated
+
+
+def _complete_sources_from_report(report: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for row in report:
+        error = row.get("error")
+        items = int(row.get("items") or 0)
+        filtered = int(row.get("filtered") or 0)
+        rows.append(
+            {
+                **row,
+                "status": "error" if error else "done",
+                "detail": (f"error={error}" if error else f"items={items} | filtered={filtered}"),
+            }
+        )
+    return rows
+
+
+def _create_job(operation: str, payload: dict[str, Any]) -> str:
+    job_id = uuid4().hex
+    now = datetime.now(timezone.utc).isoformat()
+    with _JOBS_LOCK:
+        _JOBS[job_id] = {
+            "id": job_id,
+            "operation": operation,
+            "status": "queued",
+            "percent": 1,
+            "step": "Queued",
+            "source_progress": [],
+            "result": None,
+            "error": None,
+            "created_at": now,
+            "updated_at": now,
+        }
+    _JOB_EXECUTOR.submit(_run_job, job_id, operation, payload)
+    return job_id
+
+
+def _run_job(job_id: str, operation: str, payload: dict[str, Any]) -> None:
+    try:
+        if operation == "fetch_process":
+            _run_fetch_process(RunFetchProcessRequest(**payload), job_id=job_id)
+            return
+
+        if operation == "rediscover_rss":
+            _update_job(
+                job_id,
+                status="running",
+                percent=8,
+                step="Checking source homepages and RSS candidates...",
+                source_progress=_source_progress_from_registry("Queued for RSS discovery"),
+            )
+            result = rediscover_rss_for_sources(
+                only_scrape=bool(payload.get("only_scrape", False)),
+                with_debug=bool(payload.get("with_debug", True)),
+            )
+            details = result.get("details") if isinstance(result, dict) else []
+            if isinstance(details, list):
+                rows = [
+                    {
+                        "source": row.get("source_name") or row.get("homepage") or "Unknown",
+                        "type": "rss",
+                        "status": "error" if row.get("homepage_error") else "done",
+                        "detail": f"status={row.get('status') or 'checked'} | candidates={row.get('candidate_count') or 0}",
+                        "error": row.get("homepage_error") or "",
+                    }
+                    for row in details
+                ]
+            else:
+                rows = []
+            _update_job(
+                job_id,
+                status="completed",
+                percent=100,
+                step="RSS discovery completed.",
+                source_progress=rows,
+                result=result,
+            )
+            return
+
+        if operation == "source_health":
+            _update_job(
+                job_id,
+                status="running",
+                percent=8,
+                step="Checking enabled sources...",
+                source_progress=_source_progress_from_registry("Queued for health check"),
+            )
+            items = source_health_report(only_enabled=bool(payload.get("only_enabled", True)))
+            rows = [
+                {
+                    "source": row.get("source") or "Unknown",
+                    "type": "health",
+                    "status": "done" if row.get("status") == "healthy" else "error",
+                    "detail": f"status={row.get('status') or 'unknown'}{(' | ' + str(row.get('detail'))) if row.get('detail') else ''}",
+                    "error": "" if row.get("status") == "healthy" else row.get("detail") or row.get("status") or "issue",
+                }
+                for row in items
+            ]
+            _update_job(
+                job_id,
+                status="completed",
+                percent=100,
+                step="Source health completed.",
+                source_progress=rows,
+                result={"items": items},
+            )
+            return
+
+        if operation == "match_review":
+            _run_match_review(MatchRunRequest(**payload), job_id=job_id)
+            return
+
+        _update_job(job_id, status="failed", error=f"Unknown operation: {operation}", step="Job failed")
+    except Exception as ex:
+        _update_job(
+            job_id,
+            status="failed",
+            error=f"{ex.__class__.__name__}: {ex}",
+            step="Job failed before completion.",
+        )
 
 
 def _with_degradation_color(base_score: int, base_color: str, prev: dict | None, items: int) -> tuple[int, str, str]:
@@ -602,14 +785,17 @@ def unmerge_collections(payload: UnmergeCollectionRequest):
         "message": "Selected items reverted to automatic grouping.",
     }
 
-@router.post("/match/run")
-def run_match_review(payload: MatchRunRequest):
+def _run_match_review(payload: MatchRunRequest, job_id: str | None = None) -> dict[str, Any]:
     init_db()
     bucket = _normalize_domain_bucket(payload.domain_bucket)
     since_iso = window_start_iso(payload.days_window)
+    if job_id:
+        _update_job(job_id, status="running", percent=8, step="Loading recent processed articles...")
 
     items = repo.list_processed_since(since_iso=since_iso, limit=max(payload.lookback_items, 50))
     items = _filter_domain(_attach_domain_data(items), bucket)
+    if job_id:
+        _update_job(job_id, percent=20, step=f"Building candidate pairs from {len(items)} articles...")
 
     learned_pairs = {
         (int(row["item_a_id"]), int(row["item_b_id"])): str(row["decision"])
@@ -627,7 +813,11 @@ def run_match_review(payload: MatchRunRequest):
     reviewed = 0
     fallback_count = 0
 
+    total = max(len(candidates), 1)
     for left, right, heuristic_score in candidates:
+        if job_id:
+            pct = 24 + min(62, int((reviewed / total) * 62))
+            _update_job(job_id, percent=pct, step=f"Reviewing match pair {reviewed + 1}/{len(candidates)}...")
         judgement = judge_pair(ai=ai, item_a=left, item_b=right, heuristic_score=heuristic_score)
         reviewed += 1
         if judgement.get("fallback"):
@@ -647,13 +837,21 @@ def run_match_review(payload: MatchRunRequest):
         )
         enqueued += 1
 
-    return {
+    result = {
         "checked_pairs": reviewed,
         "enqueued_pairs": enqueued,
         "fallback_pairs": fallback_count,
         "domain_bucket": bucket,
         "lookback_items": len(items),
     }
+    if job_id:
+        _update_job(job_id, percent=100, step="Match review completed.", status="completed", result=result)
+    return result
+
+
+@router.post("/match/run")
+def run_match_review(payload: MatchRunRequest):
+    return _run_match_review(payload)
 
 
 @router.get("/match-review")
@@ -759,17 +957,39 @@ def source_health_state():
     return {"items": repo.list_source_health_states()}
 
 
+@router.post("/jobs/start")
+def start_news_job(payload: StartJobRequest):
+    operation = str(payload.operation or "").strip()
+    allowed = {"fetch_process", "rediscover_rss", "source_health", "match_review"}
+    if operation not in allowed:
+        raise HTTPException(status_code=400, detail=f"Unsupported operation: {operation}")
+    job_id = _create_job(operation, payload.payload or {})
+    return {"job_id": job_id, "status": "queued"}
+
+
+@router.get("/jobs/{job_id}")
+def get_news_job(job_id: str):
+    return _job_snapshot(job_id)
+
+
 @router.get("/ai/status")
 def ai_status(probe: bool = False):
     ai = AIClient()
     return ai.status(with_probe=bool(probe))
 
-@router.post("/run/fetch-process")
-def run_fetch_process(payload: RunFetchProcessRequest):
+def _run_fetch_process(payload: RunFetchProcessRequest, job_id: str | None = None) -> dict[str, Any]:
     init_db()
 
     days_back = max(1, int(payload.days_back or 7))
     threshold = datetime.now(timezone.utc) - timedelta(days=days_back)
+    if job_id:
+        _update_job(
+            job_id,
+            status="running",
+            percent=5,
+            step=f"Preparing fetch pipeline (days_back={days_back}, since_last={bool(payload.since_last)})...",
+            source_progress=_source_progress_from_registry("Queued for fetch"),
+        )
 
     since_last = bool(payload.since_last)
     checkpoint_dt: datetime | None = None
@@ -777,10 +997,26 @@ def run_fetch_process(payload: RunFetchProcessRequest):
         checkpoint = repo.latest_raw_checkpoint()
         checkpoint_dt = _parse_iso_datetime(checkpoint) if checkpoint else None
 
+    if job_id:
+        _update_job(job_id, percent=14, step="Fetching RSS sources...")
     rss_items, rss_report = fetch_rss_items_with_report()
+    if job_id:
+        _update_job(
+            job_id,
+            percent=38,
+            step="RSS fetch completed. Fetching scrape sources...",
+            source_progress=_complete_sources_from_report(rss_report),
+        )
     scrape_items, scrape_report = fetch_scrape_items_with_report()
     source_report = [*rss_report, *scrape_report]
     fetched_items_all = [*rss_items, *scrape_items]
+    if job_id:
+        _update_job(
+            job_id,
+            percent=54,
+            step=f"Fetched {len(fetched_items_all)} candidate items. Filtering by date...",
+            source_progress=_complete_sources_from_report(source_report),
+        )
 
     fetched_items: list[dict[str, Any]] = []
     dropped_old = 0
@@ -801,6 +1037,8 @@ def run_fetch_process(payload: RunFetchProcessRequest):
         if new_raw_id is not None:
             inserted += 1
             inserted_raw_ids.append(int(new_raw_id))
+    if job_id:
+        _update_job(job_id, percent=64, step=f"Stored {inserted} new raw items. Loading processing queue...")
 
     inserted_id_set = {int(x) for x in inserted_raw_ids}
     raws_new = repo.list_unprocessed_raw_by_ids(inserted_raw_ids)
@@ -814,7 +1052,11 @@ def run_fetch_process(payload: RunFetchProcessRequest):
     processed_backlog_items = 0
     processing_errors = 0
     processing_error_samples: list[str] = []
+    total_raws = max(len(raws), 1)
     for raw in raws:
+        if job_id:
+            pct = 66 + min(20, int((processed / total_raws) * 20))
+            _update_job(job_id, percent=pct, step=f"AI processing item {processed + processing_errors + 1}/{len(raws)}...")
         try:
             result = process_raw_item(raw)
             repo.save_processed_item(result)
@@ -833,6 +1075,8 @@ def run_fetch_process(payload: RunFetchProcessRequest):
 
     health_rows: list[dict] = []
     now_iso = datetime.now(timezone.utc).isoformat()
+    if job_id:
+        _update_job(job_id, percent=88, step="Updating source health state...")
     for row in source_report:
         source_name = str(row.get("source") or "unknown")
         items = int(row.get("items") or 0)
@@ -856,6 +1100,8 @@ def run_fetch_process(payload: RunFetchProcessRequest):
         health_rows.append({"source": source_name, "health": color, "reason": reason, "items": items})
 
     collection_items = _filter_domain(_attach_metadata(repo.latest(limit=300)), "offshore_wind")
+    if job_id:
+        _update_job(job_id, percent=94, step="Refreshing collection preview...")
     collections = _build_collections(
         items=collection_items,
         overrides=repo.list_collection_overrides(),
@@ -864,7 +1110,7 @@ def run_fetch_process(payload: RunFetchProcessRequest):
         items_per_collection=3,
     )
 
-    return {
+    result = {
         "fetched_candidates": len(fetched_items),
         "dropped_old_items": dropped_old,
         "days_back": days_back,
@@ -880,4 +1126,12 @@ def run_fetch_process(payload: RunFetchProcessRequest):
         "source_health": health_rows,
         "collection_preview": collections,
     }
+    if job_id:
+        _update_job(job_id, status="completed", percent=100, step="Fetch, processing and UI refresh completed.", result=result)
+    return result
+
+
+@router.post("/run/fetch-process")
+def run_fetch_process(payload: RunFetchProcessRequest):
+    return _run_fetch_process(payload)
 
