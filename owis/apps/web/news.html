@@ -1083,6 +1083,36 @@
         .slice(0, limit);
     }
 
+    function normalizeDetailText(value) {
+      return String(value || '')
+        .replace(/\s+/g, ' ')
+        .replace(/[.,;:!?]+$/g, '')
+        .trim()
+        .toLowerCase();
+    }
+
+    function isDuplicateDetailText(candidate, existing) {
+      const text = normalizeDetailText(candidate);
+      if (!text) return true;
+      return existing.some(prev => {
+        const other = normalizeDetailText(prev);
+        if (!other) return false;
+        return text === other || text.includes(other) || other.includes(text);
+      });
+    }
+
+    function uniqueDetailBlocks(...values) {
+      const seen = [];
+      const out = [];
+      for (const value of values) {
+        const text = String(value || '').trim();
+        if (!text || isDuplicateDetailText(text, seen)) continue;
+        seen.push(text);
+        out.push(text);
+      }
+      return out;
+    }
+
     function openDetailOverlay() {
       const overlay = document.getElementById('detailOverlay');
       overlay?.classList.add('open');
@@ -1118,9 +1148,13 @@
           `Score ${item.signal_score ?? 'n/a'}`,
           `Confidence ${item.confidence ?? 'n/a'}`,
         ].join(' | ');
-        const leadText = preview.description || item.summary || '';
-        const excerptText = preview.preview_excerpt || item.cleaned_text || '';
-        const sourceContext = preview.source_context || preview.preview_excerpt || '';
+        const summaryText = item.summary || preview.description || '';
+        const [leadText = '', excerptText = '', sourceContext = ''] = uniqueDetailBlocks(
+          preview.description,
+          preview.preview_excerpt,
+          item.cleaned_text,
+          preview.source_context,
+        );
         const hasLinkedInSuggestion = Boolean(item.linkedin_angle);
         const detailImageUrl = preview.image_url || item.image_url || '';
         const imageHtml = detailImageUrl
@@ -1134,7 +1168,7 @@
           <div class="detail-topline">
             <div class="detail-summary">
               <strong>Summary</strong>
-              <div>${escapeHtml(item.summary || leadText || 'n/a')}</div>
+              <div>${escapeHtml(summaryText || leadText || 'n/a')}</div>
             </div>
             <div>${imageHtml}</div>
           </div>
@@ -1159,12 +1193,14 @@
             ${detailMetaChip('Score', String(item.signal_score ?? 'n/a'))}
             ${detailMetaChip('Confidence', String(item.confidence ?? 'n/a'))}
           </div>
-          <div class="detail-preview">
-            <div class="detail-preview-text">
-              <div class="detail-preview-lead">${escapeHtml(leadText || 'n/a')}</div>
-              ${excerptText ? `<div class="detail-preview-excerpt">${escapeHtml(excerptText)}</div>` : ''}
+          ${(leadText || excerptText) ? `
+            <div class="detail-preview">
+              <div class="detail-preview-text">
+                ${leadText ? `<div class="detail-preview-lead">${escapeHtml(leadText)}</div>` : ''}
+                ${excerptText ? `<div class="detail-preview-excerpt">${escapeHtml(excerptText)}</div>` : ''}
+              </div>
             </div>
-          </div>
+          ` : ''}
           ${sourceContext ? `
             <div class="detail-source-context">
               <h4>From source article</h4>
