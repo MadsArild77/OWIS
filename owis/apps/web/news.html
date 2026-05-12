@@ -428,6 +428,107 @@
     .master-title { font-size:1.05rem; font-weight:800; margin-bottom:6px; }
     .master-summary, .master-why { color:var(--muted); line-height:1.45; font-size:0.9rem; margin-top:6px; }
     .master-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
+    .view-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin: 10px 0 12px;
+      flex-wrap: wrap;
+    }
+    .view-toggle {
+      display: inline-flex;
+      gap: 4px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+    }
+    .view-toggle button {
+      margin-top: 0;
+      padding: 6px 11px;
+      border-radius: 999px;
+      background: transparent;
+      border: 0;
+      color: var(--muted);
+      box-shadow: none;
+      font-size: 0.82rem;
+    }
+    .view-toggle button.active {
+      background: rgba(56,189,248,0.2);
+      color: #ffffff;
+    }
+    .story-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .story-list .story-card {
+      padding: 12px;
+      border-radius: 18px;
+    }
+    .story-list .master-card {
+      min-height: 0;
+      margin-bottom: 8px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 132px;
+      gap: 12px;
+      align-items: stretch;
+      padding: 12px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.025));
+    }
+    .story-list .master-card.has-image {
+      color: var(--ink);
+      background-image: none !important;
+    }
+    .story-list .master-content {
+      min-width: 0;
+    }
+    .story-thumb {
+      display: none;
+      border-radius: 14px;
+      min-height: 112px;
+      background-size: cover;
+      background-position: center;
+      border: 1px solid rgba(255,255,255,0.14);
+    }
+    .story-list .story-thumb {
+      display: block;
+    }
+    .story-list .master-card.has-image .muted,
+    .story-list .master-card.has-image .master-summary,
+    .story-list .master-card.has-image .master-why {
+      color: var(--muted);
+      text-shadow: none;
+    }
+    .story-list .master-title {
+      font-size: 0.98rem;
+      line-height: 1.25;
+    }
+    .story-list .master-summary {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-top: 5px;
+    }
+    .story-list .master-why {
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      font-size: 0.84rem;
+    }
+    .story-list .master-tags .inline-tag:nth-child(n+7) {
+      display: none;
+    }
+    .story-list .collection-head {
+      margin-bottom: 0;
+      font-size: 0.86rem;
+    }
+    .story-list .collection-key {
+      display: none;
+    }
     .selection-row { margin-top:8px; font-size:0.84rem; color:var(--muted); }
     .tab-bar { display:flex; gap:8px; margin-bottom:14px; }
     .tab-btn { background:rgba(255,255,255,0.07); color:var(--muted); border:1px solid var(--line); margin-top:0; }
@@ -638,6 +739,12 @@
       .detail-topline {
         grid-template-columns: 1fr;
       }
+      .story-list .master-card {
+        grid-template-columns: 1fr;
+      }
+      .story-list .story-thumb {
+        min-height: 150px;
+      }
     }
   </style>
 </head>
@@ -789,6 +896,13 @@
       <div id="tab-reading" class="tab-panel active">
         <h2>Reading</h2>
         <p class="muted">Merged stories are shown as one master story. Open sources from the story when needed.</p>
+        <div class="view-toolbar">
+          <span class="muted">Short overview for scanning. Open a story for full context.</span>
+          <div class="view-toggle" aria-label="Reading layout">
+            <button id="readingListViewBtn" class="active" type="button" data-reading-layout="list">List</button>
+            <button id="readingCardViewBtn" type="button" data-reading-layout="cards">Cards</button>
+          </div>
+        </div>
         <div id="readingStories" class="grid"></div>
         <div class="pager">
           <button id="readingPrev" class="btn-secondary" type="button">Prev</button>
@@ -858,12 +972,14 @@
     let matchReviewItems = [];
     let viewMode = 'reading';
     let activeDetailItemId = null;
+    let activeDetailCollectionKey = null;
     let runProgressTimer = null;
     let runProgressStartedAt = null;
     let runProgressCurrent = 0;
     let runProgressTarget = 0;
     let runProgressWarningShown = false;
     let latestSourceReportBySource = {};
+    let readingLayout = localStorage.getItem('owisReadingLayout') === 'cards' ? 'cards' : 'list';
 
     function relevanceLabel(status) {
       if (status === 'relevant') return 'Relevant';
@@ -1069,6 +1185,15 @@
       return tags.map(tag => `<span class="inline-tag ${cls}">${escapeHtml(tag)}</span>`).join('');
     }
 
+    function shortText(value, maxLength = 260) {
+      const text = String(value || '').replace(/\s+/g, ' ').trim();
+      if (text.length <= maxLength) return text;
+      const clipped = text.slice(0, maxLength);
+      const sentenceEnd = Math.max(clipped.lastIndexOf('. '), clipped.lastIndexOf('! '), clipped.lastIndexOf('? '));
+      const cut = sentenceEnd > 120 ? sentenceEnd + 1 : clipped.lastIndexOf(' ');
+      return `${clipped.slice(0, cut > 80 ? cut : maxLength).trim()}...`;
+    }
+
     function cssImageUrl(value) {
       const url = String(value || '').trim();
       if (!url || !/^https?:\/\//i.test(url)) return '';
@@ -1084,10 +1209,22 @@
       `;
     }
 
+    function textBlockHtml(value) {
+      return escapeHtml(value || 'n/a').replace(/\n{2,}/g, '<br><br>').replace(/\n/g, '<br>');
+    }
+
     function currentVisibleItems() {
       const reviewOpen = document.getElementById('tab-review')?.classList.contains('active');
       if (reviewOpen) return latestItems;
       return latestItems;
+    }
+
+    function currentVisibleCollections() {
+      return mergedItems || [];
+    }
+
+    function findCollectionByKey(collectionKey) {
+      return currentVisibleCollections().find(col => String(col.collection_key || '') === String(collectionKey || ''));
     }
 
     function currentVisibleIndex(itemId) {
@@ -1096,6 +1233,10 @@
     }
 
     function stepDetailItem(delta) {
+      if (activeDetailCollectionKey) {
+        stepDetailCollection(delta);
+        return;
+      }
       const items = currentVisibleItems();
       if (!items.length || !activeDetailItemId) return;
       const index = currentVisibleIndex(activeDetailItemId);
@@ -1106,6 +1247,16 @@
       if (nextId > 0) showItemDetails(nextId);
     }
 
+    function stepDetailCollection(delta) {
+      const collections = currentVisibleCollections();
+      if (!collections.length || !activeDetailCollectionKey) return;
+      const index = collections.findIndex(col => String(col.collection_key || '') === String(activeDetailCollectionKey || ''));
+      if (index < 0) return;
+      const nextIndex = index + delta;
+      if (nextIndex < 0 || nextIndex >= collections.length) return;
+      showCollectionDetails(collections[nextIndex].collection_key);
+    }
+
     function updateDetailNavButtons(itemId) {
       const prev = document.getElementById('detailPrevBtn');
       const next = document.getElementById('detailNextBtn');
@@ -1114,6 +1265,16 @@
       if (!prev || !next) return;
       prev.disabled = index <= 0;
       next.disabled = index < 0 || index >= items.length - 1;
+    }
+
+    function updateDetailCollectionNavButtons(collectionKey) {
+      const prev = document.getElementById('detailPrevBtn');
+      const next = document.getElementById('detailNextBtn');
+      const collections = currentVisibleCollections();
+      const index = collections.findIndex(col => String(col.collection_key || '') === String(collectionKey || ''));
+      if (!prev || !next) return;
+      prev.disabled = index <= 0;
+      next.disabled = index < 0 || index >= collections.length - 1;
     }
 
     function scoreRelatedness(item, other) {
@@ -1205,12 +1366,70 @@
       overlay?.classList.remove('open');
       overlay?.setAttribute('aria-hidden', 'true');
       activeDetailItemId = null;
+      activeDetailCollectionKey = null;
+    }
+
+    function showCollectionDetails(collectionKey) {
+      const collection = findCollectionByKey(collectionKey);
+      if (!collection) return;
+
+      activeDetailCollectionKey = String(collection.collection_key || '');
+      activeDetailItemId = null;
+      updateDetailCollectionNavButtons(activeDetailCollectionKey);
+      openDetailOverlay();
+
+      const master = collection.master || {};
+      const items = Array.isArray(collection.items) ? collection.items : [];
+      const imageUrl = cssImageUrl(master.image_url);
+      const imageHtml = imageUrl
+        ? `<img class="detail-preview-image" src="${escapeHtml(imageUrl)}" alt="${escapeHtml(master.title || 'Story image')}" onerror="this.remove()" />`
+        : '';
+      const sourceRows = items.length
+        ? items.map(item => `
+            <div class="collection-item">
+              <a href="${escapeHtml(item.article_url || '#')}" target="_blank" rel="noopener noreferrer"><strong>${escapeHtml(item.title || 'Untitled')}</strong></a>
+              <div class="meta">${escapeHtml(item.source_name || 'Unknown')} | score ${escapeHtml(item.signal_score ?? 'n/a')} | ${escapeHtml(relevanceLabel(item.relevance_status))}</div>
+            </div>
+          `).join('')
+        : '<p class="muted">No source articles loaded for this story.</p>';
+
+      document.getElementById('detailTitle').textContent = master.title || `${collection.primary_theme || 'general_news'} / ${collection.primary_geography || 'Global'}`;
+      document.getElementById('detailMeta').textContent = [
+        'Master story',
+        `${collection.article_count || items.length || 0} source articles`,
+        (master.sources || []).join(', ') || 'Sources',
+        `top score ${collection.top_signal_score ?? 'n/a'}`,
+      ].join(' | ');
+      document.getElementById('detailContent').innerHTML = `
+        <div class="detail-topline ${imageHtml ? 'has-image' : 'no-image'}">
+          <div class="detail-summary">
+            <strong>Case description</strong>
+            <div>${textBlockHtml(master.summary || 'n/a')}</div>
+          </div>
+          ${imageHtml ? `<div>${imageHtml}</div>` : ''}
+        </div>
+        <div class="detail-why">
+          <strong>Why it matters</strong>
+          <div>${textBlockHtml(master.why_it_matters || 'n/a')}</div>
+        </div>
+        <div class="detail-meta-strip">
+          ${detailMetaChip('Themes', (master.themes || []).join(', ') || 'n/a')}
+          ${detailMetaChip('Geography', (master.geographies || []).join(', ') || 'n/a')}
+          ${detailMetaChip('Actors', (master.actors || []).join(', ') || 'n/a')}
+          ${detailMetaChip('Sources', (master.sources || []).join(', ') || 'n/a')}
+        </div>
+        <div class="detail-why">
+          <strong>Source articles in this merged story</strong>
+          <div>${sourceRows}</div>
+        </div>
+      `;
     }
 
     async function showItemDetails(itemId) {
       if (!Number.isFinite(itemId) || itemId <= 0) return;
 
       activeDetailItemId = itemId;
+      activeDetailCollectionKey = null;
       updateDetailNavButtons(itemId);
       openDetailOverlay();
       document.getElementById('detailMeta').textContent = `Item #${itemId}`;
@@ -1251,7 +1470,7 @@
           <div class="detail-topline ${imageHtml ? 'has-image' : 'no-image'}">
             <div class="detail-summary">
               <strong>Case description</strong>
-              <div>${escapeHtml(caseDescription)}</div>
+              <div>${textBlockHtml(caseDescription)}</div>
             </div>
             ${imagePanelHtml}
           </div>
@@ -1365,7 +1584,20 @@
           setActiveTab(tab);
         });
       });
+      document.querySelectorAll('[data-reading-layout]').forEach(btn => {
+        btn.addEventListener('click', () => setReadingLayout(btn.getAttribute('data-reading-layout') || 'list'));
+      });
+      setReadingLayout(readingLayout);
       setActiveTab('reading');
+    }
+
+    function setReadingLayout(layout) {
+      readingLayout = layout === 'cards' ? 'cards' : 'list';
+      localStorage.setItem('owisReadingLayout', readingLayout);
+      document.querySelectorAll('[data-reading-layout]').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-reading-layout') === readingLayout);
+      });
+      renderReadingPage();
     }
     function getPageSlice(kind, items) {
       const size = pageSize[kind] || 12;
@@ -1408,6 +1640,11 @@
 
     function renderReadingPage() {
       const { pageItems } = getPageSlice('reading', mergedItems);
+      const root = document.getElementById('readingStories');
+      if (root) {
+        root.classList.toggle('grid', readingLayout === 'cards');
+        root.classList.toggle('story-list', readingLayout === 'list');
+      }
       renderCollections('readingStories', pageItems, { showItems: false, pulseManual: false });
       updatePager('reading', mergedItems.length);
     }
@@ -1561,7 +1798,6 @@
         const div = document.createElement('article');
         div.className = `card story-card${pulseManual && col.is_manual ? ' is-updated' : ''}`;
         const master = col.master || {};
-        const leadItemId = Number(master.lead_item_id || 0);
         const masterImage = cssImageUrl(master.image_url);
         const masterTagsHtml = [
           tagBadgeHtml((master.themes || []).slice(0, 4)),
@@ -1571,6 +1807,10 @@
         const masterStyle = masterImage
           ? ` style="background-image:linear-gradient(180deg, rgba(15,23,42,0.16) 0%, rgba(15,23,42,0.86) 100%), url('${masterImage}')"`
           : '';
+        const isReadingPreview = elId === 'readingStories';
+        const summaryText = isReadingPreview ? shortText(master.summary, 230) : (master.summary || '');
+        const whyText = isReadingPreview ? shortText(master.why_it_matters, 130) : (master.why_it_matters || '');
+        const thumbStyle = masterImage ? ` style="background-image:url('${masterImage}')"` : '';
         const rows = showItems ? (col.items || []).map(item => {
           const id = Number(item.id || 0);
           const checked = selectedCollectionItems.has(id) ? 'checked' : '';
@@ -1582,11 +1822,14 @@
 
         div.innerHTML = `
           <div class="master-card ${masterImage ? 'has-image' : ''}"${masterStyle}>
-            <div class="muted">Master view | ${escapeHtml((master.sources || []).join(', ') || 'Sources')}</div>
-            <div class="master-title">${escapeHtml(master.title || `${col.primary_theme || 'general_news'} / ${col.primary_geography || 'Global'}`)}</div>
-            ${master.summary ? `<div class="master-summary">${escapeHtml(master.summary)}</div>` : ''}
-            ${master.why_it_matters ? `<div class="master-why"><strong>Why it matters:</strong> ${escapeHtml(master.why_it_matters)}</div>` : ''}
-            <div class="master-tags">${masterTagsHtml || '<span class="inline-tag is-geo">No tags</span>'}</div>
+            <div class="master-content">
+              <div class="muted">Master view | ${escapeHtml((master.sources || []).join(', ') || 'Sources')}</div>
+              <div class="master-title">${escapeHtml(master.title || `${col.primary_theme || 'general_news'} / ${col.primary_geography || 'Global'}`)}</div>
+              ${summaryText ? `<div class="master-summary">${escapeHtml(summaryText)}</div>` : ''}
+              ${whyText ? `<div class="master-why"><strong>Why it matters:</strong> ${escapeHtml(whyText)}</div>` : ''}
+              <div class="master-tags">${masterTagsHtml || '<span class="inline-tag is-geo">No tags</span>'}</div>
+            </div>
+            ${masterImage ? `<div class="story-thumb"${thumbStyle}></div>` : ''}
           </div>
           <div class="collection-head">
             <div>
@@ -1597,14 +1840,12 @@
           </div>
           ${showItems ? rows : `<div class="collection-item muted">${col.article_count} source article${Number(col.article_count || 0) === 1 ? '' : 's'} grouped into this story.</div>`}
         `;
-        if (leadItemId > 0) {
-          div.title = 'Click story to view lead article';
-          div.classList.add('is-clickable');
-          div.addEventListener('click', (evt) => {
-            if (evt.target.closest('a') || evt.target.closest('input') || evt.target.closest('button')) return;
-            showItemDetails(leadItemId);
-          });
-        }
+        div.title = 'Click story to view merged master story';
+        div.classList.add('is-clickable');
+        div.addEventListener('click', (evt) => {
+          if (evt.target.closest('a') || evt.target.closest('input') || evt.target.closest('button')) return;
+          showCollectionDetails(col.collection_key);
+        });
         root.appendChild(div);
       }
 
