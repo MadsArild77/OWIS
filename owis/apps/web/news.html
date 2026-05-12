@@ -289,23 +289,42 @@
       color: var(--ink);
       font-size: 0.86rem;
     }
-    .detail-angle {
+    .detail-linkedin-suggestion {
+      display: none;
       margin-top: 10px;
       padding: 10px 12px;
       border-radius: 12px;
       background: linear-gradient(180deg, #eef4ff 0%, #e4eeff 100%);
       border: 1px solid #cfe0ff;
     }
-    .detail-angle strong {
+    .detail-linkedin-suggestion.open {
+      display: block;
+    }
+    .detail-linkedin-suggestion strong {
       display: block;
       margin-bottom: 4px;
       color: #173f8a;
       font-size: 0.86rem;
     }
-    .detail-angle-text {
+    .detail-linkedin-text {
       color: #1e3a5f;
       line-height: 1.45;
       font-size: 0.9rem;
+    }
+    .detail-why {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #ffffff;
+      color: #1e293b;
+      line-height: 1.48;
+    }
+    .detail-why strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--ink);
+      font-size: 0.86rem;
     }
     .detail-meta-strip {
       margin-top: 10px;
@@ -385,26 +404,20 @@
       color: #334155;
       font-size: 0.92rem;
     }
-    .detail-article {
-      margin-top: 12px;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      background: #ffffff;
-      padding: 14px;
-    }
-    .detail-article h4 {
-      margin: 0 0 8px;
-      font-size: 0.92rem;
-    }
-    .detail-article-text {
-      white-space: pre-wrap;
-      line-height: 1.58;
-      color: #1e293b;
-      font-size: 0.92rem;
-    }
     .detail-source-link {
       margin-top: 10px;
       font-size: 0.84rem;
+    }
+    .detail-action-row {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .detail-action-row button {
+      margin-top: 0;
+      padding: 7px 10px;
+      font-size: 0.8rem;
     }
     @media (max-width: 760px) {
       .detail-preview {
@@ -919,6 +932,7 @@
         const leadText = preview.description || item.summary || '';
         const excerptText = preview.preview_excerpt || item.cleaned_text || '';
         const sourceContext = preview.source_context || preview.preview_excerpt || '';
+        const hasLinkedInSuggestion = Boolean(item.linkedin_angle);
         const imageHtml = preview.image_url
           ? `<img class="detail-preview-image" src="${escapeHtml(preview.image_url)}" alt="${escapeHtml(item.title || 'Article image')}" />`
           : '';
@@ -928,13 +942,22 @@
         updateDetailNavButtons(itemId);
         document.getElementById('detailContent').innerHTML = `
           <div class="detail-summary">
+            <strong>Summary</strong>
+            <div>${escapeHtml(item.summary || leadText || 'n/a')}</div>
+          </div>
+          <div class="detail-why">
             <strong>Why it matters</strong>
-            <div>${escapeHtml(item.why_it_matters || item.summary || 'n/a')}</div>
+            <div>${escapeHtml(item.why_it_matters || 'n/a')}</div>
           </div>
-          <div class="detail-angle">
-            <strong>LinkedIn angle</strong>
-            <div class="detail-angle-text">${escapeHtml(item.linkedin_angle || 'n/a')}</div>
-          </div>
+          ${hasLinkedInSuggestion ? `
+            <div class="detail-action-row">
+              <button class="btn-secondary" type="button" data-toggle-linkedin="${itemId}">Show LinkedIn suggestion</button>
+            </div>
+            <div id="linkedinSuggestion-${itemId}" class="detail-linkedin-suggestion">
+              <strong>Suggested LinkedIn post</strong>
+              <div class="detail-linkedin-text">${escapeHtml(item.linkedin_angle)}</div>
+            </div>
+          ` : ''}
           <div class="detail-meta-strip">
             ${detailMetaChip('Themes', formatCsv(item.theme_tags))}
             ${detailMetaChip('Geography', formatCsv(item.geography_tags))}
@@ -956,12 +979,18 @@
               <div class="detail-source-context-text">${escapeHtml(sourceContext)}</div>
             </div>
           ` : ''}
-          <div class="detail-article">
-            <h4>Underlying text used in processing</h4>
-            <div class="detail-article-text">${escapeHtml(item.cleaned_text || 'n/a')}</div>
-            <div class="detail-source-link"><a href="${escapeHtml(item.article_url || '#')}" target="_blank" rel="noopener noreferrer">Open original source</a></div>
-          </div>
+          <div class="detail-source-link"><a href="${escapeHtml(item.article_url || '#')}" target="_blank" rel="noopener noreferrer">Open original source</a></div>
         `;
+        document.querySelectorAll('[data-toggle-linkedin]').forEach(btn => {
+          btn.addEventListener('click', (evt) => {
+            evt.preventDefault();
+            const targetId = btn.getAttribute('data-toggle-linkedin');
+            const panel = document.getElementById(`linkedinSuggestion-${targetId}`);
+            if (!panel) return;
+            const isOpen = panel.classList.toggle('open');
+            btn.textContent = isOpen ? 'Hide LinkedIn suggestion' : 'Show LinkedIn suggestion';
+          });
+        });
       } catch (error) {
         if (activeDetailItemId !== itemId) return;
         document.getElementById('detailContent').innerHTML = '<p class="muted">Failed to load detail for this item.</p>';
