@@ -9,12 +9,12 @@ PAYWALL_MARKERS = ["paywalled", "paywall", "no full access", "partial/open text"
 _THEME_KEYWORDS: list[tuple[str, list[str]]] = [
     ("market_competition", ["auction", "cfd", "bid", "leasing round", "prequalification", "license round"]),
     ("procurement", ["tender", "procurement", "rfp", "framework agreement", "contract notice"]),
-    ("funding", ["grant", "funding", "support scheme", "horizon", "subsidy"]),
-    ("policy", ["policy", "regulation", "government", "ministry", "directive", "consultation"]),
+    ("funding", ["grant", "funding", "support scheme", "horizon", "subsidy", "stotte", "støtte"]),
+    ("policy", ["policy", "regulation", "government", "ministry", "directive", "consultation", "regjeringen", "stortinget"]),
     ("projects", ["project", "fids", "final investment decision", "pipeline", "capacity expansion"]),
     ("supply_chain", ["supply chain", "supplier", "factory", "port", "installation vessel", "fabrication"]),
     ("technology", ["floating", "fixed-bottom", "turbine", "substation", "foundation", "electrolyser"]),
-    ("finance", ["financing", "investment", "bank", "equity", "debt", "ppas"]),
+    ("finance", ["financing", "investment", "bank", "equity", "debt", "ppas", "strompris", "strømpris", "power price"]),
 ]
 
 _STORY_TAG_KEYWORDS: list[tuple[str, list[str]]] = [
@@ -32,6 +32,17 @@ _STORY_TAG_KEYWORDS: list[tuple[str, list[str]]] = [
     ("local_content", ["local content", "ringvirkninger", "value creation", "verdiskaping"]),
     ("china_supply_chain", ["mingyang", "chinese supplier", "kinesiske leverandører", "kinesiske leverandorer"]),
 ]
+_STORY_TAG_KEYWORDS.extend(
+    [
+        ("norgespris", ["norgespris", "norgesprisen"]),
+        ("power_price_policy", ["strompris", "strømpris", "kraftpris", "power price", "electricity price", "fastpris"]),
+        ("electricity_market_design", ["kraftmarked", "strommarked", "strømmarked", "market design", "prisomrade", "prisområde"]),
+        ("tax_policy", ["grunnrenteskatt", "resource rent tax", "skattepakke", "tax package"]),
+        ("offshore_wind_support_scheme", ["differansekontrakt", "contract for difference", "cfd", "stotteregime", "støtteregime"]),
+        ("energy_security", ["forsyningssikkerhet", "energy security", "kraftbalanse", "power balance"]),
+        ("electrification", ["elektrifisering", "electrification", "kraftbehov", "power demand"]),
+    ]
+)
 
 
 def _clean_text(raw_text: str) -> str:
@@ -153,8 +164,32 @@ def _extract_actors(text: str) -> list[str]:
 
 
 def _why_it_matters(theme_tags: list[str], geo_tags: list[str]) -> str:
+    tag_set = set(theme_tags)
+    geography = ", ".join(geo_tags)
+
+    if "norgespris" in tag_set or "power_price_policy" in tag_set:
+        return (
+            f"This can affect offshore wind strategy in {geography} because power-price policy shapes market signals, "
+            "public support pressure, and the investment case for new renewable capacity."
+        )
+    if "offshore_wind_support_scheme" in tag_set or "state_aid" in tag_set:
+        return (
+            f"This matters in {geography} because support-scheme design and state-aid approval can determine timing, "
+            "bankability, and who can realistically bid into offshore wind projects."
+        )
+    if "industrial_policy" in tag_set or "local_content" in tag_set:
+        return (
+            f"This matters in {geography} because it points to how offshore wind may translate into supplier opportunities, "
+            "regional value creation, and political support for the next project rounds."
+        )
+    if "grid" in tag_set or "energy_security" in tag_set:
+        return (
+            f"This matters in {geography} because grid capacity, power balance, and security of supply can become binding constraints "
+            "for offshore wind build-out and electrification."
+        )
+
     return (
-        f"This may influence offshore wind strategy in {', '.join(geo_tags)} "
+        f"This may influence offshore wind strategy in {geography} "
         f"through themes: {', '.join(theme_tags)}."
     )
 
@@ -169,6 +204,8 @@ def _score(theme_tags: list[str], geo_tags: list[str], actors: list[str], text: 
     if any(tag in theme_tags for tag in ["market_competition", "procurement", "funding", "policy"]):
         score += 8
     if any(tag in theme_tags for tag in ["utsira_nord", "sorlige_nordsjo_ii", "state_aid", "industrial_policy"]):
+        score += 6
+    if any(tag in theme_tags for tag in ["norgespris", "power_price_policy", "electricity_market_design", "energy_security"]):
         score += 6
     return min(score, 100)
 

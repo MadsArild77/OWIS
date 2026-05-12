@@ -124,3 +124,45 @@ def test_extract_paragraphs_skips_publisher_boilerplate():
 
     assert len(paragraphs) == 1
     assert "offshore wind content" in paragraphs[0].lower()
+
+
+def test_extract_paragraphs_skips_subscription_alert_boilerplate():
+    soup = scrape_fetcher.BeautifulSoup(
+        """
+        <html>
+          <body>
+            <article>
+              <p>Relevant article context about offshore wind permitting, timing and industrial consequences should remain visible.</p>
+              <p>Varsler er en tjeneste for våre abonnenter. Vennligst logg inn eller opprett bruker for å kunne bruke varsler.</p>
+            </article>
+          </body>
+        </html>
+        """,
+        "html.parser",
+    )
+
+    paragraphs = scrape_fetcher._extract_paragraphs(soup)
+
+    assert len(paragraphs) == 1
+    assert "offshore wind permitting" in paragraphs[0].lower()
+
+
+def test_extract_paragraphs_skips_newsletter_job_and_debate_disclaimer_boilerplate():
+    soup = scrape_fetcher.BeautifulSoup(
+        """
+        <html>
+          <body>
+            <article>
+              <p>Relevant article context about floating wind auctions and supply-chain positioning should remain visible.</p>
+              <p>Vær i forkant av utviklingen. Få informasjon om det siste fra bransjen med vårt nyhetsbrev. Jurist (rådgivar/seniorrådgivar) i seksjon for tilsyn med IT og betalingstenester Debattinnlegget er utelukkende et uttrykk for skribentens egen mening.</p>
+            </article>
+          </body>
+        </html>
+        """,
+        "html.parser",
+    )
+
+    paragraphs = scrape_fetcher._extract_paragraphs(soup)
+
+    assert len(paragraphs) == 1
+    assert "floating wind auctions" in paragraphs[0].lower()

@@ -58,3 +58,28 @@ def test_process_raw_item_heuristics_add_specific_story_tags(monkeypatch):
     assert "ESA" in processed["actors"]
     assert "Ventyr" in processed["actors"]
 
+
+def test_process_raw_item_tags_obvious_energy_policy_context(monkeypatch):
+    def fake_enrich(self, text: str):
+        raise RuntimeError("ai unavailable")
+
+    monkeypatch.setattr(pipeline.AIClient, "enrich_news", fake_enrich)
+
+    raw = {
+        "id": 3,
+        "title_raw": "Norgespris kan endre kraftmarkedet",
+        "summary_raw": "Regjeringen varsler ny strømprisordning.",
+        "content_raw": (
+            "Norgespris og ny strømpris-politikk kan påvirke kraftmarkedet i Norge. "
+            "Ordningen kan også endre investeringssignaler, kraftbalanse og rammevilkår for elektrifisering."
+        ),
+    }
+
+    processed = pipeline.process_raw_item(raw)
+
+    assert "norgespris" in processed["theme_tags"]
+    assert "power_price_policy" in processed["theme_tags"]
+    assert "electricity_market_design" in processed["theme_tags"]
+    assert "energy_security" in processed["theme_tags"]
+    assert "Norway" in processed["geography_tags"]
+

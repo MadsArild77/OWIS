@@ -29,6 +29,17 @@ BOILERPLATE_MARKERS = [
     "få tilbud på et abonnement",
     "arbeider etter vær varsom-plakatens regler",
 ]
+BOILERPLATE_MARKERS.extend(
+    [
+        "vær i forkant av utviklingen",
+        "varsler er en tjeneste for våre abonnenter",
+        "vennligst logg inn eller opprett bruker",
+        "få informasjon om det siste fra bransjen med vårt nyhetsbrev",
+        "med vårt nyhetsbrev",
+        "jurist (rådgivar/seniorrådgivar)",
+        "debattinnlegget er utelukkende et uttrykk for skribentens egen mening",
+    ]
+)
 
 
 def _resolve_auth_value(value: Any) -> str:
@@ -116,7 +127,17 @@ def _looks_like_boilerplate(text: str) -> bool:
         return True
     if len(cleaned) < 40:
         return False
-    return any(marker in cleaned for marker in BOILERPLATE_MARKERS)
+    if any(marker in cleaned for marker in BOILERPLATE_MARKERS):
+        return True
+
+    subscription_terms = ["abonnent", "abonnement", "logg inn", "opprett bruker", "nyhetsbrev"]
+    if sum(1 for term in subscription_terms if term in cleaned) >= 2:
+        return True
+
+    if "debattinnlegget" in cleaned and "egen mening" in cleaned:
+        return True
+
+    return False
 
 
 def _clean_text(value: Any) -> str:
