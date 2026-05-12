@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from owis.core.llm.client import AIClient
 from owis.core.storage.db import init_db
 from owis.modules.news.collectors.rss_fetcher import fetch_rss_items_with_report
-from owis.modules.news.collectors.scrape_fetcher import fetch_scrape_items_with_report
+from owis.modules.news.collectors.scrape_fetcher import fetch_article_preview, fetch_scrape_items_with_report
 from owis.modules.news.matching.service import (
     build_candidate_pairs,
     judge_pair,
@@ -406,6 +406,18 @@ def item(item_id: int):
     if not found:
         raise HTTPException(status_code=404, detail="News item not found")
     return _attach_metadata([found])[0]
+
+
+@router.get("/item/{item_id}/preview")
+def item_preview(item_id: int):
+    found = repo.get_item(item_id)
+    if not found:
+        raise HTTPException(status_code=404, detail="News item not found")
+    return fetch_article_preview(
+        url=str(found.get("article_url") or ""),
+        fallback_title=str(found.get("title") or ""),
+        fallback_summary=str(found.get("summary") or ""),
+    )
 
 
 @router.get("/collections")

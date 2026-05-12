@@ -237,13 +237,52 @@ def _extract_article_metadata(html: str, url: str, anchor_title: str = "") -> di
         or _get_meta_content(soup, "article:author")
         or _get_from_json_ld(soup, ["author", "creator"])
     )
+    image_url = (
+        _get_meta_content(soup, "og:image")
+        or _get_meta_content(soup, "twitter:image")
+        or _get_from_json_ld(soup, ["image", "thumbnailUrl"])
+    )
+    site_name = _get_meta_content(soup, "og:site_name")
+
+    paragraphs = [p for p in _extract_paragraphs(soup) if len(p) >= 60]
+    preview_excerpt = _clean_text(" ".join(paragraphs[:3]))[:1600]
 
     return {
         "title": title or _clean_text(anchor_title),
         "description": description,
         "published_at": _normalize_published_at(published_raw),
         "author": author,
+        "image_url": image_url,
+        "site_name": site_name,
+        "preview_excerpt": preview_excerpt,
     }
+
+
+def fetch_article_preview(url: str, fallback_title: str = "", fallback_summary: str = "") -> dict[str, str]:
+    try:
+        with httpx.Client(timeout=20, follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
+            response = client.get(url)
+            response.raise_for_status()
+        metadata = _extract_article_metadata(response.text, str(response.url), anchor_title=fallback_title)
+        return {
+            "title": str(metadata.get("title") or fallback_title or ""),
+            "description": str(metadata.get("description") or fallback_summary or ""),
+            "image_url": str(metadata.get("image_url") or ""),
+            "site_name": str(metadata.get("site_name") or ""),
+            "author": str(metadata.get("author") or ""),
+            "published_at": str(metadata.get("published_at") or ""),
+            "preview_excerpt": str(metadata.get("preview_excerpt") or ""),
+        }
+    except Exception:
+        return {
+            "title": str(fallback_title or ""),
+            "description": str(fallback_summary or ""),
+            "image_url": "",
+            "site_name": "",
+            "author": "",
+            "published_at": "",
+            "preview_excerpt": "",
+        }
 
 
 def _has_paywall_marker(text: str) -> bool:

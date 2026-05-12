@@ -290,30 +290,65 @@
       font-size: 0.86rem;
     }
     .detail-meta-strip {
-      margin-top: 12px;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 8px;
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
     }
     .detail-meta-chip {
-      padding: 8px 10px;
-      border-radius: 10px;
+      padding: 5px 9px;
+      border-radius: 999px;
       background: #f8fafc;
       border: 1px solid var(--line);
       min-width: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      max-width: 100%;
     }
     .detail-meta-label {
-      font-size: 0.7rem;
+      font-size: 0.68rem;
       text-transform: uppercase;
       letter-spacing: 0.04em;
       color: var(--muted);
-      margin-bottom: 3px;
+      margin-bottom: 0;
+      white-space: nowrap;
     }
     .detail-meta-value {
-      font-size: 0.82rem;
+      font-size: 0.79rem;
       color: var(--ink);
       line-height: 1.35;
       word-break: break-word;
+    }
+    .detail-preview {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(220px, 0.9fr);
+      gap: 12px;
+      align-items: start;
+    }
+    .detail-preview-text {
+      min-width: 0;
+    }
+    .detail-preview-image {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      object-fit: cover;
+      max-height: 220px;
+      background: #f8fafc;
+    }
+    .detail-preview-lead {
+      margin-top: 10px;
+      color: #334155;
+      line-height: 1.55;
+      font-size: 0.92rem;
+    }
+    .detail-preview-excerpt {
+      margin-top: 10px;
+      color: #334155;
+      line-height: 1.6;
+      font-size: 0.9rem;
     }
     .detail-article {
       margin-top: 12px;
@@ -335,6 +370,11 @@
     .detail-source-link {
       margin-top: 10px;
       font-size: 0.84rem;
+    }
+    @media (max-width: 760px) {
+      .detail-preview {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -735,8 +775,8 @@
     function detailMetaChip(label, value) {
       return `
         <div class="detail-meta-chip">
-          <div class="detail-meta-label">${escapeHtml(label)}</div>
-          <div class="detail-meta-value">${escapeHtml(value || 'n/a')}</div>
+          <span class="detail-meta-label">${escapeHtml(label)}</span>
+          <span class="detail-meta-value">${escapeHtml(value || 'n/a')}</span>
         </div>
       `;
     }
@@ -829,15 +869,23 @@
       document.getElementById('detailContent').innerHTML = '<p class="muted">Loading detail...</p>';
 
       try {
-        const item = await getJson(`/api/news/item/${itemId}`);
+        const [item, preview] = await Promise.all([
+          getJson(`/api/news/item/${itemId}`),
+          getJson(`/api/news/item/${itemId}/preview`)
+        ]);
         if (activeDetailItemId !== itemId) return;
 
         const meta = [
-          item.source_name || 'Unknown source',
-          item.published_at || 'Unknown published date',
+          preview.site_name || item.source_name || 'Unknown source',
+          preview.published_at || item.published_at || 'Unknown published date',
           `Score ${item.signal_score ?? 'n/a'}`,
           `Confidence ${item.confidence ?? 'n/a'}`,
         ].join(' | ');
+        const leadText = preview.description || item.summary || '';
+        const excerptText = preview.preview_excerpt || item.cleaned_text || '';
+        const imageHtml = preview.image_url
+          ? `<img class="detail-preview-image" src="${escapeHtml(preview.image_url)}" alt="${escapeHtml(item.title || 'Article image')}" />`
+          : '';
 
         document.getElementById('detailTitle').textContent = item.title || 'Untitled';
         document.getElementById('detailMeta').textContent = meta;
@@ -851,7 +899,15 @@
             ${detailMetaChip('Themes', formatCsv(item.theme_tags))}
             ${detailMetaChip('Geography', formatCsv(item.geography_tags))}
             ${detailMetaChip('Actors', formatCsv(item.actors))}
+            ${preview.author ? detailMetaChip('Author', preview.author) : ''}
             ${detailMetaChip('LinkedIn angle', item.linkedin_angle || 'n/a')}
+          </div>
+          <div class="detail-preview">
+            <div class="detail-preview-text">
+              <div class="detail-preview-lead">${escapeHtml(leadText || 'n/a')}</div>
+              ${excerptText ? `<div class="detail-preview-excerpt">${escapeHtml(excerptText)}</div>` : ''}
+            </div>
+            <div>${imageHtml}</div>
           </div>
           <div class="detail-article">
             <h4>Underlying text used in processing</h4>
