@@ -270,10 +270,72 @@
     .detail-controls { display:flex; gap:8px; align-items:center; }
     .detail-close { margin-top:0; background:#0f172a; }
     .detail-nav-btn { margin-top:0; padding:8px 10px; background:#334155; }
-    .detail-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-top:14px; }
+    .detail-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-top:12px; }
     .detail-block { border:1px solid var(--line); border-radius:12px; padding:12px; background:#f8fafc; }
     .detail-block h4 { margin:0 0 8px; font-size:0.9rem; }
     .detail-body { white-space:pre-wrap; line-height:1.5; }
+    .detail-summary {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #f8fafc;
+      color: #334155;
+      line-height: 1.45;
+    }
+    .detail-summary strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--ink);
+      font-size: 0.86rem;
+    }
+    .detail-meta-strip {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 8px;
+    }
+    .detail-meta-chip {
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      min-width: 0;
+    }
+    .detail-meta-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+    .detail-meta-value {
+      font-size: 0.82rem;
+      color: var(--ink);
+      line-height: 1.35;
+      word-break: break-word;
+    }
+    .detail-article {
+      margin-top: 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #ffffff;
+      padding: 14px;
+    }
+    .detail-article h4 {
+      margin: 0 0 8px;
+      font-size: 0.92rem;
+    }
+    .detail-article-text {
+      white-space: pre-wrap;
+      line-height: 1.58;
+      color: #1e293b;
+      font-size: 0.92rem;
+    }
+    .detail-source-link {
+      margin-top: 10px;
+      font-size: 0.84rem;
+    }
   </style>
 </head>
 <body>
@@ -670,6 +732,15 @@
       return tags.map(tag => `<span class="inline-tag ${cls}">${escapeHtml(tag)}</span>`).join('');
     }
 
+    function detailMetaChip(label, value) {
+      return `
+        <div class="detail-meta-chip">
+          <div class="detail-meta-label">${escapeHtml(label)}</div>
+          <div class="detail-meta-value">${escapeHtml(value || 'n/a')}</div>
+        </div>
+      `;
+    }
+
     function currentVisibleItems() {
       const latestOpen = document.getElementById('tab-latest')?.classList.contains('active');
       const topOpen = document.getElementById('tab-top')?.classList.contains('active');
@@ -772,41 +843,20 @@
         document.getElementById('detailMeta').textContent = meta;
         updateDetailNavButtons(itemId);
         document.getElementById('detailContent').innerHTML = `
-          <div class="detail-grid">
-            <div class="detail-block">
-              <h4>Why it matters</h4>
-              <div>${escapeHtml(item.why_it_matters || 'n/a')}</div>
-            </div>
-            <div class="detail-block">
-              <h4>Themes</h4>
-              <div>${escapeHtml(formatCsv(item.theme_tags))}</div>
-            </div>
-            <div class="detail-block">
-              <h4>Geography</h4>
-              <div>${escapeHtml(formatCsv(item.geography_tags))}</div>
-            </div>
-            <div class="detail-block">
-              <h4>Actors</h4>
-              <div>${escapeHtml(formatCsv(item.actors))}</div>
-            </div>
+          <div class="detail-summary">
+            <strong>Why it matters</strong>
+            <div>${escapeHtml(item.why_it_matters || item.summary || 'n/a')}</div>
           </div>
-          <div class="detail-grid">
-            <div class="detail-block">
-              <h4>Summary</h4>
-              <div>${escapeHtml(item.summary || 'n/a')}</div>
-            </div>
-            <div class="detail-block">
-              <h4>LinkedIn angle</h4>
-              <div>${escapeHtml(item.linkedin_angle || 'n/a')}</div>
-            </div>
+          <div class="detail-meta-strip">
+            ${detailMetaChip('Themes', formatCsv(item.theme_tags))}
+            ${detailMetaChip('Geography', formatCsv(item.geography_tags))}
+            ${detailMetaChip('Actors', formatCsv(item.actors))}
+            ${detailMetaChip('LinkedIn angle', item.linkedin_angle || 'n/a')}
           </div>
-          <div class="detail-block" style="margin-top:14px;">
+          <div class="detail-article">
             <h4>Underlying text used in processing</h4>
-            <div>${escapeHtml(item.cleaned_text || 'n/a')}</div>
-          </div>
-          <div class="detail-block" style="margin-top:14px;">
-            <h4>Source article</h4>
-            <div><a href="${escapeHtml(item.article_url || '#')}" target="_blank" rel="noopener noreferrer">Open original source</a></div>
+            <div class="detail-article-text">${escapeHtml(item.cleaned_text || 'n/a')}</div>
+            <div class="detail-source-link"><a href="${escapeHtml(item.article_url || '#')}" target="_blank" rel="noopener noreferrer">Open original source</a></div>
           </div>
         `;
       } catch (error) {
