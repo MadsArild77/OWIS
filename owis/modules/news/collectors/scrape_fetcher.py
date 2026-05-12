@@ -1,6 +1,10 @@
 from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
+from html import unescape
 import hashlib
+import json
 import os
+import re
 from typing import Any
 from urllib.parse import urljoin, urlparse
 
@@ -72,13 +76,174 @@ def _build_request_auth(source: dict[str, Any]) -> tuple[dict[str, str], dict[st
 
 def _extract_article_text(html: str) -> str:
     soup = BeautifulSoup(html, "html.parser")
+    paragraphs = _extract_paragraphs(soup)
+    text = " ".join([p for p in paragraphs if p])
 
+    return " ".join(text.split())[:5000]
+
+
+def _extract_paragraphs(soup: BeautifulSoup) -> list[str]:
     # Prefer article/main area over full page to avoid nav/footer noise.
     container = soup.find("article") or soup.find("main") or soup
     paragraphs = [p.get_text(" ", strip=True) for p in container.find_all("p")]
     text = " ".join([p for p in paragraphs if p])
+    if text.strip():
+        return paragraphs
 
-    return " ".join(text.split())[:5000]
+    return [p.get_text(" ", strip=True) for p in soup.find_all("p")]
+
+
+def _clean_text(value: Any) -> str:
+    return " ".join(unescape(str(value or "")).split()).strip()
+
+
+def _get_meta_content(soup: BeautifulSoup, key: str) -> str:
+    if not key:
+        return ""
+
+    for attr in ("property", "name", "itemprop"):
+        tag = soup.find("meta", attrs={attr: key})
+        content = _clean_text(tag.get("content")) if tag else ""
+        if content:
+            return content
+    return ""
+
+
+def _find_json_ld_objects(soup: BeautifulSoup) -> list[Any]:
+    objects: list[Any] = []
+    for tag in soup.find_all("script", attrs={"type": "application/ld+json"}):
+        raw = (tag.string or tag.get_text() or "").strip()
+        if not raw:
+            continue
+        try:
+            objects.append(json.loads(raw))
+        except Exception:
+            continue
+    return objects
+
+
+def _flatten_json_ld(value: Any, bucket: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
+    out = bucket if bucket is not None else []
+    if isinstance(value, list):
+        for item in value:
+            _flatten_json_ld(item, out)
+        return out
+    if isinstance(value, dict):
+        out.append(value)
+        graph = value.get("@graph")
+        if graph:
+            _flatten_json_ld(graph, out)
+    return out
+
+
+def _get_from_json_ld(soup: BeautifulSoup, field_names: list[str]) -> str:
+    for root in _find_json_ld_objects(soup):
+        for obj in _flatten_json_ld(root):
+            for field_name in field_names:
+                value = obj.get(field_name)
+                if isinstance(value, str):
+                    cleaned = _clean_text(value)
+                    if cleaned:
+                        return cleaned
+                if field_name == "author" and isinstance(value, dict):
+                    cleaned = _clean_text(value.get("name"))
+                    if cleaned:
+                        return cleaned
+    return ""
+
+
+def _strip_title_suffix(value: str) -> str:
+    return re.sub(r"\s+\|\s+[^|]+$", "", value).strip()
+
+
+def _extract_custom_published(html: str, url: str) -> str:
+    if "kommunikasjon.ntb.no" in url:
+        match = re.search(r">\s*(\d{1,2}\.\d{1,2}\.\d{4})\s+\d{2}:\d{2}:\d{2}\s+[A-Z]+(?:\s*<|[|])", html, re.IGNORECASE)
+        if match:
+            day, month, year = match.group(1).split(".")
+            return f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+
+    if "uib.no" in url:
+        match = re.search(r"Først publisert:\s*(\d{2}\.\d{2}\.\d{4})", html, re.IGNORECASE)
+        if match:
+            day, month, year = match.group(1).split(".")
+            return f"{year}-{month}-{day}"
+
+    return ""
+
+
+def _normalize_published_at(value: str) -> str | None:
+    raw = _clean_text(value)
+    if not raw:
+        return None
+
+    try:
+        dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            return dt.date().isoformat()
+        return dt.astimezone(timezone.utc).isoformat()
+    except Exception:
+        pass
+
+    try:
+        dt = parsedate_to_datetime(raw)
+        if dt.tzinfo is None:
+            return dt.date().isoformat()
+        return dt.astimezone(timezone.utc).isoformat()
+    except Exception:
+        pass
+
+    date_match = re.search(r"\b(20\d{2})-(\d{2})-(\d{2})\b", raw)
+    if date_match:
+        return date_match.group(0)
+
+    return raw
+
+
+def _extract_article_metadata(html: str, url: str, anchor_title: str = "") -> dict[str, str | None]:
+    soup = BeautifulSoup(html, "html.parser")
+
+    title = (
+        _get_meta_content(soup, "og:title")
+        or _get_meta_content(soup, "twitter:title")
+        or _strip_title_suffix(_clean_text(soup.title.get_text(" ", strip=True) if soup.title else ""))
+        or _get_from_json_ld(soup, ["headline", "name"])
+        or _clean_text(anchor_title)
+    )
+    title = _strip_title_suffix(title)
+
+    description = (
+        _get_meta_content(soup, "og:description")
+        or _get_meta_content(soup, "description")
+        or _get_meta_content(soup, "twitter:description")
+        or _get_from_json_ld(soup, ["description"])
+    )
+    if not description:
+        paragraphs = [p for p in _extract_paragraphs(soup) if len(p) >= 80]
+        description = _clean_text(" ".join(paragraphs[:2]))[:500]
+
+    published_raw = (
+        _get_meta_content(soup, "article:published_time")
+        or _get_meta_content(soup, "og:published_time")
+        or _get_meta_content(soup, "publish_date")
+        or _get_meta_content(soup, "pubdate")
+        or _get_meta_content(soup, "datePublished")
+        or _get_from_json_ld(soup, ["datePublished", "dateCreated"])
+        or _extract_custom_published(html, url)
+    )
+
+    author = (
+        _get_meta_content(soup, "author")
+        or _get_meta_content(soup, "article:author")
+        or _get_from_json_ld(soup, ["author", "creator"])
+    )
+
+    return {
+        "title": title or _clean_text(anchor_title),
+        "description": description,
+        "published_at": _normalize_published_at(published_raw),
+        "author": author,
+    }
 
 
 def _has_paywall_marker(text: str) -> bool:
@@ -86,7 +251,15 @@ def _has_paywall_marker(text: str) -> bool:
     return any(marker in low for marker in PAYWALL_MARKERS)
 
 
-def _make_raw_item(source_name: str, url: str, title: str, summary: str, content: str, now: str) -> dict[str, Any]:
+def _make_raw_item(
+    source_name: str,
+    url: str,
+    title: str,
+    summary: str,
+    content: str,
+    now: str,
+    published_at: str | None = None,
+) -> dict[str, Any]:
     content_hash = hashlib.sha256(f"{url}|{title}".encode("utf-8")).hexdigest()
     return {
         "source_name": source_name,
@@ -95,7 +268,7 @@ def _make_raw_item(source_name: str, url: str, title: str, summary: str, content
         "summary_raw": summary[:500],
         "content_raw": content,
         "content_hash": content_hash,
-        "published_at": None,
+        "published_at": published_at,
         "fetched_at": now,
     }
 
@@ -160,13 +333,17 @@ def fetch_scrape_items_with_report(limit_per_source: int = 20) -> tuple[list[dic
                             continue
 
                         page_resp.raise_for_status()
+                        metadata = _extract_article_metadata(page_resp.text, url, anchor_title=title)
+                        final_title = metadata.get("title") or title
+                        final_summary = metadata.get("description") or ""
+                        published_at = metadata.get("published_at")
                         article_text = _extract_article_text(page_resp.text)
                         if _has_paywall_marker(page_resp.text) and not auth_configured:
                             paywall_count += 1
                             note = "Likely paywalled; only partial/open text available."
-                            summary = article_text[:500] if article_text else note
-                            content = f"{title}. {summary}"
-                            items.append(_make_raw_item(src_name, url, title, summary, content, now))
+                            summary = final_summary or article_text[:500] or note
+                            content = f"{final_title}. {summary}"
+                            items.append(_make_raw_item(src_name, url, final_title, summary, content, now, published_at=published_at))
                             source_count += 1
                             if source_count >= limit_per_source:
                                 break
@@ -179,7 +356,8 @@ def fetch_scrape_items_with_report(limit_per_source: int = 20) -> tuple[list[dic
                         filtered_count += 1
                         continue
 
-                    items.append(_make_raw_item(src_name, url, title, article_text[:500], article_text, now))
+                    summary = final_summary or article_text[:500]
+                    items.append(_make_raw_item(src_name, url, final_title, summary, article_text, now, published_at=published_at))
                     source_count += 1
                     if source_count >= limit_per_source:
                         break

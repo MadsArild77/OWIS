@@ -32,3 +32,29 @@ def test_process_raw_item_uses_ai_payload(monkeypatch):
     assert processed["linkedin_angle"] == "AI angle"
     assert processed["confidence"] == 0.91
 
+
+def test_process_raw_item_heuristics_add_specific_story_tags(monkeypatch):
+    def fake_enrich(self, text: str):
+        raise RuntimeError("ai unavailable")
+
+    monkeypatch.setattr(pipeline.AIClient, "enrich_news", fake_enrich)
+
+    raw = {
+        "id": 2,
+        "title_raw": "ESA clears Utsira Nord support model",
+        "summary_raw": "Government and NVE move the Utsira Nord process forward.",
+        "content_raw": (
+            "The Norwegian government sent the Utsira Nord notification to ESA. "
+            "Ventyr and other offshore wind players are watching the state aid decision closely."
+        ),
+    }
+
+    processed = pipeline.process_raw_item(raw)
+
+    assert "policy" in processed["theme_tags"]
+    assert "utsira_nord" in processed["theme_tags"]
+    assert "state_aid" in processed["theme_tags"]
+    assert "Norway" in processed["geography_tags"]
+    assert "ESA" in processed["actors"]
+    assert "Ventyr" in processed["actors"]
+

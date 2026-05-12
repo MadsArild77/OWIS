@@ -17,6 +17,22 @@ _THEME_KEYWORDS: list[tuple[str, list[str]]] = [
     ("finance", ["financing", "investment", "bank", "equity", "debt", "ppas"]),
 ]
 
+_STORY_TAG_KEYWORDS: list[tuple[str, list[str]]] = [
+    ("utsira_nord", ["utsira nord"]),
+    ("sorlige_nordsjo_ii", ["sørlige nordsjø ii", "sorlige nordsjo ii", "sn ii", "sn2"]),
+    ("floating_wind", ["floating wind", "flytende havvind", "floating offshore wind"]),
+    ("fixed_bottom", ["fixed-bottom", "bottom-fixed", "bunnfast"]),
+    ("auction_design", ["auction design", "auksjon", "prequalification", "qualification requirements"]),
+    ("state_aid", ["esa", "state aid", "statsstøtte", "statsstotte", "notification"]),
+    ("permitting", ["permit", "licence", "license", "consent", "konsesjon", "utredning"]),
+    ("grid", ["grid", "interconnector", "transmission", "nett", "nettilknytning"]),
+    ("testing_sites", ["test centre", "test center", "full-scale testing", "testsenter"]),
+    ("environmental_impact", ["birds", "fugl", "environmental impact", "miljø", "miljo"]),
+    ("industrial_policy", ["industrial policy", "industry policy", "industrielt økosystem", "industrielt okosystem", "leverandørindustri", "leverandorindustri"]),
+    ("local_content", ["local content", "ringvirkninger", "value creation", "verdiskaping"]),
+    ("china_supply_chain", ["mingyang", "chinese supplier", "kinesiske leverandører", "kinesiske leverandorer"]),
+]
+
 
 def _clean_text(raw_text: str) -> str:
     text = re.sub(r"\s+", " ", raw_text or "").strip()
@@ -47,9 +63,20 @@ def _classify_theme(text: str) -> list[str]:
         if any(_contains_token(lower, keyword) for keyword in keywords):
             tags.append(tag)
 
+    story_tags = _extract_story_tags(lower)
+    tags.extend([tag for tag in story_tags if tag not in tags])
+
     if not tags:
         tags.append("general_news")
 
+    return tags
+
+
+def _extract_story_tags(text: str) -> list[str]:
+    tags: list[str] = []
+    for tag, keywords in _STORY_TAG_KEYWORDS:
+        if any(_contains_token(text, keyword) for keyword in keywords):
+            tags.append(tag)
     return tags
 
 
@@ -58,12 +85,19 @@ def _classify_geo(text: str) -> list[str]:
     mapping = {
         "norway": "Norway",
         "norwegian": "Norway",
+        "norge": "Norway",
         "uk": "UK",
         "united kingdom": "UK",
         "england": "UK",
         "scotland": "UK",
         "eu": "EU",
         "europe": "Europe",
+        "haugalandet": "Haugalandet",
+        "rogaland": "Rogaland",
+        "karmøy": "Karmoy",
+        "karmoy": "Karmoy",
+        "bergen": "Bergen",
+        "stavanger": "Stavanger",
         "denmark": "Denmark",
         "germany": "Germany",
         "netherlands": "Netherlands",
@@ -102,6 +136,17 @@ def _extract_actors(text: str) -> list[str]:
         "Vestas",
         "GE Vernova",
         "Statkraft",
+        "Statnett",
+        "NVE",
+        "ESA",
+        "Ventyr",
+        "Mingyang",
+        "Offshore Norge",
+        "Norwegian Offshore Wind",
+        "Motvind",
+        "Aasland",
+        "UiB",
+        "Spoor",
     ]
     lower = text.lower()
     return [company for company in candidates if company.lower() in lower]
@@ -123,6 +168,8 @@ def _score(theme_tags: list[str], geo_tags: list[str], actors: list[str], text: 
         score += 10
     if any(tag in theme_tags for tag in ["market_competition", "procurement", "funding", "policy"]):
         score += 8
+    if any(tag in theme_tags for tag in ["utsira_nord", "sorlige_nordsjo_ii", "state_aid", "industrial_policy"]):
+        score += 6
     return min(score, 100)
 
 

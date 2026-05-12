@@ -23,17 +23,115 @@
     }
     .wrap { max-width: 1100px; margin: 0 auto; padding: 24px; }
     h1 { margin: 0 0 16px; font-size: 2rem; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 12px; }
     .card {
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 12px;
-      padding: 14px;
+      padding: 12px;
       box-shadow: 0 8px 18px rgba(15,23,42,0.05);
     }
     .card h3 { margin: 0 0 6px; font-size: 1rem; }
     .muted { color: var(--muted); font-size: 0.9rem; }
     .meta { margin-top: 8px; font-size: 0.85rem; color: var(--muted); }
+    .compact-card h3 {
+      font-size: 0.95rem;
+      line-height: 1.28;
+      margin-bottom: 4px;
+    }
+    .compact-summary {
+      margin: 6px 0 0;
+      font-size: 0.87rem;
+      color: #334155;
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .compact-meta-row {
+      margin-top: 6px;
+      font-size: 0.79rem;
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .inline-tags {
+      margin-top: 7px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .inline-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      line-height: 1.2;
+      background: #eef4ff;
+      color: #204898;
+      border: 1px solid #d4e2ff;
+    }
+    .inline-tag.is-geo {
+      background: #f1f5f9;
+      color: #475569;
+      border-color: #dbe3ee;
+    }
+    .inline-tag.is-actor {
+      background: #ecfeff;
+      color: #0f766e;
+      border-color: #c6f4f7;
+    }
+    .card-actions-inline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .card-actions-inline button {
+      margin-top: 0;
+      padding: 6px 9px;
+      font-size: 0.76rem;
+    }
+    .related-strip {
+      margin-top: 9px;
+      padding-top: 9px;
+      border-top: 1px dashed var(--line);
+    }
+    .related-strip-title {
+      font-size: 0.76rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 6px;
+    }
+    .related-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 6px 0;
+      border-top: 1px solid #f1f5f9;
+    }
+    .related-item:first-of-type { border-top: 0; }
+    .related-item-title {
+      font-size: 0.8rem;
+      line-height: 1.3;
+      color: #1e293b;
+    }
+    .related-item-meta {
+      font-size: 0.74rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .related-item button {
+      margin-top: 0;
+      padding: 5px 8px;
+      font-size: 0.74rem;
+      flex: 0 0 auto;
+    }
     section { margin: 20px 0 30px; }
     a { color: var(--brand); text-decoration: none; }
     a:hover { text-decoration: underline; }
@@ -52,8 +150,80 @@
     .btn-warning { background: #b45309; }
     .status { margin-top: 8px; color: var(--ok); font-size: 0.9rem; }
     .status.warn { color: var(--warn); }
+    .run-progress {
+      display: none;
+      margin-top: 10px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
+    }
+    .run-progress.active { display: block; }
+    .run-progress-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .run-progress-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .run-progress-time {
+      font-size: 0.84rem;
+      color: var(--muted);
+      font-family: ui-monospace, Consolas, monospace;
+      white-space: nowrap;
+    }
+    .run-progress-bar {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: #dbe7ff;
+      border: 1px solid #c9dafd;
+    }
+    .run-progress-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #0b5fff 0%, #4f8cff 100%);
+      transition: width 0.6s ease;
+    }
+    .run-progress-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 8px;
+      font-size: 0.84rem;
+      color: var(--muted);
+    }
+    .run-progress-warning {
+      margin-top: 8px;
+      font-size: 0.84rem;
+      color: #b45309;
+      display: none;
+    }
+    .run-progress-warning.active { display: block; }
     .sources-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
     .sources-table th, .sources-table td { border-bottom: 1px solid var(--line); padding: 8px; text-align: left; }
+    .count-badge {
+      display: inline-block;
+      min-width: 32px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #e0ecff;
+      color: #0b3ea8;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-align: center;
+    }
+    .count-badge.is-zero {
+      background: #f1f5f9;
+      color: #64748b;
+    }
     .row-actions button { margin: 0 4px 0 0; padding: 6px 10px; font-size: 0.8rem; }
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .health-dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle; border:1px solid #cbd5e1; }
@@ -97,7 +267,9 @@
       padding: 18px;
     }
     .detail-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+    .detail-controls { display:flex; gap:8px; align-items:center; }
     .detail-close { margin-top:0; background:#0f172a; }
+    .detail-nav-btn { margin-top:0; padding:8px 10px; background:#334155; }
     .detail-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-top:14px; }
     .detail-block { border:1px solid var(--line); border-radius:12px; padding:12px; background:#f8fafc; }
     .detail-block h4 { margin:0 0 8px; font-size:0.9rem; }
@@ -194,6 +366,22 @@
       </div>
 
       <div id="adminStatus" class="status"></div>
+      <div id="runProgress" class="run-progress" aria-live="polite">
+        <div class="run-progress-head">
+          <div id="runProgressTitle" class="run-progress-title">Pipeline running</div>
+          <div id="runProgressTime" class="run-progress-time">00:00</div>
+        </div>
+        <div class="run-progress-bar">
+          <div id="runProgressFill" class="run-progress-fill"></div>
+        </div>
+        <div class="run-progress-meta">
+          <span id="runProgressStep">Waiting to start...</span>
+          <span id="runProgressPercent">0%</span>
+        </div>
+        <div id="runProgressWarning" class="run-progress-warning">
+          This run is taking longer than expected. It may still be working, but it could also be waiting on a slow source.
+        </div>
+      </div>
       <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
         <span id="aiStatus" class="muted">AI: unknown</span>
         <button id="checkAiBtn" class="btn-secondary" type="button" style="margin-top:0;">Check AI</button>
@@ -201,7 +389,7 @@
       <table class="sources-table">
         <thead>
           <tr>
-            <th>#</th><th>Name</th><th>Type</th><th>URL</th><th>Health</th><th>Enabled</th><th>Actions</th>
+            <th>#</th><th>Name</th><th>Type</th><th>URL</th><th>Last Items</th><th>Health</th><th>Enabled</th><th>Actions</th>
           </tr>
         </thead>
         <tbody id="sourcesBody"></tbody>
@@ -281,7 +469,11 @@
           <h2 id="detailTitle" style="margin:0;">News basis</h2>
           <div id="detailMeta" class="meta"></div>
         </div>
-        <button id="detailCloseBtn" class="detail-close" type="button">Close</button>
+        <div class="detail-controls">
+          <button id="detailPrevBtn" class="detail-nav-btn" type="button">Prev</button>
+          <button id="detailNextBtn" class="detail-nav-btn" type="button">Next</button>
+          <button id="detailCloseBtn" class="detail-close" type="button">Close</button>
+        </div>
       </div>
       <div id="detailContent" class="detail-body muted" style="margin-top:12px;">Select a card to view details.</div>
     </div>
@@ -297,6 +489,12 @@
     let matchReviewItems = [];
     let viewMode = 'reading';
     let activeDetailItemId = null;
+    let runProgressTimer = null;
+    let runProgressStartedAt = null;
+    let runProgressCurrent = 0;
+    let runProgressTarget = 0;
+    let runProgressWarningShown = false;
+    let latestSourceReportBySource = {};
 
     function relevanceLabel(status) {
       if (status === 'relevant') return 'Relevant';
@@ -338,6 +536,93 @@
       el.className = warn ? 'status warn' : 'status';
     }
 
+    function formatDuration(ms) {
+      const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    function renderRunProgress() {
+      const fill = document.getElementById('runProgressFill');
+      const percent = document.getElementById('runProgressPercent');
+      if (fill) fill.style.width = `${Math.max(0, Math.min(100, runProgressCurrent))}%`;
+      if (percent) percent.textContent = `${Math.round(runProgressCurrent)}%`;
+    }
+
+    function setRunProgressStep(label, percent) {
+      const step = document.getElementById('runProgressStep');
+      if (step) step.textContent = label;
+      runProgressTarget = Math.max(runProgressCurrent, Math.min(percent, 95));
+      renderRunProgress();
+    }
+
+    function stopRunProgress(success = true, finalStep = '') {
+      if (runProgressTimer) {
+        clearInterval(runProgressTimer);
+        runProgressTimer = null;
+      }
+      runProgressCurrent = success ? 100 : runProgressCurrent;
+      runProgressTarget = runProgressCurrent;
+      renderRunProgress();
+
+      const root = document.getElementById('runProgress');
+      const title = document.getElementById('runProgressTitle');
+      const step = document.getElementById('runProgressStep');
+      const warning = document.getElementById('runProgressWarning');
+      const time = document.getElementById('runProgressTime');
+
+      if (title) title.textContent = success ? 'Pipeline completed' : 'Pipeline stopped';
+      if (step && finalStep) step.textContent = finalStep;
+      if (warning) warning.classList.remove('active');
+      if (time && runProgressStartedAt) {
+        time.textContent = formatDuration(Date.now() - runProgressStartedAt);
+      }
+
+      window.setTimeout(() => {
+        if (root) root.classList.remove('active');
+      }, success ? 2200 : 4000);
+    }
+
+    function startRunProgress(daysBack, sinceLast) {
+      const root = document.getElementById('runProgress');
+      const title = document.getElementById('runProgressTitle');
+      const step = document.getElementById('runProgressStep');
+      const warning = document.getElementById('runProgressWarning');
+      const time = document.getElementById('runProgressTime');
+
+      runProgressStartedAt = Date.now();
+      runProgressCurrent = 4;
+      runProgressTarget = 12;
+      runProgressWarningShown = false;
+
+      if (root) root.classList.add('active');
+      if (title) title.textContent = 'Pipeline running';
+      if (step) step.textContent = `Starting run (days_back=${daysBack}, since_last=${sinceLast})`;
+      if (warning) warning.classList.remove('active');
+      if (time) time.textContent = '00:00';
+      renderRunProgress();
+
+      if (runProgressTimer) clearInterval(runProgressTimer);
+      runProgressTimer = window.setInterval(() => {
+        const elapsed = Date.now() - runProgressStartedAt;
+        if (time) time.textContent = formatDuration(elapsed);
+
+        if (runProgressCurrent < runProgressTarget) {
+          runProgressCurrent = Math.min(runProgressTarget, runProgressCurrent + 1);
+          renderRunProgress();
+        } else if (runProgressCurrent < 92) {
+          runProgressCurrent = Math.min(92, runProgressCurrent + 0.2);
+          renderRunProgress();
+        }
+
+        if (!runProgressWarningShown && elapsed >= 45000) {
+          runProgressWarningShown = true;
+          if (warning) warning.classList.add('active');
+        }
+      }, 1000);
+    }
+
     function setButtonBusy(buttonId, isBusy, busyLabel = 'Working...') {
       const btn = document.getElementById(buttonId);
       if (!btn) return;
@@ -370,6 +655,86 @@
       return items.length ? items.join(', ') : 'n/a';
     }
 
+    function parseCsvTags(value) {
+      return String(value || '')
+        .split(',')
+        .map(x => x.trim())
+        .filter(Boolean);
+    }
+
+    function uniqueTags(...groups) {
+      return Array.from(new Set(groups.flat().filter(Boolean)));
+    }
+
+    function tagBadgeHtml(tags, cls = '') {
+      return tags.map(tag => `<span class="inline-tag ${cls}">${escapeHtml(tag)}</span>`).join('');
+    }
+
+    function currentVisibleItems() {
+      const latestOpen = document.getElementById('tab-latest')?.classList.contains('active');
+      const topOpen = document.getElementById('tab-top')?.classList.contains('active');
+      if (latestOpen) return latestItems;
+      if (topOpen) return topItems;
+      return latestItems;
+    }
+
+    function currentVisibleIndex(itemId) {
+      const items = currentVisibleItems();
+      return items.findIndex(x => Number(x.id || 0) === Number(itemId || 0));
+    }
+
+    function stepDetailItem(delta) {
+      const items = currentVisibleItems();
+      if (!items.length || !activeDetailItemId) return;
+      const index = currentVisibleIndex(activeDetailItemId);
+      if (index < 0) return;
+      const nextIndex = index + delta;
+      if (nextIndex < 0 || nextIndex >= items.length) return;
+      const nextId = Number(items[nextIndex].id || 0);
+      if (nextId > 0) showItemDetails(nextId);
+    }
+
+    function updateDetailNavButtons(itemId) {
+      const prev = document.getElementById('detailPrevBtn');
+      const next = document.getElementById('detailNextBtn');
+      const items = currentVisibleItems();
+      const index = items.findIndex(x => Number(x.id || 0) === Number(itemId || 0));
+      if (!prev || !next) return;
+      prev.disabled = index <= 0;
+      next.disabled = index < 0 || index >= items.length - 1;
+    }
+
+    function scoreRelatedness(item, other) {
+      if (!item || !other) return 0;
+      const leftTheme = parseCsvTags(item.theme_tags);
+      const rightTheme = parseCsvTags(other.theme_tags);
+      const leftGeo = parseCsvTags(item.geography_tags);
+      const rightGeo = parseCsvTags(other.geography_tags);
+      const leftActors = parseCsvTags(item.actors);
+      const rightActors = parseCsvTags(other.actors);
+
+      const intersectCount = (a, b) => a.filter(x => b.includes(x)).length;
+      let score = 0;
+      score += intersectCount(leftTheme, rightTheme) * 4;
+      score += intersectCount(leftGeo, rightGeo) * 3;
+      score += intersectCount(leftActors, rightActors) * 2;
+      if ((item.source_name || '') === (other.source_name || '')) score += 1;
+      return score;
+    }
+
+    function relatedItemsFor(item, allItems, limit = 3) {
+      const itemId = Number(item?.id || 0);
+      return (allItems || [])
+        .filter(other => Number(other.id || 0) > 0 && Number(other.id || 0) !== itemId)
+        .map(other => ({ item: other, score: scoreRelatedness(item, other) }))
+        .filter(row => row.score > 0)
+        .sort((a, b) => {
+          if (b.score !== a.score) return b.score - a.score;
+          return Number(b.item.signal_score || 0) - Number(a.item.signal_score || 0);
+        })
+        .slice(0, limit);
+    }
+
     function openDetailOverlay() {
       const overlay = document.getElementById('detailOverlay');
       overlay?.classList.add('open');
@@ -387,6 +752,7 @@
       if (!Number.isFinite(itemId) || itemId <= 0) return;
 
       activeDetailItemId = itemId;
+      updateDetailNavButtons(itemId);
       openDetailOverlay();
       document.getElementById('detailMeta').textContent = `Item #${itemId}`;
       document.getElementById('detailContent').innerHTML = '<p class="muted">Loading detail...</p>';
@@ -404,6 +770,7 @@
 
         document.getElementById('detailTitle').textContent = item.title || 'Untitled';
         document.getElementById('detailMeta').textContent = meta;
+        updateDetailNavButtons(itemId);
         document.getElementById('detailContent').innerHTML = `
           <div class="detail-grid">
             <div class="detail-block">
@@ -544,7 +911,7 @@
       pageState[kind] = page;
       prev.disabled = page <= 1;
       next.disabled = page >= totalPages;
-      info.textContent = `Page ${page}/${totalPages} (${totalItems} items)`;
+      info.textContent = `Page ${page}/${totalPages} (${totalItems} articles)`;
     }
 
     function renderLatestPage() {
@@ -585,18 +952,28 @@
         return;
       }
 
+      const relatedPool = elId === 'top' ? topItems : latestItems;
       for (const item of items) {
         const paywalled = isPaywalled(item);
         const div = document.createElement('article');
-        div.className = 'card is-clickable';
+        div.className = 'card compact-card is-clickable';
         const itemId = Number(item.id || 0);
         const relevance = relevanceLabel(item.relevance_status);
         const leadText = viewMode === 'learning'
           ? (item.why_it_matters || item.linkedin_angle || item.summary || 'No details')
           : (item.summary || 'No summary');
+        const themeTags = parseCsvTags(item.theme_tags).slice(0, 3);
+        const geoTags = parseCsvTags(item.geography_tags).slice(0, 2);
+        const actorTags = parseCsvTags(item.actors).slice(0, 2);
+        const inlineTagsHtml = [
+          tagBadgeHtml(themeTags),
+          tagBadgeHtml(geoTags, 'is-geo'),
+          tagBadgeHtml(actorTags, 'is-actor'),
+        ].join('');
+        const related = viewMode === 'learning' ? relatedItemsFor(item, relatedPool, 3) : [];
         const learningActions = viewMode === 'learning'
           ? `
-            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+            <div class="card-actions-inline">
               <button class="btn-secondary" type="button" data-relevance-item="${itemId}" data-relevance-value="relevant">Relevant</button>
               <button class="btn-secondary" type="button" data-relevance-item="${itemId}" data-relevance-value="non_relevant">Non-relevant</button>
               <button class="btn-secondary" type="button" data-relevance-item="${itemId}" data-relevance-value="unrated">Clear</button>
@@ -605,14 +982,36 @@
             </div>
           `
           : '';
+        const relatedHtml = related.length
+          ? `
+            <div class="related-strip">
+              <div class="related-strip-title">Related by tags</div>
+              ${related.map(row => `
+                <div class="related-item">
+                  <div>
+                    <div class="related-item-title">${escapeHtml(row.item.title || 'Untitled')}</div>
+                    <div class="related-item-meta">${escapeHtml(row.item.source_name || 'Unknown')} | score ${row.item.signal_score || 0} | match ${row.score}</div>
+                  </div>
+                  <button class="btn-warning" type="button" data-merge-pair="${itemId},${Number(row.item.id || 0)}">Merge</button>
+                </div>
+              `).join('')}
+            </div>
+          `
+          : '';
 
         div.innerHTML = `
           <h3>${item.title}${paywalled ? '<span class="badge-paywall">Paywall</span>' : ''}</h3>
-          <p class="muted">${leadText}</p>
-          <div class="meta">Score: ${item.signal_score} | Source: ${item.source_name || 'Unknown'} | Relevance: ${relevance}</div>
-          <div class="meta">Published: ${item.published_at || 'Unknown'}</div>
-          <div class="meta"><a href="${item.article_url}" target="_blank" rel="noopener noreferrer">Open source</a></div>
+          <p class="compact-summary">${escapeHtml(leadText)}</p>
+          <div class="compact-meta-row">
+            <span>Score ${item.signal_score}</span>
+            <span>${escapeHtml(item.source_name || 'Unknown')}</span>
+            <span>${escapeHtml(relevance)}</span>
+            <span>${escapeHtml(item.published_at || 'Unknown')}</span>
+          </div>
+          <div class="inline-tags">${inlineTagsHtml || '<span class="inline-tag is-geo">No tags</span>'}</div>
+          <div class="compact-meta-row"><a href="${item.article_url}" target="_blank" rel="noopener noreferrer">Open source</a></div>
           ${learningActions}
+          ${relatedHtml}
           <div class="selection-row"><label><input type="checkbox" data-collection-item="${itemId}" ${selectedCollectionItems.has(itemId) ? 'checked' : ''} /> Select</label></div>
         `;
         div.title = 'Click card to view basis';
@@ -887,6 +1286,17 @@
           await unmergeIds([id]);
         });
       });
+
+      root.querySelectorAll('[data-merge-pair]').forEach(btn => {
+        btn.addEventListener('click', async (evt) => {
+          evt.preventDefault();
+          evt.stopPropagation();
+          const raw = String(btn.getAttribute('data-merge-pair') || '');
+          const ids = raw.split(',').map(x => Number(x)).filter(x => Number.isFinite(x) && x > 0);
+          if (ids.length < 2) return;
+          await mergeIds(ids);
+        });
+      });
     }
 
     function fillEditForm(source) {
@@ -911,8 +1321,14 @@
 
       for (const s of currentSources) {
         const health = healthStateBySource[s.name || ''] || {};
+        const lastReport = latestSourceReportBySource[s.name || ''] || {};
         const color = health.health_color || 'gray';
         const tooltip = health.last_error || (health.updated_at ? `Updated ${health.updated_at}` : 'No fetch history yet');
+        const lastItems = Number.isFinite(Number(lastReport.items)) ? Number(lastReport.items) : Number(health.last_items || 0);
+        const countBadgeClass = lastItems > 0 ? 'count-badge' : 'count-badge is-zero';
+        const countTooltip = lastReport.status
+          ? `Latest run: items=${lastReport.items || 0}, filtered=${lastReport.filtered || 0}${lastReport.error ? `, error=${lastReport.error}` : ''}`
+          : 'Latest stored item count from last fetch run';
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -920,6 +1336,7 @@
           <td>${s.name || ''}</td>
           <td>${s.type || ''}</td>
           <td>${s.url || ''}</td>
+          <td title="${String(countTooltip).replace(/"/g, '&quot;')}"><span class="${countBadgeClass}">${lastItems}</span></td>
           <td title="${tooltip.replace(/"/g, '&quot;')}"><span class="${healthDotClass(color)}"></span>${color}</td>
           <td><input type="checkbox" ${s.enabled ? 'checked' : ''} data-toggle-index="${s.index}" /></td>
           <td class="row-actions">
@@ -1087,9 +1504,18 @@
       const since_last = (document.getElementById('fetchSinceLast')?.value || 'false') === 'true';
 
       setButtonBusy('runPipelineBtn', true, 'Running fetch + processing...');
+      startRunProgress(days_back, since_last);
       setStatus(`Running fetch + processing (days_back=${days_back}, since_last=${since_last}) ...`);
       try {
+        setRunProgressStep('Contacting backend and preparing fetch pipeline...', 18);
         const result = await postJson('/api/news/run/fetch-process', { days_back, since_last });
+        latestSourceReportBySource = {};
+        if (Array.isArray(result.source_report)) {
+          for (const row of result.source_report) {
+            if (row?.source) latestSourceReportBySource[row.source] = row;
+          }
+        }
+        setRunProgressStep('Refreshing cards, collections and health state...', 82);
 
         let msg = `Done. fetched=${result.fetched_candidates}, dropped_old=${result.dropped_old_items || 0}, new=${result.new_raw_items}, queue=${result.queued_for_processing || 0}, processed=${result.processed_items} (new=${result.processed_new_items || 0}, backlog=${result.processed_backlog_items || 0}), errors=${result.processing_errors || 0}`;
         if (Array.isArray(result.processing_error_samples) && result.processing_error_samples.length ) {
@@ -1102,11 +1528,16 @@
 
         setStatus(msg, (result.fetched_candidates || 0) === 0);
         await refreshSignals();
+        setRunProgressStep('Signals refreshed. Updating collections...', 88);
         await refreshCollections();
+        setRunProgressStep('Collections refreshed. Updating review queue...', 92);
         await refreshMatchReview();
+        setRunProgressStep('Review queue refreshed. Updating source table...', 96);
         await refreshSources();
+        stopRunProgress(true, 'Fetch, processing and UI refresh completed.');
       } catch (err) {
         console.error(err);
+        stopRunProgress(false, 'Run failed before the pipeline returned a complete result.');
         setStatus('Fetch + processing failed: ' + (err?.message || 'Unknown error'), true);
       } finally {
         setButtonBusy('runPipelineBtn', false);
@@ -1140,11 +1571,15 @@
       document.getElementById('readingModeBtn').addEventListener('click', () => setViewMode('reading'));
       document.getElementById('learningModeBtn').addEventListener('click', () => setViewMode('learning'));
       document.getElementById('detailCloseBtn').addEventListener('click', closeDetailOverlay);
+      document.getElementById('detailPrevBtn').addEventListener('click', () => stepDetailItem(-1));
+      document.getElementById('detailNextBtn').addEventListener('click', () => stepDetailItem(1));
       document.getElementById('detailOverlay').addEventListener('click', (evt) => {
         if (evt.target === evt.currentTarget) closeDetailOverlay();
       });
       document.addEventListener('keydown', (evt) => {
         if (evt.key === 'Escape') closeDetailOverlay();
+        if (document.getElementById('detailOverlay')?.classList.contains('open') && evt.key === 'ArrowLeft') stepDetailItem(-1);
+        if (document.getElementById('detailOverlay')?.classList.contains('open') && evt.key === 'ArrowRight') stepDetailItem(1);
       });
       const onGlobalFilterChange = async () => {
         selectedCollectionItems.clear();
