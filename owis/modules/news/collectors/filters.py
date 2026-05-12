@@ -153,7 +153,8 @@ def is_probable_news_item(url: str, title: str, summary: str = "", full_text: st
 
     if not _is_probable_article_path(u):
         # Treat URL as section/index page unless strong evidence says otherwise.
-        if not (DATE_RE.search(u) and (_has_news_hints(t) or _has_news_hints(s))):
+        strong_feed_signal = (_has_news_hints(t) or _has_news_hints(s)) and (_word_count(t) >= 4 or _word_count(s) >= 8)
+        if not (strong_feed_signal or (DATE_RE.search(u) and (_has_news_hints(t) or _has_news_hints(s)))):
             return False
 
     text_blob = f"{t} {s} {u}"

@@ -66,6 +66,13 @@ def load_sources() -> list[dict[str, Any]]:
     return [s for s in load_source_registry() if s.get("enabled")]
 
 
+def _parse_feed(url: str):
+    try:
+        return feedparser.parse(url, request_headers={"User-Agent": USER_AGENT})
+    except TypeError:
+        return feedparser.parse(url)
+
+
 def fetch_rss_items_with_report() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     items: list[dict[str, Any]] = []
     report: list[dict[str, Any]] = []
@@ -82,7 +89,7 @@ def fetch_rss_items_with_report() -> tuple[list[dict[str, Any]], list[dict[str, 
         error = None
 
         try:
-            feed = feedparser.parse(src_url, request_headers={"User-Agent": USER_AGENT})
+            feed = _parse_feed(src_url)
             for entry in getattr(feed, "entries", []):
                 url = entry.get("link") or ""
                 title = (entry.get("title") or "").strip()
