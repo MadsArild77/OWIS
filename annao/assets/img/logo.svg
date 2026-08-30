@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 96" role="img" aria-label="Anna O">
+  <text x="0" y="66" font-family="Cormorant Garamond, Georgia, serif" font-size="64" letter-spacing="4" fill="#6B2436">Anna</text>
+  <circle cx="272" cy="46" r="26" fill="none" stroke="#6B2436" stroke-width="3"/>
+  <path d="M0 84h320" stroke="#A88A5C" stroke-width="1"/>
+</svg>
