@@ -4,6 +4,7 @@ import hashlib
 from typing import Any
 
 import feedparser
+import httpx
 
 from owis.modules.news.collectors.filters import is_probable_news_item
 from owis.modules.news.registry.source_discovery import load_source_registry
@@ -67,10 +68,12 @@ def load_sources() -> list[dict[str, Any]]:
 
 
 def _parse_feed(url: str):
-    try:
-        return feedparser.parse(url, request_headers={"User-Agent": USER_AGENT})
-    except TypeError:
-        return feedparser.parse(url)
+    response = httpx.get(url, headers={"User-Agent": USER_AGENT}, timeout=25, follow_redirects=True)
+    response.raise_for_status()
+    feed = feedparser.parse(response.content)
+    if not feed.get("version"):
+        raise ValueError("Source did not return a recognized RSS or Atom feed")
+    return feed
 
 
 def fetch_rss_items_with_report() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -100,7 +103,9 @@ def fetch_rss_items_with_report() -> tuple[list[dict[str, Any]], list[dict[str, 
                     content_parts = [str(x.get("value", "")) for x in entry.get("content", []) if isinstance(x, dict)]
                     full_text = " ".join(content_parts)
 
-                if not is_probable_news_item(url=url, title=title, summary=summary, full_text=full_text):
+                # RSS entries may legitimately contain only a short excerpt;
+                # scraped-page minimum body lengths do not apply to feeds.
+                if not is_probable_news_item(url=url, title=title, summary=summary or full_text):
                     filtered_count += 1
                     continue
 
@@ -112,7 +117,7 @@ def fetch_rss_items_with_report() -> tuple[list[dict[str, Any]], list[dict[str, 
                         "article_url": url,
                         "title_raw": title,
                         "summary_raw": summary,
-                        "content_raw": summary,
+                        "content_raw": full_text or summary,
                         "content_hash": content_hash,
                         "image_url": _entry_image_url(entry),
                         "published_at": _normalized_published_at(entry),

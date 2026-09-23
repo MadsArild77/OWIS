@@ -27,6 +27,13 @@ class NewsRepository:
             if existing:
                 return None
 
+            archived = conn.execute(
+                "SELECT 1 FROM news_article_archive WHERE article_url = ?",
+                (item["article_url"],),
+            ).fetchone()
+            if archived:
+                return None
+
             cur = conn.execute(
                 """
                 INSERT INTO news_raw_items (
@@ -330,6 +337,123 @@ class NewsRepository:
                 (since_iso, int(limit)),
             ).fetchall()
             return [dict(row) for row in rows]
+
+    def archive_old_unprotected_items(self, cutoff_iso: str, limit: int = 1000) -> dict[str, int]:
+        """
+        Move old, non-curated articles into a lightweight archive and remove full text.
+
+        Curated items are deliberately retained in the main tables because they can
+        back manual merges, relevance decisions, match-review history, or pair learning.
+        """
+        with get_conn() as conn:
+            rows = conn.execute(
+                """
+                SELECT
+                    p.id AS processed_id,
+                    p.raw_item_id,
+                    p.title,
+                    p.theme_tags,
+                    p.geography_tags,
+                    p.actors,
+                    p.signal_score,
+                    p.confidence,
+                    r.source_name,
+                    r.article_url,
+                    r.published_at,
+                    r.fetched_at,
+                    d.domain_bucket
+                FROM news_processed_items p
+                JOIN news_raw_items r ON r.id = p.raw_item_id
+                LEFT JOIN news_domain_classification d ON d.processed_id = p.id
+                WHERE julianday(COALESCE(r.published_at, p.processed_at)) < julianday(?)
+                  AND NOT EXISTS (SELECT 1 FROM news_collection_overrides o WHERE o.processed_id = p.id)
+                  AND NOT EXISTS (SELECT 1 FROM news_item_relevance rel WHERE rel.processed_id = p.id)
+                  AND NOT EXISTS (SELECT 1 FROM news_match_review_pairs mr WHERE mr.item_a_id = p.id OR mr.item_b_id = p.id)
+                  AND NOT EXISTS (SELECT 1 FROM news_pair_learning pl WHERE pl.item_a_id = p.id OR pl.item_b_id = p.id)
+                  AND NOT EXISTS (SELECT 1 FROM news_learning_feedback lf WHERE lf.processed_id = p.id)
+                ORDER BY COALESCE(r.published_at, p.processed_at) ASC
+                LIMIT ?
+                """,
+                (cutoff_iso, int(limit)),
+            ).fetchall()
+            items = [dict(row) for row in rows]
+            if not items:
+                return {"archived": 0, "deleted_processed": 0, "deleted_raw": 0}
+
+            archived_at = datetime.now(timezone.utc).isoformat()
+            for item in items:
+                title = str(item.get("title") or "Untitled")
+                is_paywalled = 1 if "[paywalled]" in title.lower() else 0
+                conn.execute(
+                    """
+                    INSERT INTO news_article_archive (
+                        article_url, source_name, title, published_at, first_seen_at,
+                        last_seen_at, archived_at, theme_tags, geography_tags, actors,
+                        domain_bucket, signal_score, confidence, is_paywalled
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(article_url) DO UPDATE SET
+                        source_name = excluded.source_name,
+                        title = excluded.title,
+                        published_at = excluded.published_at,
+                        last_seen_at = excluded.last_seen_at,
+                        archived_at = excluded.archived_at,
+                        theme_tags = excluded.theme_tags,
+                        geography_tags = excluded.geography_tags,
+                        actors = excluded.actors,
+                        domain_bucket = excluded.domain_bucket,
+                        signal_score = excluded.signal_score,
+                        confidence = excluded.confidence,
+                        is_paywalled = excluded.is_paywalled
+                    """,
+                    (
+                        str(item.get("article_url") or ""),
+                        str(item.get("source_name") or "Unknown"),
+                        title,
+                        item.get("published_at"),
+                        item.get("fetched_at"),
+                        item.get("fetched_at"),
+                        archived_at,
+                        str(item.get("theme_tags") or ""),
+                        str(item.get("geography_tags") or ""),
+                        str(item.get("actors") or ""),
+                        item.get("domain_bucket"),
+                        int(item.get("signal_score") or 0),
+                        float(item.get("confidence") or 0.0),
+                        is_paywalled,
+                    ),
+                )
+
+            processed_ids = [int(item["processed_id"]) for item in items]
+            raw_ids = [int(item["raw_item_id"]) for item in items]
+            processed_placeholders = ",".join("?" for _ in processed_ids)
+            raw_placeholders = ",".join("?" for _ in raw_ids)
+
+            conn.execute(
+                f"DELETE FROM news_domain_classification WHERE processed_id IN ({processed_placeholders})",
+                tuple(processed_ids),
+            )
+            processed_cur = conn.execute(
+                f"DELETE FROM news_processed_items WHERE id IN ({processed_placeholders})",
+                tuple(processed_ids),
+            )
+            raw_cur = conn.execute(
+                f"DELETE FROM news_raw_items WHERE id IN ({raw_placeholders})",
+                tuple(raw_ids),
+            )
+            return {
+                "archived": len(items),
+                "deleted_processed": int(processed_cur.rowcount),
+                "deleted_raw": int(raw_cur.rowcount),
+            }
+
+    def archive_summary(self) -> dict[str, int]:
+        with get_conn() as conn:
+            archive_count = conn.execute("SELECT COUNT(*) AS n FROM news_article_archive").fetchone()
+            active_count = conn.execute("SELECT COUNT(*) AS n FROM news_processed_items").fetchone()
+            return {
+                "active_items": int(active_count["n"] or 0),
+                "archived_items": int(archive_count["n"] or 0),
+            }
 
     def list_collection_overrides(self) -> dict[int, dict[str, Any]]:
         with get_conn() as conn:

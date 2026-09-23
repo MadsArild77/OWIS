@@ -10,6 +10,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from owis.core.config.settings import NEWS_RETENTION_DAYS
 from owis.core.llm.client import AIClient
 from owis.core.storage.db import init_db
 from owis.modules.news.collectors.rss_fetcher import fetch_rss_items_with_report
@@ -121,6 +122,11 @@ class MatchReviewDecisionRequest(BaseModel):
 class StartJobRequest(BaseModel):
     operation: str
     payload: dict[str, Any] = Field(default_factory=dict)
+
+
+class RetentionRunRequest(BaseModel):
+    days: int | None = None
+    limit: int = 1000
 
 
 def _base_health(items: int, error: str | None) -> tuple[int, str]:
@@ -291,6 +297,10 @@ def _run_job(job_id: str, operation: str, payload: dict[str, Any]) -> None:
 
         if operation == "match_review":
             _run_match_review(MatchRunRequest(**payload), job_id=job_id)
+            return
+
+        if operation == "retention_archive":
+            _run_retention_archive(RetentionRunRequest(**payload), job_id=job_id)
             return
 
         _update_job(job_id, status="failed", error=f"Unknown operation: {operation}", step="Job failed")
@@ -960,7 +970,7 @@ def source_health_state():
 @router.post("/jobs/start")
 def start_news_job(payload: StartJobRequest):
     operation = str(payload.operation or "").strip()
-    allowed = {"fetch_process", "rediscover_rss", "source_health", "match_review"}
+    allowed = {"fetch_process", "rediscover_rss", "source_health", "match_review", "retention_archive"}
     if operation not in allowed:
         raise HTTPException(status_code=400, detail=f"Unsupported operation: {operation}")
     job_id = _create_job(operation, payload.payload or {})
@@ -976,6 +986,54 @@ def get_news_job(job_id: str):
 def ai_status(probe: bool = False):
     ai = AIClient()
     return ai.status(with_probe=bool(probe))
+
+
+def _retention_cutoff(days: int | None = None) -> tuple[int, str]:
+    retention_days = int(days or NEWS_RETENTION_DAYS or 30)
+    retention_days = max(1, min(retention_days, 3650))
+    cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
+    return retention_days, cutoff.isoformat()
+
+
+def _run_retention_archive(payload: RetentionRunRequest, job_id: str | None = None) -> dict[str, Any]:
+    init_db()
+    retention_days, cutoff_iso = _retention_cutoff(payload.days)
+    if job_id:
+        _update_job(
+            job_id,
+            status="running",
+            percent=10,
+            step=f"Archiving unprotected articles older than {retention_days} days...",
+        )
+    result = repo.archive_old_unprotected_items(cutoff_iso=cutoff_iso, limit=max(1, int(payload.limit or 1000)))
+    summary = repo.archive_summary()
+    payload_out = {
+        **result,
+        **summary,
+        "retention_days": retention_days,
+        "cutoff": cutoff_iso,
+        "mode": "archive_url_tags_then_purge_full_text",
+    }
+    if job_id:
+        _update_job(
+            job_id,
+            status="completed",
+            percent=100,
+            step=f"Retention archive completed. archived={result.get('archived', 0)}",
+            result=payload_out,
+        )
+    return payload_out
+
+
+@router.post("/retention/archive")
+def retention_archive(payload: RetentionRunRequest):
+    return _run_retention_archive(payload)
+
+
+@router.get("/retention/summary")
+def retention_summary():
+    days, cutoff = _retention_cutoff()
+    return {**repo.archive_summary(), "retention_days": days, "cutoff": cutoff}
 
 def _run_fetch_process(payload: RunFetchProcessRequest, job_id: str | None = None) -> dict[str, Any]:
     init_db()
@@ -1109,6 +1167,12 @@ def _run_fetch_process(payload: RunFetchProcessRequest, job_id: str | None = Non
         limit=8,
         items_per_collection=3,
     )
+    if job_id:
+        _update_job(job_id, percent=97, step="Applying retention archive policy...")
+    retention_result = _run_retention_archive(
+        RetentionRunRequest(days=NEWS_RETENTION_DAYS, limit=1000),
+        job_id=None,
+    )
 
     result = {
         "fetched_candidates": len(fetched_items),
@@ -1125,6 +1189,7 @@ def _run_fetch_process(payload: RunFetchProcessRequest, job_id: str | None = Non
         "source_report": source_report,
         "source_health": health_rows,
         "collection_preview": collections,
+        "retention": retention_result,
     }
     if job_id:
         _update_job(job_id, status="completed", percent=100, step="Fetch, processing and UI refresh completed.", result=result)

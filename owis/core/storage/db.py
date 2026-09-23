@@ -1,15 +1,21 @@
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
 
 from owis.core.config.settings import DB_PATH
 
 
-def get_conn() -> sqlite3.Connection:
+@contextmanager
+def get_conn():
     db_path = Path(DB_PATH)
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
-    return conn
+    try:
+        with conn:
+            yield conn
+    finally:
+        conn.close()
 
 
 def init_db() -> None:
@@ -78,6 +84,23 @@ def init_db() -> None:
                 lead_item_id INTEGER,
                 article_count INTEGER NOT NULL,
                 synthesized_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS news_article_archive (
+                article_url TEXT PRIMARY KEY,
+                source_name TEXT NOT NULL,
+                title TEXT NOT NULL,
+                published_at TEXT,
+                first_seen_at TEXT,
+                last_seen_at TEXT,
+                archived_at TEXT NOT NULL,
+                theme_tags TEXT NOT NULL,
+                geography_tags TEXT NOT NULL,
+                actors TEXT NOT NULL,
+                domain_bucket TEXT,
+                signal_score INTEGER NOT NULL,
+                confidence REAL NOT NULL,
+                is_paywalled INTEGER NOT NULL DEFAULT 0
             );
 
             CREATE TABLE IF NOT EXISTS news_item_relevance (
