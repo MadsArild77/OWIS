@@ -412,66 +412,8 @@ def fetch_scrape_items_with_report(limit_per_source: int = 20) -> tuple[list[dic
                         filtered_count += 1
                         continue
 
-                    article_text = ""
-                    try:
-                        page_resp = client.get(url)
-                        if page_resp.status_code in {401, 403}:
-                            paywall_count += 1
-                            note = "Paywalled content; no full access available."
-                            items.append(_make_raw_item(src_name, url, title, note, f"{title}. {note}", now))
-                            source_count += 1
-                            if source_count >= limit_per_source:
-                                break
-                            continue
-
-                        page_resp.raise_for_status()
-                        metadata = _extract_article_metadata(page_resp.text, url, anchor_title=title)
-                        final_title = metadata.get("title") or title
-                        final_summary = metadata.get("description") or ""
-                        published_at = metadata.get("published_at")
-                        article_text = _extract_article_text(page_resp.text)
-                        if _has_paywall_marker(page_resp.text) and not auth_configured:
-                            paywall_count += 1
-                            note = "Likely paywalled; only partial/open text available."
-                            summary = final_summary or article_text[:500] or note
-                            content = f"{final_title}. {summary}"
-                            items.append(
-                                _make_raw_item(
-                                    src_name,
-                                    url,
-                                    final_title,
-                                    summary,
-                                    content,
-                                    now,
-                                    published_at=published_at,
-                                    image_url=str(metadata.get("image_url") or ""),
-                                )
-                            )
-                            source_count += 1
-                            if source_count >= limit_per_source:
-                                break
-                            continue
-                    except Exception:
-                        filtered_count += 1
-                        continue
-
-                    if not is_probable_news_item(url=url, title=title, summary="", full_text=article_text):
-                        filtered_count += 1
-                        continue
-
-                    summary = final_summary or article_text[:500]
-                    items.append(
-                        _make_raw_item(
-                            src_name,
-                            url,
-                            final_title,
-                            summary,
-                            article_text,
-                            now,
-                            published_at=published_at,
-                            image_url=str(metadata.get("image_url") or ""),
-                        )
-                    )
+                    # Discovery only: defer article requests until deduplication and relevance screening.
+                    items.append(_make_raw_item(src_name, url, title, "", "", now))
                     source_count += 1
                     if source_count >= limit_per_source:
                         break

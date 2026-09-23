@@ -193,7 +193,7 @@ def _why_it_matters(theme_tags: list[str], geo_tags: list[str]) -> str:
         )
 
     return (
-        f"This may influence offshore wind strategy in {geography} "
+        f"This may influence energy, maritime or industrial developments in {geography} "
         f"through themes: {', '.join(theme_tags)}."
     )
 
@@ -229,6 +229,8 @@ def _safe_float(value: object, fallback: float) -> float:
 
 
 def _is_paywalled(raw: dict, text: str) -> bool:
+    if raw.get('_content_basis'):
+        return raw['_content_basis'].get('access')=='restricted' and raw['_content_basis'].get('basis')!='alternative_fulltext'
     title = (raw.get("title_raw") or "").lower()
     blob = _clean_text(f"{raw.get('summary_raw','')} {raw.get('content_raw','')} {text}").lower()
     return "[paywalled]" in title or any(marker in blob for marker in PAYWALL_MARKERS)
@@ -240,7 +242,10 @@ def process_raw_item(raw: dict) -> dict:
 
     ai = AIClient()
     try:
-        ai_data = ai.enrich_news(text)
+        basis=raw.get('_content_basis', {})
+        ai_data = None if basis.get('relevance')=='excluded' else ai.enrich_news(
+            f"Title: {raw.get('title_raw','')}\nSource: {basis.get('source_url',raw.get('article_url',''))}\n"
+            f"Evidence: {basis.get('basis','feed_text')}; access: {basis.get('access','unknown')}\n{text}")
     except Exception:
         ai_data = None
 
@@ -256,7 +261,7 @@ def process_raw_item(raw: dict) -> dict:
     linkedin_angle = (
         ai_data.get("linkedin_angle")
         if ai_data and ai_data.get("linkedin_angle")
-        else "Explain why this signal matters for offshore wind investors and supply chain players."
+        else "Forklar hva denne utviklingen betyr for energi, maritim næring eller industri, med en kildebasert faglig vinkel."
     )
     confidence = _safe_float(ai_data.get("confidence", 0.65), 0.65) if ai_data else 0.65
 

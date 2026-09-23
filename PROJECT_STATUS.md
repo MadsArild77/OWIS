@@ -54,3 +54,9 @@ Endringene ligger i utkast til PR #1. Ingen produksjonsutrulling er utført. Nes
 ## Kontroll med virkelige kilder
 
 12 målrettet valgte par i 61 artikler: 11/12 relasjonstyper stemte, alle 8 positive kandidater funnet, ingen feilaktige same-event. Kostnad cirka 0,00194 USD. Avviket var unrelated kontra related_topic for ulike vindparker. Datagrunnlaget består i stor grad av korte utdrag/overskrifter; faglig vurdering og bedre fulltekstdekning gjenstår. Ingen utrulling. Detaljer i MATCHING.md.
+
+## Interaktiv redaksjonell flyt
+
+Implementert hurtigvalg, begrunnelser, angring, lagrede utkast og interesseområder for energi, maritim næring og nett/elektrifisering. RSS og nettsideindekser filtreres før fullteksthenting. Tilgang og kildegrunnlag vises, og lukkede saker kan få verifiserte åpne alternativer. Overvåkede URL-er lagres i databasen; slettede standardkilder gjenopprettes ikke. Se EDITORIAL.md.
+
+84 tester består. Railway-miljøet owis-review er opprettet for live-test med eget /data-volum. Produksjon er ikke oppgradert. Lokal AI-aktivering ble stoppet av automatisk godkjenningskontroll; eksisterende preview har fortsatt AI av.

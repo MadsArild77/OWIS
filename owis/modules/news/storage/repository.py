@@ -371,6 +371,8 @@ class NewsRepository:
                   AND NOT EXISTS (SELECT 1 FROM news_match_review_pairs mr WHERE mr.item_a_id = p.id OR mr.item_b_id = p.id)
                   AND NOT EXISTS (SELECT 1 FROM news_pair_learning pl WHERE pl.item_a_id = p.id OR pl.item_b_id = p.id)
                   AND NOT EXISTS (SELECT 1 FROM news_learning_feedback lf WHERE lf.processed_id = p.id)
+                  AND NOT EXISTS (SELECT 1 FROM news_editorial_events ee WHERE ee.processed_id = p.id)
+                  AND NOT EXISTS (SELECT 1 FROM news_editorial_drafts ed WHERE ed.processed_id = p.id)
                   AND NOT EXISTS (SELECT 1 FROM news_story_links sl WHERE sl.item_a_id = p.id OR sl.item_b_id = p.id)
                 ORDER BY COALESCE(r.published_at, p.processed_at) ASC
                 LIMIT ?

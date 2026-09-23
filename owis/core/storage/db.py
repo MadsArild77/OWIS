@@ -20,6 +20,40 @@ def get_conn():
 
 def init_db() -> None:
     with get_conn() as conn:
+        conn.executescript('''
+            CREATE TABLE IF NOT EXISTS news_registry_meta (key TEXT PRIMARY KEY,value TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS news_source_evidence (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, raw_id INTEGER NOT NULL,
+                url TEXT NOT NULL, title TEXT NOT NULL, publisher TEXT NOT NULL,
+                access TEXT NOT NULL, basis TEXT NOT NULL, content_hash TEXT NOT NULL,
+                text TEXT NOT NULL, checked_at TEXT NOT NULL,
+                UNIQUE(raw_id,url,content_hash,access,basis)
+            );
+            CREATE TABLE IF NOT EXISTS news_source_suggestions (
+                hostname TEXT PRIMARY KEY, example_url TEXT NOT NULL, discovered_at TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'suggested'
+            );
+            CREATE TABLE IF NOT EXISTS news_draft_provenance (
+                processed_id INTEGER PRIMARY KEY, evidence_id INTEGER NOT NULL, model TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS news_editorial_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, processed_id INTEGER NOT NULL,
+                topic TEXT NOT NULL, value TEXT NOT NULL, reason TEXT NOT NULL DEFAULT '',
+                previous_id INTEGER, undone INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS news_editorial_state (
+                processed_id INTEGER NOT NULL, topic TEXT NOT NULL, event_id INTEGER NOT NULL,
+                PRIMARY KEY(processed_id,topic)
+            );
+            CREATE TABLE IF NOT EXISTS news_editorial_drafts (
+                processed_id INTEGER PRIMARY KEY, body TEXT NOT NULL, created_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS news_content_basis (
+                raw_id INTEGER PRIMARY KEY, relevance TEXT NOT NULL, reason TEXT NOT NULL,
+                access TEXT NOT NULL, basis TEXT NOT NULL, text TEXT NOT NULL,
+                source_url TEXT NOT NULL, alternatives TEXT NOT NULL DEFAULT '[]', checked_at TEXT NOT NULL
+            );
+        ''')
         conn.executescript(
             """
             CREATE TABLE IF NOT EXISTS news_raw_items (

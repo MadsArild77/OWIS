@@ -81,6 +81,7 @@ def _save_source_registry_to_db(sources: list[dict[str, Any]]) -> None:
     now_iso = datetime.now(timezone.utc).isoformat()
     with get_conn() as conn:
         conn.execute("DELETE FROM news_source_registry")
+        conn.execute("INSERT OR REPLACE INTO news_registry_meta VALUES('initialized','true')")
         for pos, source in enumerate(sources):
             conn.execute(
                 """
@@ -514,7 +515,9 @@ def load_source_registry() -> list[dict[str, Any]]:
     if _use_db_registry():
         init_db()
         db_sources = _load_source_registry_from_db()
-        if db_sources:
+        with get_conn() as conn:
+            initialized=conn.execute("SELECT 1 FROM news_registry_meta WHERE key='initialized'").fetchone()
+        if db_sources or initialized:
             return db_sources
 
     yaml_sources = _load_source_registry_from_yaml()
@@ -528,8 +531,6 @@ def load_source_registry() -> list[dict[str, Any]]:
 def save_source_registry(sources: list[dict[str, Any]]) -> None:
     if _use_db_registry():
         _save_source_registry_to_db(sources)
-        # Keep YAML in sync as a best-effort local/dev fallback.
-        _save_source_registry_to_yaml(sources, strict=False)
         return
 
     _save_source_registry_to_yaml(sources, strict=True)
@@ -595,6 +596,7 @@ def update_source(index: int, updates: dict[str, Any]) -> dict[str, Any] | None:
         "enabled",
         "priority",
         "geography_tags",
+        "interest_topic",
         "auth",
         "manual_override",
     }

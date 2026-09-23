@@ -747,12 +747,12 @@
 
     <section class="hero">
       <p class="eyebrow">NorthernBlue intelligence dashboard</p>
-      <h1>Offshore Wind Intelligence</h1>
+      <h1>OWIS · Nyheter til faglig innhold</h1>
       <p class="hero-lead">
-        Monitor offshore wind signals, merge related coverage into master stories and review AI match suggestions from one glassmorphic workspace.
+        Følg energi, maritim næring og elektrifisering. Finn interessante saker og lag kildebaserte LinkedIn-utkast.
       </p>
       <div class="hero-metrics">
-        <span class="metric-pill">Reading: master stories</span>
+        <span class="metric-pill">Nyheter: vurder og lag utkast</span>
         <span class="metric-pill">Review: merge and train</span>
         <span class="metric-pill">Source health and pipeline status</span>
       </div>
@@ -769,11 +769,11 @@
         </summary>
         <div class="settings-body">
 
-          <h3>Import sources</h3>
+          <h3>Nettadresser vi overvåker</h3><p class="muted">RSS, nyhetssider og presserom lagres i kilderegisteret. Av/på og redigering huskes ved neste innhenting.</p>
           <textarea id="sourceInput" placeholder="Recharge - https://www.rechargenews.com\nhttps://windeurope.org"></textarea>
           <button id="importBtn">Import Sources</button>
 
-          <h3>Edit source</h3>
+          <h3>Rediger kilde</h3><label>Interesseområde <select id="editInterest"><option value="all">Alle</option><option value="energy">Havvind / energi</option><option value="maritime">Maritim / havner</option><option value="grid">Nett / elektrifisering</option></select></label>
           <div class="two-col">
             <div>
               <label class="muted">Index</label>
@@ -845,6 +845,14 @@
         </div>
       </details>
 
+      <div class="card-actions-inline" style="margin:12px 0;flex-wrap:wrap">
+        <label>Interesseområde <select id="interestFilter"><option value="all">Alle interesseområder</option><option value="energy">Havvind og energiomstilling</option><option value="maritime">Maritim næring og havner</option><option value="grid">Strømnett og elektrifisering</option></select></label>
+        <label><input type="checkbox" id="showDismissed"> Vis skjulte / filtrerte</label>
+        <button type="button" id="showFeedbackHistory">Lagrede vurderinger</button>
+      </div>
+      <div id="feedbackNotice" class="status" role="status" aria-live="polite"></div>
+      <div id="editorialHistory" class="card" hidden><h3>Lagrede vurderinger</h3><div id="editorialHistoryBody"></div><button type="button" onclick="this.parentElement.hidden=true">Lukk</button></div>
+      <div id="editorialDraft" class="card" hidden><h3>LinkedIn-utkast · lagret</h3><textarea id="draftBody" readonly rows="10" style="width:100%"></textarea><button id="copyDraft" type="button">Kopier</button><button type="button" onclick="this.parentElement.hidden=true">Lukk</button></div>
       <div id="adminStatus" class="status"></div>
       <div id="runProgress" class="run-progress" aria-live="polite">
         <div class="run-progress-head">
@@ -879,16 +887,16 @@
 
     <section class="card">
       <div class="tab-bar">
-        <button class="tab-btn active" data-tab="reading" type="button">Reading</button>
+        <button class="tab-btn active" data-tab="reading" type="button">Nyheter</button>
         <button class="tab-btn" data-tab="review" type="button">Review</button>
       </div>
 
 
       <div id="tab-reading" class="tab-panel active">
-        <h2>Reading</h2>
-        <p class="muted">Merged stories are shown as one master story. Open sources from the story when needed.</p>
+        <h2>Nyheter for deg</h2>
+        <p class="muted">Vurder nyheten direkte, eller lag et kildebasert utkast. Samlede saker og treffkontroll ligger under Review.</p>
         <div class="view-toolbar">
-          <span class="muted">Short overview for scanning. Open a story for full context.</span>
+          <span class="muted">Åpne artikkelen for casebeskrivelse og kildegrunnlag.</span>
           <div class="view-toggle" aria-label="Reading layout">
             <button id="readingListViewBtn" class="active" type="button" data-reading-layout="list">List</button>
             <button id="readingCardViewBtn" type="button" data-reading-layout="cards">Cards</button>
@@ -1745,15 +1753,19 @@
       updatePager('top', topItems.length);
     }
 
+    function visibleArticles(items) {
+      const scope=document.getElementById('interestFilter')?.value || 'all';
+      const hidden=document.getElementById('showDismissed')?.checked;
+      return items.filter(item => (scope==='all' || (item.interest_topics||[]).includes(scope)) &&
+        (hidden || (item.editorial?.[scope]?.value!=='non_relevant' && item.content_basis?.relevance!=='excluded')));
+    }
     function renderReadingPage() {
-      const { pageItems } = getPageSlice('reading', mergedItems);
-      const root = document.getElementById('readingStories');
-      if (root) {
-        root.classList.toggle('grid', readingLayout === 'cards');
-        root.classList.toggle('story-list', readingLayout === 'list');
-      }
-      renderCollections('readingStories', pageItems, { showItems: false, pulseManual: false });
-      updatePager('reading', mergedItems.length);
+      const visible=visibleArticles(latestItems);
+      const {pageItems}=getPageSlice('reading',visible);
+      const root=document.getElementById('readingStories');
+      if(root){root.classList.toggle('grid',readingLayout==='cards');root.classList.toggle('story-list',readingLayout==='list');}
+      renderCards('readingStories',pageItems);
+      updatePager('reading',visible.length);
     }
 
     function renderMergedPage() {
@@ -1784,6 +1796,14 @@
         return;
       }
 
+      const scope = document.getElementById('interestFilter')?.value || 'all';
+      const showHidden = document.getElementById('showDismissed')?.checked;
+      items = items.filter(item => {
+        if (scope !== 'all' && !(item.interest_topics || []).includes(scope)) return false;
+        const vote = item.editorial?.[scope]?.value;
+        return showHidden || (vote !== 'non_relevant' && item.content_basis?.relevance !== 'excluded');
+      });
+      if (!items.length) root.innerHTML = '<p class="muted">Ingen artikler i dette utvalget. Prøv et annet interesseområde eller vis skjulte.</p>';
       const relatedPool = elId === 'top' ? topItems : latestItems;
       for (const item of items) {
         const paywalled = isPaywalled(item);
@@ -1809,17 +1829,20 @@
           tagBadgeHtml(actorTags, 'is-actor'),
         ].join('');
         const related = viewMode === 'review' ? relatedItemsFor(item, relatedPool, 3) : [];
-        const learningActions = viewMode === 'review'
-          ? `
-            <div class="card-actions-inline">
-              <button class="btn-secondary" type="button" data-relevance-item="${itemId}" data-relevance-value="relevant">Relevant</button>
-              <button class="btn-secondary" type="button" data-relevance-item="${itemId}" data-relevance-value="non_relevant">Non-relevant</button>
-              <button class="btn-secondary" type="button" data-relevance-item="${itemId}" data-relevance-value="unrated">Clear</button>
-              <button class="btn-warning" type="button" data-merge-item="${itemId}">Merge</button>
-              <button class="btn-warning" type="button" data-unmerge-item="${itemId}">Unmerge</button>
-            </div>
-          `
-          : '';
+        const basis=item.content_basis || {};
+        const accessLabel=({open:'Åpen',restricted:'Lukket / abonnement',blocked:'Tilgang blokkert',unknown:'Tilgang ikke avklart'})[basis.access] || 'Tilgang ikke avklart';
+        const basisLabel=({fulltext:'Artikkeltekst hentet',alternative_fulltext:'Åpen alternativ kilde',feed_text:'Tekst fra RSS',feed_excerpt:'Kort RSS-utdrag'})[basis.basis] || 'Kort utdrag';
+        const learningActions = `
+          <div class="compact-meta-row">${escapeHtml(accessLabel)} · ${escapeHtml(basisLabel)}</div>
+          <div class="card-actions-inline">
+            <button type="button" class="btn-secondary" data-editorial="${itemId}" data-vote="relevant" aria-pressed="${item.editorial?.[scope]?.value==='relevant'}">👍 Interessant</button>
+            <button type="button" class="btn-secondary" data-editorial="${itemId}" data-vote="non_relevant">👎 Ikke for meg</button>
+            <button type="button" class="btn-secondary" data-draft="${itemId}">${item.draft ? 'Vis utkast' : 'Lag utkast'}</button>
+            <button type="button" class="btn-secondary" data-enrich="${itemId}">Les mer / sjekk tilgang</button>
+          </div>
+          ${(basis.alternatives||[]).map(a=>`<a href="${escapeHtml(a.url)}" target="_blank" rel="noopener noreferrer">Åpen kilde: ${escapeHtml(a.title)}</a>`).join('<br>')}
+          ${basis.access==='restricted' && !(basis.alternatives||[]).length ? '<p class="muted">Ingen verifisert åpen alternativkilde funnet blant innhentede artikler.</p>' : ''}
+        `;
         const relatedHtml = related.length
           ? `
             <div class="related-strip">
@@ -1839,7 +1862,7 @@
 
         div.innerHTML = `
           ${imageHtml}
-          <h3>${item.title}${paywalled ? '<span class="badge-paywall">Paywall</span>' : ''}</h3>
+          <h3>${escapeHtml(item.title)}${paywalled ? '<span class="badge-paywall">Paywall</span>' : ''}</h3>
           <p class="compact-summary">${escapeHtml(leadText)}</p>
           <div class="compact-meta-row">
             <span>Score ${item.signal_score}</span>
@@ -1848,7 +1871,7 @@
             <span>${escapeHtml(item.published_at || 'Unknown')}</span>
           </div>
           <div class="inline-tags">${inlineTagsHtml || '<span class="inline-tag is-geo">No tags</span>'}</div>
-          <div class="compact-meta-row"><a href="${item.article_url}" target="_blank" rel="noopener noreferrer">Open source</a></div>
+          <div class="compact-meta-row"><button type="button" class="btn-secondary" data-sources="${itemId}">Kildegrunnlag</button> · <a href="${escapeHtml(item.article_url)}" target="_blank" rel="noopener noreferrer">Open source</a></div>
           ${learningActions}
           ${relatedHtml}
           <div class="selection-row"><label><input type="checkbox" data-collection-item="${itemId}" ${selectedCollectionItems.has(itemId) ? 'checked' : ''} /> Select</label></div>
@@ -1989,8 +2012,8 @@
           <div class="meta"><a href="${escapeHtml(/^https?:\/\//i.test(pair.item_a_url || "") ? pair.item_a_url : "#")}" target="_blank" rel="noopener noreferrer">A: ${escapeHtml(pair.item_a_title || "Untitled")}</a></div>
           <div class="meta"><a href="${escapeHtml(/^https?:\/\//i.test(pair.item_b_url || "") ? pair.item_b_url : "#")}" target="_blank" rel="noopener noreferrer">B: ${escapeHtml(pair.item_b_title || "Untitled")}</a></div>
           <div style="display:flex;gap:8px;margin-top:10px;">
-            <button class="btn-secondary" type="button" data-match-accept="${pair.id}" data-relationship="${escapeHtml(pair.relationship || "uncertain")}">${pair.relationship === "update" ? "Knytt som oppdatering" : "Bekreft samme hendelse"}</button>
-            <button class="btn-warning" type="button" data-match-reject="${pair.id}">Reject</button>
+            <button class="btn-secondary" type="button" data-match-accept="${pair.id}" data-relationship="${escapeHtml(pair.relationship || "uncertain")}">${pair.relationship === "update" ? "Knytt som oppdatering" : "Samme sak"}</button>
+            <button class="btn-warning" type="button" data-match-reject="${pair.id}">Ulike saker</button>
           </div>
         `;
         root.appendChild(div);
@@ -2135,6 +2158,48 @@
 
     function bindInlineActions(scope) {
       const root = scope || document;
+      root.querySelectorAll('[data-sources]').forEach(btn=>btn.addEventListener('click',async e=>{
+        e.stopPropagation();
+        try {
+          const rows=await getJson(`/api/news/item/${btn.dataset.sources}/sources`);
+          const body=document.getElementById('editorialHistoryBody');
+          body.innerHTML='<h4>Kildegrunnlag</h4>'+ (rows.length ? rows.map(r=>`<p><a href="${escapeHtml(r.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(r.title)}</a><br>${escapeHtml(r.publisher)} · ${escapeHtml(r.checked_at)}</p>`).join('') : '<p>Foreløpig bare den opprinnelige RSS-kilden. Bruk «Les mer / sjekk tilgang» for å hente og lagre kildegrunnlaget.</p>');
+          document.getElementById('editorialHistory').hidden=false;
+          document.getElementById('editorialHistory').scrollIntoView({behavior:'smooth'});
+        }catch(err){setStatus('Kunne ikke hente kildene: '+err.message,true);}
+      }));
+      root.querySelectorAll('[data-editorial]').forEach(btn => btn.addEventListener('click', async e => {
+        e.stopPropagation(); btn.disabled=true;
+        const notice=document.getElementById('feedbackNotice');
+        const topic=document.getElementById('interestFilter').value;
+        try {
+          const saved=await postJson(`/api/news/item/${btn.dataset.editorial}/feedback`, {topic,value:btn.dataset.vote});
+          notice.innerHTML='Lagret. <button type="button" id="undoFeedback">Angre</button>' + (btn.dataset.vote==='non_relevant' ? ' <span>Valgfri årsak:</span> '+[['wrong_topic','Feil tema'],['promotion','Reklame'],['geography','Feil geografi'],['not_now','Ikke aktuelt nå']].map(([v,l])=>`<button type="button" data-reason="${v}">${l}</button>`).join(' ') : '');
+          document.getElementById('undoFeedback').onclick=async () => {
+            try {await postJson(`/api/news/feedback/${saved.event_id}/undo`,{});notice.textContent='Angret og lagret.';await refreshSignals();}
+            catch(err){notice.textContent='Kunne ikke angre: '+err.message;}
+          };
+          notice.querySelectorAll('[data-reason]').forEach(b=>b.onclick=async()=>{
+            try {await postJson(`/api/news/feedback/${saved.event_id}/reason`,{reason:b.dataset.reason}); b.textContent='✓ Lagret';}
+            catch(err){setStatus('Årsak ikke lagret: '+err.message,true);}
+          });
+          await refreshSignals();
+        } catch(err){notice.textContent='Ikke lagret. Prøv igjen: '+err.message;}
+        finally{btn.disabled=false;}
+      }));
+      root.querySelectorAll('[data-draft], [data-enrich]').forEach(btn=>btn.addEventListener('click',async e=>{
+        e.stopPropagation();btn.disabled=true;const old=btn.textContent;btn.textContent='Arbeider…';
+        try {
+          if(btn.dataset.draft){
+            const result=await postJson(`/api/news/item/${btn.dataset.draft}/draft`,{});
+            document.getElementById('draftBody').value=result.body;
+            document.getElementById('editorialDraft').hidden=false;
+            document.getElementById('editorialDraft').scrollIntoView({behavior:'smooth',block:'center'});
+          } else {await postJson(`/api/news/item/${btn.dataset.enrich}/enrich?refresh=true`,{});}
+          await refreshSignals();setStatus('Lagret.');
+        } catch(err){setStatus('Kunne ikke fullføre: '+err.message,true);}
+        finally{btn.disabled=false;btn.textContent=old;}
+      }));
       root.querySelectorAll('[data-relevance-item]').forEach(btn => {
         btn.addEventListener('click', async (evt) => {
           evt.preventDefault();
@@ -2183,6 +2248,7 @@
     function fillEditForm(source) {
       document.getElementById('editIndex').value = source.index;
       document.getElementById('editName').value = source.name || '';
+      document.getElementById('editInterest').value = source.interest_topic || 'all';
       document.getElementById('editHomepage').value = source.homepage || '';
       document.getElementById('editType').value = source.type || 'rss';
       document.getElementById('editUrl').value = source.url || '';
@@ -2290,6 +2356,7 @@
       pageState.top = 1;
       renderLatestPage();
       renderTopPage();
+      renderReadingPage();
       renderMatchReview();
     }
 
@@ -2328,6 +2395,7 @@
         type: document.getElementById('editType').value,
         url: document.getElementById('editUrl').value,
         priority: document.getElementById('editPriority').value,
+        interest_topic: document.getElementById('editInterest').value,
       });
 
       setStatus(`Saved source #${index}`);
@@ -2541,6 +2609,16 @@
       };
       document.getElementById('sourceFilter').addEventListener('change', onGlobalFilterChange);
       document.getElementById('domainFilter').addEventListener('change', onGlobalFilterChange);
+      document.getElementById('interestFilter').addEventListener('change', () => refreshSignals());
+      document.getElementById('showDismissed').addEventListener('change', () => refreshSignals());
+      document.getElementById('showFeedbackHistory').onclick=async()=>{
+        try {
+          const rows=await getJson('/api/news/feedback/history');
+          document.getElementById('editorialHistoryBody').innerHTML=rows.length ? rows.map(r=>`<p>${escapeHtml(r.title || ('Artikkel '+r.processed_id))}<br>${escapeHtml(({relevant:'Interessant',non_relevant:'Ikke for meg',unrated:'Nullstilt'})[r.value] || r.value)} · ${escapeHtml(r.topic)} · ${escapeHtml(r.created_at)}${r.undone ? ' · Angret' : ''}</p>`).join('') : '<p>Ingen vurderinger lagret ennå.</p>';
+          document.getElementById('editorialHistory').hidden=false;
+        }catch(err){setStatus('Kunne ikke hente historikk: '+err.message,true);}
+      };
+      document.getElementById('copyDraft').onclick=async()=>{try{await navigator.clipboard.writeText(document.getElementById('draftBody').value);setStatus('Utkast kopiert.');}catch(err){setStatus('Marker og kopier teksten manuelt.',true);}};
 
       document.getElementById('readingPrev').addEventListener('click', () => changePage('reading', -1));
       document.getElementById('readingNext').addEventListener('click', () => changePage('reading', 1));

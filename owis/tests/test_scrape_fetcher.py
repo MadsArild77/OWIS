@@ -27,7 +27,7 @@ class _FakeClient:
         return self.pages[url]
 
 
-def test_fetch_scrape_items_uses_metadata_and_json_ld(monkeypatch):
+def test_scrape_discovery_defers_article_requests_until_relevance_check(monkeypatch):
     monkeypatch.setattr(
         scrape_fetcher,
         "load_source_registry",
@@ -73,13 +73,14 @@ def test_fetch_scrape_items_uses_metadata_and_json_ld(monkeypatch):
     }
     monkeypatch.setattr(scrape_fetcher.httpx, "Client", lambda **kwargs: _FakeClient(pages, **kwargs))
 
+    del pages["https://example.com/article-1"]  # Requesting this URL now fails the test.
     items = scrape_fetcher.fetch_scrape_items(limit_per_source=5)
 
     assert len(items) == 1
-    assert items[0]["title_raw"] == "Expanded Offshore Wind Title"
-    assert items[0]["summary_raw"] == "A detailed offshore wind policy update."
-    assert items[0]["published_at"] == "2026-05-11T06:30:00+00:00"
-    assert "procurement" in items[0]["content_raw"].lower()
+    assert items[0]["title_raw"] == "Short anchor title"
+    assert items[0]["summary_raw"] == ""
+    assert items[0]["content_raw"] == ""
+    assert items[0]["published_at"] is None
 
 
 def test_extract_article_metadata_uses_custom_published_fallback():
