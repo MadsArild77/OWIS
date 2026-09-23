@@ -50,3 +50,7 @@ OpenAI-basert semantisk kandidatsøk, lagring av analyser, fem relasjonstyper og
 Direkte OpenAI-test: **30/30 syntetiske norsk/engelske artikkelpar bestod**, ingen feilaktige same-event-klassifiseringer. Beregnet kostnad fra faktisk tokenbruk: **0,00418107 USD**. Testkjøringen har egen konservativ grense på 0,10 USD; appen har fortsatt pargrense og caching, ikke en global dollargrense. Se MATCHING.md for detaljer og begrensninger.
 
 Endringene ligger i utkast til PR #1. Ingen produksjonsutrulling er utført. Neste kvalitetssteg er et manuelt merket sett med virkelige artikler; sammenslåing krever fortsatt menneskelig godkjenning.
+
+## Kontroll med virkelige kilder
+
+12 målrettet valgte par i 61 artikler: 11/12 relasjonstyper stemte, alle 8 positive kandidater funnet, ingen feilaktige same-event. Kostnad cirka 0,00194 USD. Avviket var unrelated kontra related_topic for ulike vindparker. Datagrunnlaget består i stor grad av korte utdrag/overskrifter; faglig vurdering og bedre fulltekstdekning gjenstår. Ingen utrulling. Detaljer i MATCHING.md.

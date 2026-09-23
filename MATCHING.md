@@ -54,3 +54,12 @@ Pricing references: [GPT-4o mini](https://developers.openai.com/api/docs/models/
 A manually curated set of real articles and measured candidate recall/false-merge rate are still needed before automatic merging is considered. All merging currently requires human confirmation.
 
 Reference: [OpenAI embeddings guide](https://developers.openai.com/api/docs/guides/embeddings).
+
+
+## Real-source spot check (2026-09-23)
+
+A separate, pre-labeled 12-pair spot check used 55 stored feed records and six original publisher headlines (61 documents total). Retrieval ran against the whole corpus with the normal top-8 setting, yielding 97 candidate pairs; only the 12 labeled pairs were judged. Six same-event and two update pairs were all retrieved and correctly classified. Exact-label agreement was 11/12, with zero false same-event labels among the six non-same-event pairs. The one discrepancy was unrelated versus related_topic for different wind farms, so neither label suggests merging. Estimated usage cost: $0.00194319.
+
+See `owis/tests/fixtures/real_news_match_evaluation.json` for source URLs, labels, results and limitations. Labels were assigned by the coding agent before the call, not independently by a domain expert. Three positive pairs are publisher language editions. The new multilingual sources are English/German/Danish; Norwegian remains synthetic-only. Most stored feed articles have roughly 140-character excerpts; added sources use original headlines after direct full-text retrieval failed. This is not a full-text or representative production benchmark. Full-corpus precision remains unknown. Keep human review and improve source text coverage before deployment.
+
+The evaluator accepts `--cases path/to/labeled-cases.json --corpus path/to/articles.json --output work/result.json`. Real source texts and local databases are excluded from Git. The default synthetic evaluator now also measures retrieval within its complete input corpus rather than isolated pairs; the earlier checked-in synthetic result predates that evaluator change.
