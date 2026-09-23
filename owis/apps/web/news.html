@@ -2287,12 +2287,35 @@
           <td title="${tooltip.replace(/"/g, '&quot;')}"><span class="${healthDotClass(color)}"></span>${color}</td>
           <td><input type="checkbox" ${s.enabled ? 'checked' : ''} data-toggle-index="${s.index}" /></td>
           <td class="row-actions">
+            <button data-history-index="${s.index}" class="btn-secondary">Feilhistorikk</button>
             <button data-edit-index="${s.index}" class="btn-secondary">Edit</button>
             <button data-delete-index="${s.index}" class="btn-warning">Delete</button>
           </td>
         `;
         body.appendChild(tr);
       }
+
+      body.querySelectorAll('[data-history-index]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const source = currentSources.find(x => x.index === Number(btn.dataset.historyIndex));
+          if (!source) return;
+          let panel = document.getElementById('sourceHistoryPanel');
+          if (!panel) {
+            panel = document.createElement('div'); panel.id = 'sourceHistoryPanel';
+            body.closest('table').after(panel);
+          }
+          panel.textContent = 'Henter historikk…';
+          try {
+            const url = source.type === 'rss' ? source.url : (source.homepage || source.url);
+            const result = await getJson('/api/news/sources/history?source_url=' + encodeURIComponent(url));
+            panel.innerHTML = `<h3>${escapeHtml(source.name)} – kildehistorikk</h3><p>Siste 100 kontroller og innhentinger. Tidligere feil beholdes etter vellykkede forsøk.</p>` +
+              (result.items.length ? result.items.map(row => `<div class="source-progress-item ${row.status === 'error' ? 'is-error' : ''}">
+                <strong>${escapeHtml(new Date(row.created_at).toLocaleString())} · ${escapeHtml(row.operation)} · ${row.status === 'error' ? 'Feil' : row.status === 'empty' ? 'Ingen treff' : 'OK'}</strong>
+                <div>${escapeHtml(row.category === 'none' ? '' : row.category)} ${row.http_status || ''} ${escapeHtml(row.message)} ${row.items == null ? '' : ' · Treff: ' + row.items}</div>
+                <small>${escapeHtml(row.source_url)}</small></div>`).join('') : '<p>Ingen lagrede forsøk ennå. Kjør kildekontroll eller innhenting.</p>');
+          } catch (err) { panel.textContent = 'Kunne ikke hente historikk: ' + err.message; }
+        });
+      });
 
       body.querySelectorAll('[data-edit-index]').forEach(btn => {
         btn.addEventListener('click', () => {

@@ -1075,6 +1075,12 @@ def source_health(payload: SourceHealthRequest):
     return {"items": source_health_report(only_enabled=payload.only_enabled)}
 
 
+@router.get("/sources/history")
+def source_history(source_url: str | None = None, limit: int = 100):
+    from owis.modules.news.storage.source_events import list_events
+    return {"items": list_events(source_url, limit)}
+
+
 @router.get("/sources/health-state")
 def source_health_state():
     return {"items": repo.list_source_health_states()}

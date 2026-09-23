@@ -1,3 +1,4 @@
+from owis.modules.news.storage.source_events import record_attempts, error_message
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 import hashlib
@@ -126,7 +127,7 @@ def fetch_rss_items_with_report() -> tuple[list[dict[str, Any]], list[dict[str, 
                 )
                 source_count += 1
         except Exception as ex:
-            error = str(ex)
+            error = error_message(ex)
 
         report.append(
             {
@@ -140,6 +141,7 @@ def fetch_rss_items_with_report() -> tuple[list[dict[str, Any]], list[dict[str, 
             }
         )
 
+    record_attempts(report, "fetch")
     return items, report
 
 

@@ -21,3 +21,7 @@ Configuration: OWI_FULLTEXT_ENABLED=true (default), OWI_AI_ENABLED=true and exis
 Validation: 84 tests pass, including persistence/undo conflicts, backup/source restoration, filtering before network requests, access classification, source attribution, independent draft intent and refusal to start on ephemeral Railway storage. Existing frontend JavaScript passes syntax checking; the new reading view has been inspected in the browser. Tests use simulated AI/network responses; live provider coverage varies by source. Interest expansion currently applies to the existing source corpus; additional scan URLs can be added through Settings.
 
 Live validation completed in owis-review: draft generation, scan-source persistence, feedback persistence and undo, and draft persistence after a service restart. Energiwatch homepage-only import resolved to its RSS feed and passed feed health validation. Production migration remains separate.
+
+
+### Source diagnostics
+Source fetches (web and scheduled collectors) and manual health checks now append persistent `news_source_events` records. Settings → Feilhistorikk shows the latest 100 attempts per URL, including timestamp, operation, error category, HTTP status, message and result count. Successful attempts do not erase older failures; zero results are recorded separately from errors. History starts with this release. Query strings and URL credentials are removed from diagnostic messages and displayed URLs. Data uses the existing persistent SQLite volume and backups.

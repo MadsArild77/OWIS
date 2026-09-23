@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from owis.modules.news.storage.source_events import record_attempts, error_message
+
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
@@ -255,7 +257,7 @@ def _validate_feed_url(url: str) -> tuple[bool, str]:
         if "<rss" in snippet or "<feed" in snippet:
             return True, "rss/atom tags in content"
     except Exception as exc:
-        return False, f"request/parse error: {exc.__class__.__name__}"
+        return False, error_message(exc)
 
     return False, "not recognized as RSS/Atom feed"
 
@@ -448,6 +450,7 @@ def source_health_report(only_enabled: bool = True) -> list[dict[str, Any]]:
             "source": src_name,
             "type": src_type,
             "homepage": homepage,
+            "url": source.get("url") if src_type == "rss" else homepage,
             "host": host,
             "enabled": bool(source.get("enabled")),
             "manual_override": bool(source.get("manual_override")),
@@ -483,6 +486,9 @@ def source_health_report(only_enabled: bool = True) -> list[dict[str, Any]]:
             if resp.status_code in {401, 403}:
                 row["status"] = "auth_forbidden" if auth_configured else "paywall_no_auth"
                 row["detail"] = f"http_{resp.status_code}"
+            elif resp.status_code >= 400:
+                row["status"] = "error"
+                row["detail"] = f"HTTP {resp.status_code}"
             elif has_paywall_signals:
                 row["status"] = "paywall_detected_with_auth" if auth_configured else "paywall_no_auth"
                 row["detail"] = "paywall_markers_detected"
@@ -491,10 +497,11 @@ def source_health_report(only_enabled: bool = True) -> list[dict[str, Any]]:
                 row["detail"] = f"http_{resp.status_code}"
         except Exception as exc:
             row["status"] = "error"
-            row["detail"] = f"{exc.__class__.__name__}: {exc}"
+            row["detail"] = error_message(exc)
 
         rows.append(row)
 
+    record_attempts(rows, "health")
     return rows
 
 

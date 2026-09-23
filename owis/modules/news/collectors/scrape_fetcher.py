@@ -1,3 +1,4 @@
+from owis.modules.news.storage.source_events import record_attempts, error_message
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from html import unescape
@@ -418,7 +419,7 @@ def fetch_scrape_items_with_report(limit_per_source: int = 20) -> tuple[list[dic
                     if source_count >= limit_per_source:
                         break
         except Exception as ex:
-            error = str(ex)
+            error = error_message(ex)
 
         report.append(
             {
@@ -434,6 +435,7 @@ def fetch_scrape_items_with_report(limit_per_source: int = 20) -> tuple[list[dic
             }
         )
 
+    record_attempts(report, "fetch")
     return items, report
 
 
