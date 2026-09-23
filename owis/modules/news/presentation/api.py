@@ -652,7 +652,7 @@ def _build_collections(
         )
 
     result.sort(
-        key=lambda x: (int(x.get("article_count") or 0), int(x.get("top_signal_score") or 0), str(x.get("latest_published_at") or "")),
+        key=lambda x: ((_parse_iso_datetime(x.get("latest_published_at")) or datetime.min.replace(tzinfo=timezone.utc)), int(x.get("top_signal_score") or 0), int(x.get("article_count") or 0)),
         reverse=True,
     )
     return result[: max(limit, 1)]

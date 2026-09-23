@@ -1,3 +1,4 @@
+from owis.modules.news.collectors.http_retry import get_with_retry
 from owis.modules.news.storage.source_events import record_attempts, error_message
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
@@ -310,7 +311,7 @@ def _extract_article_metadata(html: str, url: str, anchor_title: str = "") -> di
 
 def fetch_article_preview(url: str, fallback_title: str = "", fallback_summary: str = "") -> dict[str, str]:
     try:
-        with httpx.Client(timeout=20, follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
+        with httpx.Client(timeout=httpx.Timeout(15, connect=5), follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
             response = client.get(url)
             response.raise_for_status()
         metadata = _extract_article_metadata(response.text, str(response.url), anchor_title=fallback_title)
@@ -388,12 +389,12 @@ def fetch_scrape_items_with_report(limit_per_source: int = 20) -> tuple[list[dic
         source_headers, source_cookies, auth_configured = _build_request_auth(source)
         try:
             with httpx.Client(
-                timeout=20,
+                timeout=httpx.Timeout(15, connect=5),
                 follow_redirects=True,
                 headers=source_headers,
                 cookies=source_cookies or None,
             ) as client:
-                response = client.get(homepage)
+                response = get_with_retry(client.get, homepage, source=src_name)
                 response.raise_for_status()
                 soup = BeautifulSoup(response.text, "html.parser")
 

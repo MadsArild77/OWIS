@@ -1,3 +1,4 @@
+from owis.modules.news.collectors.http_retry import get_with_retry
 from owis.modules.news.storage.source_events import record_attempts, error_message
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
@@ -69,7 +70,8 @@ def load_sources() -> list[dict[str, Any]]:
 
 
 def _parse_feed(url: str):
-    response = httpx.get(url, headers={"User-Agent": USER_AGENT}, timeout=25, follow_redirects=True)
+    response = get_with_retry(
+        lambda target: httpx.get(target, headers={"User-Agent": USER_AGENT}, timeout=httpx.Timeout(15, connect=5), follow_redirects=True), url)
     response.raise_for_status()
     feed = feedparser.parse(response.content)
     if not feed.get("version"):

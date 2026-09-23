@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from owis.modules.news.collectors.http_retry import get_with_retry
+
 from owis.modules.news.storage.source_events import record_attempts, error_message
 
 from dataclasses import dataclass
@@ -236,8 +238,8 @@ def parse_source_input(text: str) -> list[ParsedSourceLine]:
 
 def _validate_feed_url(url: str) -> tuple[bool, str]:
     try:
-        with httpx.Client(timeout=15, follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
-            resp = client.get(url)
+        with httpx.Client(timeout=httpx.Timeout(15, connect=5), follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
+            resp = get_with_retry(client.get, url, operation="health")
             resp.raise_for_status()
             content_type = (resp.headers.get("content-type") or "").lower()
             snippet = resp.text[:6000].lower()
@@ -334,7 +336,7 @@ def discover_feed_url(homepage: str) -> str | None:
     html = ""
 
     try:
-        with httpx.Client(timeout=15, follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
+        with httpx.Client(timeout=httpx.Timeout(15, connect=5), follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
             resp = client.get(homepage)
             resp.raise_for_status()
             html = resp.text
@@ -348,7 +350,7 @@ def discover_feed_url(homepage: str) -> str | None:
 
         if "service/rss" in candidate or candidate.rstrip("/").endswith("/rss"):
             try:
-                with httpx.Client(timeout=15, follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
+                with httpx.Client(timeout=httpx.Timeout(15, connect=5), follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
                     resp2 = client.get(candidate)
                     resp2.raise_for_status()
                     soup2 = BeautifulSoup(resp2.text, "html.parser")
@@ -386,7 +388,7 @@ def discover_feed_url_with_debug(homepage: str) -> dict[str, Any]:
     homepage_error = ""
 
     try:
-        with httpx.Client(timeout=15, follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
+        with httpx.Client(timeout=httpx.Timeout(15, connect=5), follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
             resp = client.get(homepage)
             resp.raise_for_status()
             html = resp.text
@@ -409,7 +411,7 @@ def discover_feed_url_with_debug(homepage: str) -> dict[str, Any]:
 
         if "service/rss" in candidate or candidate.rstrip("/").endswith("/rss"):
             try:
-                with httpx.Client(timeout=15, follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
+                with httpx.Client(timeout=httpx.Timeout(15, connect=5), follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
                     resp2 = client.get(candidate)
                     resp2.raise_for_status()
                     soup2 = BeautifulSoup(resp2.text, "html.parser")
@@ -478,8 +480,8 @@ def source_health_report(only_enabled: bool = True) -> list[dict[str, Any]]:
             continue
 
         try:
-            with httpx.Client(timeout=15, follow_redirects=True, headers=auth_headers, cookies=auth_cookies or None) as client:
-                resp = client.get(homepage)
+            with httpx.Client(timeout=httpx.Timeout(15, connect=5), follow_redirects=True, headers=auth_headers, cookies=auth_cookies or None) as client:
+                resp = get_with_retry(client.get, homepage, source=src_name, operation="health")
             body = (resp.text or "")[:8000].lower()
             has_paywall_signals = any(m in body for m in PAYWALL_MARKERS)
 

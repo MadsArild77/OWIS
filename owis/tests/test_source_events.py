@@ -8,6 +8,8 @@ from owis.modules.news.collectors import rss_fetcher
 @pytest.fixture(autouse=True)
 def isolated_db(tmp_path, monkeypatch):
     monkeypatch.setattr(db, 'DB_PATH', str(tmp_path / 'events.db'))
+    from owis.modules.news.collectors import http_retry
+    monkeypatch.setattr(http_retry.time, 'sleep', lambda _: None)
 
 
 def test_error_survives_recovery_and_restart():
@@ -52,6 +54,6 @@ def test_health_http_failure_is_persisted(monkeypatch):
 
 def test_scrape_health_does_not_call_server_error_healthy(monkeypatch):
     monkeypatch.setattr(source_discovery, 'load_source_registry', lambda: [dict(name='A', url='https://example.com', type='scrape', enabled=True)])
-    monkeypatch.setattr(httpx.Client, 'get', lambda self, url: httpx.Response(500, text='Server error'))
+    monkeypatch.setattr(httpx.Client, 'get', lambda self, url: httpx.Response(500, text='Server error', request=httpx.Request('GET', url)))
     assert source_discovery.source_health_report()[0]['status'] == 'error'
     assert events.list_events()[0]['http_status'] == 500

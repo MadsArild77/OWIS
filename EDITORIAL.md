@@ -25,3 +25,7 @@ Live validation completed in owis-review: draft generation, scan-source persiste
 
 ### Source diagnostics
 Source fetches (web and scheduled collectors) and manual health checks now append persistent `news_source_events` records. Settings → Feilhistorikk shows the latest 100 attempts per URL, including timestamp, operation, error category, HTTP status, message and result count. Successful attempts do not erase older failures; zero results are recorded separately from errors. History starts with this release. Query strings and URL credentials are removed from diagnostic messages and displayed URLs. Data uses the existing persistent SQLite volume and backups.
+
+Source RSS/scrape fetch and health requests have a 5-second connection timeout and 15-second network inactivity timeout, with at most three retries (four attempts total). Only transient network errors and HTTP 408/429/500/502/503/504 retry, with 1/2/4-second backoff. Long Retry-After values stop the request instead of holding up the job. Failed attempts are logged separately. Article fulltext retains its existing 12-second timeout and no retries. These are network timeouts, not a hard deadline for the entire multi-source job.
+
+Story collections now sort by newest publication date first, then score and article count, so older high-scoring groups cannot crowd out recent news.
