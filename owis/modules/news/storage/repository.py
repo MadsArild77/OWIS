@@ -371,6 +371,7 @@ class NewsRepository:
                   AND NOT EXISTS (SELECT 1 FROM news_match_review_pairs mr WHERE mr.item_a_id = p.id OR mr.item_b_id = p.id)
                   AND NOT EXISTS (SELECT 1 FROM news_pair_learning pl WHERE pl.item_a_id = p.id OR pl.item_b_id = p.id)
                   AND NOT EXISTS (SELECT 1 FROM news_learning_feedback lf WHERE lf.processed_id = p.id)
+                  AND NOT EXISTS (SELECT 1 FROM news_story_links sl WHERE sl.item_a_id = p.id OR sl.item_b_id = p.id)
                 ORDER BY COALESCE(r.published_at, p.processed_at) ASC
                 LIMIT ?
                 """,
@@ -566,6 +567,7 @@ class NewsRepository:
         reason_short: str,
         overlap_entities: list[str],
         overlap_timeframe: str,
+        relationship: str = "uncertain",
     ) -> int:
         a, b = sorted([int(item_a_id), int(item_b_id)])
         created_at = datetime.now(timezone.utc).isoformat()
@@ -575,14 +577,15 @@ class NewsRepository:
                 INSERT INTO news_match_review_pairs (
                     item_a_id, item_b_id, ai_same_story, ai_confidence,
                     reason_short, overlap_entities, overlap_timeframe,
-                    status, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+                    status, created_at, relationship
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
                 ON CONFLICT(item_a_id, item_b_id) DO UPDATE SET
                     ai_same_story = excluded.ai_same_story,
                     ai_confidence = excluded.ai_confidence,
                     reason_short = excluded.reason_short,
                     overlap_entities = excluded.overlap_entities,
-                    overlap_timeframe = excluded.overlap_timeframe
+                    overlap_timeframe = excluded.overlap_timeframe,
+                    relationship = excluded.relationship
                 """,
                 (
                     a,
@@ -593,6 +596,7 @@ class NewsRepository:
                     json.dumps(overlap_entities or []),
                     str(overlap_timeframe or ""),
                     created_at,
+                    relationship,
                 ),
             )
             row = conn.execute(
@@ -621,6 +625,7 @@ class NewsRepository:
                     p.id,
                     p.item_a_id,
                     p.item_b_id,
+                    p.relationship,
                     p.ai_same_story,
                     p.ai_confidence,
                     p.reason_short,
@@ -671,7 +676,7 @@ class NewsRepository:
         with get_conn() as conn:
             row = conn.execute(
                 """
-                SELECT id, item_a_id, item_b_id, status
+                SELECT id, item_a_id, item_b_id, status, relationship
                 FROM news_match_review_pairs
                 WHERE id = ?
                 """,
@@ -813,3 +818,66 @@ class NewsRepository:
             ).fetchall()
             return [dict(row) for row in rows]
 
+
+    def expand_collection_members(self, item_ids: list[int], collection_key: str | None = None) -> list[int]:
+        ids = set(self._clean_ids(item_ids))
+        overrides = self.list_collection_overrides()
+        keys = {overrides[i]["collection_key"] for i in ids if i in overrides}
+        if collection_key:
+            keys.add(collection_key)
+        ids.update(i for i, row in overrides.items() if row["collection_key"] in keys)
+        return sorted(ids)
+
+    def link_story_update(self, item_ids: list[int]) -> None:
+        a, b = sorted(item_ids)
+        with get_conn() as conn:
+            conn.execute("INSERT OR REPLACE INTO news_story_links VALUES (?, ?, 'update', ?)",
+                         (a, b, datetime.now(timezone.utc).isoformat()))
+
+    def list_story_links(self):
+        with get_conn() as conn:
+            return [dict(row) for row in conn.execute("""SELECT l.*, a.title AS title_a, b.title AS title_b,
+                ra.article_url AS url_a, rb.article_url AS url_b
+                FROM news_story_links l
+                JOIN news_processed_items a ON a.id=l.item_a_id
+                JOIN news_processed_items b ON b.id=l.item_b_id
+                JOIN news_raw_items ra ON ra.id=a.raw_item_id
+                JOIN news_raw_items rb ON rb.id=b.raw_item_id
+                ORDER BY l.created_at DESC LIMIT 100""")]
+
+    def apply_match_decision(self, pair_id: int, decision: str, actor: str | None = None):
+        """Apply a review once, atomically, including every existing group member."""
+        from uuid import uuid4
+        from itertools import combinations
+        with get_conn() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            pair = conn.execute("SELECT * FROM news_match_review_pairs WHERE id=?", (pair_id,)).fetchone()
+            if not pair: raise LookupError("Pair not found")
+            if pair["status"] != "pending": raise ValueError("This suggestion has already been decided")
+            if decision == "accept" and pair["relationship"] == "update":
+                raise ValueError("Use link_update for an update")
+            if decision not in {"accept", "reject", "link_update"}: raise ValueError("Invalid decision")
+            ids = {int(pair["item_a_id"]), int(pair["item_b_id"])}
+            original_ids = sorted(ids)
+            now = datetime.now(timezone.utc).isoformat()
+            collection_key = None
+            if decision == "accept":
+                overrides = conn.execute("SELECT processed_id, collection_key FROM news_collection_overrides").fetchall()
+                keys = {r["collection_key"] for r in overrides if r["processed_id"] in ids}
+                ids.update(r["processed_id"] for r in overrides if r["collection_key"] in keys)
+                collection_key = "manual:" + uuid4().hex
+                for item_id in ids:
+                    conn.execute("INSERT OR REPLACE INTO news_collection_overrides VALUES (?, ?, ?, ?)",
+                                 (item_id, collection_key, "accepted_from_match_review", now))
+                for a,b in combinations(sorted(ids), 2):
+                    conn.execute("INSERT OR REPLACE INTO news_pair_learning VALUES (?, ?, 'merge', 'match_review_accept', ?)", (a,b,now))
+                for key in keys:
+                    conn.execute("DELETE FROM news_collection_masters WHERE collection_key=?", (key,))
+            elif decision == "link_update":
+                conn.execute("INSERT OR REPLACE INTO news_story_links VALUES (?, ?, 'update', ?)", (*original_ids,now))
+            else:
+                conn.execute("INSERT OR REPLACE INTO news_pair_learning VALUES (?, ?, 'reject', 'match_review_reject', ?)", (*original_ids,now))
+            conn.execute("UPDATE news_match_review_pairs SET status=?, decided_by=?, decided_at=? WHERE id=?",
+                         ("rejected" if decision == "reject" else "accepted", actor, now, pair_id))
+            conn.execute("INSERT INTO news_learning_feedback (pair_id, feedback_type, feedback_value, actor, created_at) VALUES (?, 'match_review_decision', ?, ?, ?)", (pair_id,decision,actor,now))
+            return {"item_ids": sorted(ids), "collection_key": collection_key}

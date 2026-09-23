@@ -39,3 +39,10 @@ Oppsummeringer i testen er tekstutdrag. Tagging, prioritering og «why it matter
 Neste steg er å kalibrere relevans og scoring, og deretter implementere News/LinkedIn-eksport til Notion med valgt måldatabase. Opportunities har allerede egen Notion-eksport, men News har ikke den spesifiserte eksportjobben. News v1 er derfor ikke erklært ferdig.
 
 Ingen publisert app eller automatisk innhenting er aktivert av denne gjennomgangen. NorthernBlue-portalen har fortsatt OWIS som `building` / `planned`. Prosjektmappen er klar for åpning i Codex; registrering i sidepanelet er ikke utført.
+
+
+## Matching-oppdatering
+
+OpenAI-basert semantisk kandidatsøk, lagring av analyser, fem relasjonstyper og manuell godkjenning er implementert. Oppdateringer kobles som separate hendelser. Godkjente sammenslåinger bevarer hele eksisterende manuelle grupper og skjer i en databasetransaksjon.
+
+**57 tester består**, inkludert simulerte OpenAI-svar. Et separat norsk/engelsk evalueringssett er klart. Ekte modellkvalitet er **ikke verifisert**: den lokale prosessen mangler nøkkel, GitHub-listingen viste ingen repo-hemmeligheter, og Railway-innloggingen er utløpt. Se MATCHING.md for oppsett og evalueringskommando. Ingen driftsinnstillinger er endret.

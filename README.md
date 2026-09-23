@@ -25,3 +25,5 @@ Run existing tests:
 See `PROJECT_STATUS.md` for the verified baseline and next steps, `owis/README.md` for configuration, and the two root specification documents for product scope.
 
 The app reads environment variables; it does not automatically load `.env`. AI and Notion export default to disabled. Database copies are ignored by Git.
+
+See `MATCHING.md` for OpenAI setup, cross-language matching and the opt-in live evaluation.

@@ -1,0 +1,122 @@
+[
+  {
+    "name": "translated_consent",
+    "expected": "same_event",
+    "a": {
+      "id": 1,
+      "title": "Regjeringen godkjenner Havbris havvindpark",
+      "summary": "Norske myndigheter ga 20. september 2026 konsesjon til Havbris, et flytende havvindprosjekt på 500 MW ved Karmøy.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 2,
+      "title": "Norway gives green light to 500 MW floating wind development",
+      "summary": "On 20 September 2026 Norwegian authorities approved the Havbris floating offshore wind farm near Karmoy, with 500 MW capacity.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "different_contracts",
+    "expected": "related_topic",
+    "a": {
+      "id": 3,
+      "title": "Havbris velger Vestas til turbinleveranse",
+      "summary": "Havbris inngikk en avtale med Vestas om turbiner 20. september 2026.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 4,
+      "title": "Nexans wins Havbris cable contract",
+      "summary": "Havbris awarded Nexans a separate export cable contract on 20 September 2026.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "project_update",
+    "expected": "update",
+    "a": {
+      "id": 5,
+      "title": "Havbris får konsesjon",
+      "summary": "Havbris fikk byggetillatelse 1. september 2026. Byggingen har ikke startet.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 6,
+      "title": "Construction begins at Havbris",
+      "summary": "On 23 September 2026 work started at Havbris following its construction permit on 1 September.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "similar_different_projects",
+    "expected": "related_topic",
+    "a": {
+      "id": 7,
+      "title": "RWE bestiller turbiner til Nordhav",
+      "summary": "RWE bestilte 40 turbiner til Nordhav havvindpark i Norge.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 8,
+      "title": "RWE orders turbines for Southbank",
+      "summary": "RWE ordered 40 turbines for the separate Southbank offshore wind farm in the United Kingdom.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "unrelated",
+    "expected": "unrelated",
+    "a": {
+      "id": 9,
+      "title": "Havbris får godkjent kabeltrasé",
+      "summary": "Myndighetene godkjente kabeltraséen til Havbris havvindpark.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 10,
+      "title": "City opens new public library",
+      "summary": "The city council opened a public library with a children reading room.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "insufficient",
+    "expected": "uncertain",
+    "a": {
+      "id": 11,
+      "title": "Ny avtale for havvind",
+      "summary": "Et selskap har inngått en avtale. Partene, prosjektet og datoen er ikke oppgitt.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 12,
+      "title": "Offshore wind agreement announced",
+      "summary": "A company announced an agreement. Parties, project and date have not been disclosed.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  }
+]

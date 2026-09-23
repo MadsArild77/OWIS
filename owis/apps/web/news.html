@@ -961,6 +961,7 @@
     let topItems = [];
     let mergedItems = [];
     let matchReviewItems = [];
+    let storyLinks = [];
     let viewMode = 'reading';
     let activeDetailItemId = null;
     let activeDetailCollectionKey = null;
@@ -1966,8 +1967,15 @@
         root.innerHTML = "<p class=\"muted\">Open Review to handle AI match suggestions.</p>";
         return;
       }
+      if (storyLinks.length) {
+        const section = document.createElement("section");
+        section.innerHTML = '<h3>Knyttede oppdateringer</h3>' + storyLinks.map(link =>
+          `<p>${escapeHtml(link.title_a)} ↔ ${escapeHtml(link.title_b)} <span class="muted">(separate hendelser)</span></p>`
+        ).join('');
+        root.appendChild(section);
+      }
       if (!matchReviewItems.length) {
-        root.innerHTML = "<p class=\"muted\">Ingen match-forslag akkurat nå.</p>";
+        root.insertAdjacentHTML('beforeend', "<p class=\"muted\">Ingen match-forslag akkurat nå.</p>");
         return;
       }
       for (const pair of matchReviewItems) {
@@ -1975,13 +1983,13 @@
         div.className = "card";
         const entities = Array.isArray(pair.overlap_entities) ? pair.overlap_entities.join(", ") : "";
         div.innerHTML = `
-          <h3>AI Match (${Math.round((Number(pair.ai_confidence || 0)) * 100)}%)</h3>
-          <div class="meta">${pair.reason_short || "No reason"}</div>
-          <div class="meta">Entities: ${entities || "n/a"}</div>
-          <div class="meta"><a href="${pair.item_a_url || "#"}" target="_blank" rel="noopener noreferrer">A: ${pair.item_a_title || "Untitled"}</a></div>
-          <div class="meta"><a href="${pair.item_b_url || "#"}" target="_blank" rel="noopener noreferrer">B: ${pair.item_b_title || "Untitled"}</a></div>
+          <h3>${escapeHtml(({same_event:"Samme hendelse",update:"Oppdatering i samme sak",uncertain:"Usikkert treff"})[pair.relationship] || "Mulig sammenheng")} (${Math.round((Number(pair.ai_confidence || 0)) * 100)}%)</h3>
+          <div class="meta">${escapeHtml(pair.reason_short || "No reason")}</div>
+          <div class="meta">Entities: ${escapeHtml(entities || "n/a")}</div>
+          <div class="meta"><a href="${escapeHtml(/^https?:\/\//i.test(pair.item_a_url || "") ? pair.item_a_url : "#")}" target="_blank" rel="noopener noreferrer">A: ${escapeHtml(pair.item_a_title || "Untitled")}</a></div>
+          <div class="meta"><a href="${escapeHtml(/^https?:\/\//i.test(pair.item_b_url || "") ? pair.item_b_url : "#")}" target="_blank" rel="noopener noreferrer">B: ${escapeHtml(pair.item_b_title || "Untitled")}</a></div>
           <div style="display:flex;gap:8px;margin-top:10px;">
-            <button class="btn-secondary" type="button" data-match-accept="${pair.id}">Accept</button>
+            <button class="btn-secondary" type="button" data-match-accept="${pair.id}" data-relationship="${escapeHtml(pair.relationship || "uncertain")}">${pair.relationship === "update" ? "Knytt som oppdatering" : "Bekreft samme hendelse"}</button>
             <button class="btn-warning" type="button" data-match-reject="${pair.id}">Reject</button>
           </div>
         `;
@@ -1991,7 +1999,7 @@
         btn.addEventListener("click", async () => {
           const id = Number(btn.getAttribute("data-match-accept"));
           if (!Number.isFinite(id) || id <= 0) return;
-          await decideMatchReview(id, "accept");
+          await decideMatchReview(id, btn.getAttribute("data-relationship") === "update" ? "link_update" : "accept");
         });
       });
       root.querySelectorAll("[data-match-reject]").forEach(btn => {
@@ -2006,6 +2014,8 @@
     async function refreshMatchReview() {
       const result = await getJson(`/api/news/match-review?status=pending&limit=40${sourceFilterQuery()}`);
       matchReviewItems = Array.isArray(result.items) ? result.items : [];
+      const linked = await getJson("/api/news/story-links");
+      storyLinks = Array.isArray(linked.items) ? linked.items : [];
       renderMatchReview();
     }
 
@@ -2423,7 +2433,7 @@
           title: 'Match review AI running',
           step: 'Starting backend match review job...',
         });
-        setStatus(`Match run done. checked=${result.checked_pairs}, queued=${result.enqueued_pairs}, fallback=${result.fallback_pairs}`);
+        setStatus(`Match run done. checked=${result.checked_pairs}, queued=${result.enqueued_pairs}, AI-feil=${result.fallback_pairs}, utsatt=${result.deferred_pairs || 0}`);
         setRunProgressStep('Refreshing match review queue...', 86);
         await refreshMatchReview();
         stopRunProgress(true, 'Match review queue refreshed.', 'Match review AI completed');

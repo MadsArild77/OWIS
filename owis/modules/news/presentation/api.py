@@ -10,14 +10,16 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from owis.core.config.settings import NEWS_RETENTION_DAYS
+from owis.core.config.settings import NEWS_RETENTION_DAYS, MATCH_MAX_PAIRS
+from owis.modules.news.matching.semantic import embed_articles, read_cache
 from owis.core.llm.client import AIClient
-from owis.core.storage.db import init_db
+from owis.core.storage.db import init_db, get_conn
 from owis.modules.news.collectors.rss_fetcher import fetch_rss_items_with_report
 from owis.modules.news.collectors.scrape_fetcher import fetch_article_preview, fetch_scrape_items_with_report
 from owis.modules.news.matching.service import (
     build_candidate_pairs,
     judge_pair,
+    judgement_cache_key,
     make_manual_collection_key,
     should_enqueue_review,
     window_start_iso,
@@ -107,9 +109,9 @@ class UpdateRelevanceRequest(BaseModel):
 
 
 class MatchRunRequest(BaseModel):
-    lookback_items: int = 350
-    days_window: int = 7
-    top_k: int = 8
+    lookback_items: int = Field(default=350, ge=2, le=1000)
+    days_window: int = Field(default=30, ge=1, le=365)
+    top_k: int = Field(default=8, ge=1, le=20)
     domain_bucket: str = "offshore_wind"
 
 
@@ -753,12 +755,13 @@ def merge_collections(payload: MergeCollectionRequest):
     if len(item_ids) < 2:
         raise HTTPException(status_code=400, detail="Select at least 2 items to merge.")
 
+    item_ids = repo.expand_collection_members(item_ids, payload.collection_key)
     found_items = repo.list_processed_by_ids(item_ids)
     if len(found_items) != len(item_ids):
         raise HTTPException(status_code=404, detail="One or more selected items were not found.")
 
     provided_key = (payload.collection_key or "").strip()
-    collection_key = provided_key or f"manual:{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+    collection_key = provided_key or f"manual:{uuid4().hex}"
 
     updated = repo.set_collection_overrides(item_ids, collection_key=collection_key, note=payload.note)
     for item_id in item_ids:
@@ -811,13 +814,26 @@ def _run_match_review(payload: MatchRunRequest, job_id: str | None = None) -> di
         (int(row["item_a_id"]), int(row["item_b_id"])): str(row["decision"])
         for row in repo.list_pair_learning()
     }
+    ai = AIClient()
+    if not ai.enabled:
+        raise HTTPException(status_code=503, detail="OpenAI matching is not enabled. Configure OPENAI_API_KEY and OWI_AI_ENABLED=true on the server.")
+    try:
+        embeddings = embed_articles(items)
+    except Exception:
+        raise HTTPException(status_code=502, detail="OpenAI embeddings failed. Check model access, quota and server configuration.")
     candidates = build_candidate_pairs(
         items,
         days_window=payload.days_window,
         top_k=payload.top_k,
         learned_pairs=learned_pairs,
+        embeddings=embeddings,
     )
-    ai = AIClient()
+    with get_conn() as conn:
+        decided = {(r[0], r[1]) for r in conn.execute("SELECT item_a_id, item_b_id FROM news_match_review_pairs WHERE status != 'pending'")}
+    candidates = [p for p in candidates if tuple(sorted((int(p[0]["id"]), int(p[1]["id"])))) not in decided]
+    candidates.sort(key=lambda p: read_cache(judgement_cache_key(p[0], p[1])) is not None)
+    candidate_count = len(candidates)
+    candidates = candidates[:max(1, MATCH_MAX_PAIRS)]
 
     enqueued = 0
     reviewed = 0
@@ -844,10 +860,15 @@ def _run_match_review(payload: MatchRunRequest, job_id: str | None = None) -> di
             reason_short=str(judgement.get("reason_short") or ""),
             overlap_entities=[str(x) for x in (judgement.get("overlap_entities") or [])],
             overlap_timeframe=str(judgement.get("overlap_timeframe") or ""),
+            relationship=judgement.get("relationship", "uncertain"),
         )
         enqueued += 1
 
+    if reviewed and fallback_count == reviewed:
+        raise HTTPException(status_code=502, detail="OpenAI could not assess the candidate pairs. No negative matches were recorded. Check quota and model access.")
     result = {
+        "candidate_pairs": candidate_count,
+        "deferred_pairs": max(0, candidate_count - len(candidates)),
         "checked_pairs": reviewed,
         "enqueued_pairs": enqueued,
         "fallback_pairs": fallback_count,
@@ -864,6 +885,11 @@ def run_match_review(payload: MatchRunRequest):
     return _run_match_review(payload)
 
 
+@router.get("/story-links")
+def story_links():
+    return {"items": repo.list_story_links()}
+
+
 @router.get("/match-review")
 def list_match_review(status: str = "pending", domain_bucket: str = "offshore_wind", limit: int = 30):
     if status not in {"pending", "accepted", "rejected"}:
@@ -876,39 +902,20 @@ def list_match_review(status: str = "pending", domain_bucket: str = "offshore_wi
 @router.post("/match-review/decide")
 def decide_match_review(payload: MatchReviewDecisionRequest):
     decision = str(payload.decision or "").strip().lower()
-    if decision not in {"accept", "reject"}:
-        raise HTTPException(status_code=400, detail="decision must be accept or reject")
+    if decision not in {"accept", "reject", "link_update"}:
+        raise HTTPException(status_code=400, detail="decision must be accept, reject or link_update")
 
-    existing = repo.get_match_review_pair(payload.pair_id)
-    if not existing:
-        raise HTTPException(status_code=404, detail="Pair not found")
+    try:
+        result = repo.apply_match_decision(payload.pair_id, decision, payload.actor)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    if result["collection_key"]:
+        found_items = repo.list_processed_by_ids(result["item_ids"])
+        repo.upsert_collection_master(_synthesize_collection_master(result["collection_key"], found_items))
+    return {"updated_count": len(result["item_ids"]), "pair_id": payload.pair_id, "decision": decision}
 
-    updated = repo.decide_match_review_pair(pair_id=payload.pair_id, decision=decision, actor=payload.actor)
-    if updated <= 0:
-        raise HTTPException(status_code=404, detail="Pair not found")
-
-    item_ids = [int(existing.get("item_a_id") or 0), int(existing.get("item_b_id") or 0)]
-    if decision == "accept":
-        collection_key = make_manual_collection_key()
-        repo.set_collection_overrides(item_ids, collection_key=collection_key, note="accepted_from_match_review")
-        repo.upsert_pair_learning(item_ids[0], item_ids[1], decision="merge", source="match_review_accept")
-        found_items = repo.list_processed_by_ids(item_ids)
-        repo.upsert_collection_master(_synthesize_collection_master(collection_key, found_items))
-    else:
-        repo.upsert_pair_learning(item_ids[0], item_ids[1], decision="reject", source="match_review_reject")
-
-    repo.log_learning_feedback(
-        feedback_type="match_review_decision",
-        feedback_value=decision,
-        pair_id=payload.pair_id,
-        actor=payload.actor,
-    )
-
-    return {
-        "updated_count": updated,
-        "pair_id": payload.pair_id,
-        "decision": decision,
-    }
 
 @router.get("/sources")
 def list_sources():

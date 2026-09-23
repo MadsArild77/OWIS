@@ -214,3 +214,14 @@ def init_db() -> None:
         }
         if "image_url" not in raw_columns:
             conn.execute("ALTER TABLE news_raw_items ADD COLUMN image_url TEXT")
+        conn.execute("""CREATE TABLE IF NOT EXISTS news_ai_cache (
+            cache_key TEXT PRIMARY KEY, value_json TEXT NOT NULL
+        )""")
+        pair_columns = {row["name"] for row in conn.execute("PRAGMA table_info(news_match_review_pairs)")}
+        if "relationship" not in pair_columns:
+            conn.execute("ALTER TABLE news_match_review_pairs ADD COLUMN relationship TEXT NOT NULL DEFAULT 'uncertain'")
+        conn.execute("""CREATE TABLE IF NOT EXISTS news_story_links (
+            item_a_id INTEGER NOT NULL, item_b_id INTEGER NOT NULL,
+            relationship TEXT NOT NULL, created_at TEXT NOT NULL,
+            PRIMARY KEY (item_a_id, item_b_id)
+        )""")
