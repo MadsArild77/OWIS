@@ -34,7 +34,7 @@
 
 Forhåndsvisning: http://127.0.0.1:8765/news. Den bruker `work/preview.db`, med AI og Notion-eksport deaktivert. Logger og launcher-PID ligger i `work`. Prosessen stopper ved omstart; se README for vanlig oppstart.
 
-Oppsummeringer i testen er tekstutdrag. Tagging, prioritering og «why it matters» er regelbasert og krever fortsatt faglig kalibrering. Enkelte feeder gir bare korte utdrag. AI-kvalitet er ikke testet.
+Oppsummeringer i testen er tekstutdrag. Tagging, prioritering og «why it matters» er regelbasert og krever fortsatt faglig kalibrering. Enkelte feeder gir bare korte utdrag. AI-matching er testet på syntetiske eksempler; kvalitet på virkelige artikkelpar gjenstår.
 
 Neste steg er å kalibrere relevans og scoring, og deretter implementere News/LinkedIn-eksport til Notion med valgt måldatabase. Opportunities har allerede egen Notion-eksport, men News har ikke den spesifiserte eksportjobben. News v1 er derfor ikke erklært ferdig.
 
@@ -45,4 +45,8 @@ Ingen publisert app eller automatisk innhenting er aktivert av denne gjennomgang
 
 OpenAI-basert semantisk kandidatsøk, lagring av analyser, fem relasjonstyper og manuell godkjenning er implementert. Oppdateringer kobles som separate hendelser. Godkjente sammenslåinger bevarer hele eksisterende manuelle grupper og skjer i en databasetransaksjon.
 
-**57 tester består**, inkludert simulerte OpenAI-svar. Et separat norsk/engelsk evalueringssett er klart. Ekte modellkvalitet er **ikke verifisert**: den lokale prosessen mangler nøkkel, GitHub-listingen viste ingen repo-hemmeligheter, og Railway-innloggingen er utløpt. Se MATCHING.md for oppsett og evalueringskommando. Ingen driftsinnstillinger er endret.
+**66 tester består**. Railway-innlogging er aktiv, og eksisterende OpenAI-nøkkel ble brukt til en isolert test uten å endre driftsinnstillinger. Den billige modellen `gpt-4o-mini` beholdes, med `text-embedding-3-small` for kandidatsøk.
+
+Direkte OpenAI-test: **30/30 syntetiske norsk/engelske artikkelpar bestod**, ingen feilaktige same-event-klassifiseringer. Beregnet kostnad fra faktisk tokenbruk: **0,00418107 USD**. Testkjøringen har egen konservativ grense på 0,10 USD; appen har fortsatt pargrense og caching, ikke en global dollargrense. Se MATCHING.md for detaljer og begrensninger.
+
+Endringene ligger i utkast til PR #1. Ingen produksjonsutrulling er utført. Neste kvalitetssteg er et manuelt merket sett med virkelige artikler; sammenslåing krever fortsatt menneskelig godkjenning.

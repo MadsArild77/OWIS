@@ -20,7 +20,7 @@ OWI_MATCH_MAX_PAIRS=100
 
 Restart the server after changing its environment. Setting a GitHub Actions secret does not automatically configure the local application or a Railway service. Never commit keys.
 
-The existing local preview was started with AI disabled. As of 2026-09-23 no key was found in its process/user environment, and no repository-level GitHub Actions secrets were listed. GitHub deployment records point to Railway; the local Railway login is expired. Deployment credentials were not changed.
+The local preview remains AI-disabled. Railway login is active and its existing OpenAI configuration was used for the isolated evaluation below. No production environment settings were changed.
 
 ## Cost and behavior
 
@@ -43,7 +43,13 @@ For a small live check, configure the environment above and run:
 .\.venv\Scripts\python.exe -m owis.scripts.evaluate_matching --live
 ```
 
-This sends 12 short synthetic articles and makes six pair assessments, using a temporary database. The cases cover Norwegian/English paraphrases, different contracts at one project, a subsequent development, similar announcements at different projects, unrelated stories and insufficient evidence. It exits nonzero if a case fails. The live check has not been run because credentials are unavailable.
+This sends 60 short synthetic articles and makes 30 pair assessments, using a temporary database. It covers Norwegian/English paraphrases, different contracts/suppliers/permits at one project, subsequent developments, different projects, unrelated stories and insufficient evidence. It exits nonzero if a case fails. Use `--max-usd 0.10` to set the evaluation-only conservative request budget and `--output` to select the JSON report. Unknown model pricing/endpoints are rejected. Failed requests retain their reserved cost; this is not a provider billing cap or a production-wide limit.
+
+Live result on 2026-09-23: **30/30 passed**, including candidate retrieval for all same-event/update examples; **0 false same-event labels**. Model: `gpt-4o-mini`, embeddings: `text-embedding-3-small`. Actual API token usage priced at standard rates totals approximately **$0.00418107** (no cached-input discount assumed). Prices used: chat input $0.15/M, output $0.60/M; embeddings $0.02/M. See the checked-in `owis/tests/fixtures/news_match_evaluation.json` report. These are short synthetic development examples, not an independent benchmark or a production accuracy estimate.
+
+The prompt requires concrete agreement on action/object and distinguishes suppliers and contract packages before assigning same-event. Cache version was advanced so old judgments are not reused. The earlier six-case prompt evaluation passed 4/6; the new prompt also passes those original six cases, but this single run does not establish repeatability.
+
+Pricing references: [GPT-4o mini](https://developers.openai.com/api/docs/models/gpt-4o-mini), [embeddings](https://developers.openai.com/api/docs/models/text-embedding-3-small).
 
 A manually curated set of real articles and measured candidate recall/false-merge rate are still needed before automatic merging is considered. All merging currently requires human confirmation.
 

@@ -235,7 +235,14 @@ class AIClient:
                 "update (a later development of the same specific case), related_topic (only shared topic/project/company), "
                 "unrelated, or uncertain (insufficient evidence). Compare project, parties, location, event date, "
                 "event type and amounts/capacity; explain conflicts. Different contracts at the same wind farm are not the same event. "
-                "Do not infer identity from similarity alone. Return JSON keys relationship, confidence (0-1), "
+                "Apply these rules in order: insufficient identifiable evidence -> uncertain; "
+                "different named projects -> related_topic if they share an industry/company, otherwise unrelated; "
+                "different suppliers, contract packages (turbines vs cables), or legal decisions -> related_topic, NEVER same_event; "
+                "a subsequent milestone or changed decision in the same specific case -> update; "
+                "same_event requires positive agreement on the concrete action and object, not just project/date. "
+                "Publication date is not event identity. Do not assume unspecified details match. "
+                "First extract event_a and event_b as short factual descriptions, then decisive_difference. "
+                "Return JSON keys event_a, event_b, decisive_difference, relationship, confidence (0-1), "
                 "reason_short, overlap_entities (list), overlap_timeframe. Explain the decisive evidence in Norwegian."
             ),
             user_text=(

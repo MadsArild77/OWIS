@@ -6,7 +6,7 @@ import httpx
 from owis.core.config import settings
 from owis.core.storage.db import get_conn
 
-VERSION = "news-match-v1"
+VERSION = "news-match-v2"
 
 def article_text(item):
     return (str(item.get("title") or "")[:500] + "\n" +
