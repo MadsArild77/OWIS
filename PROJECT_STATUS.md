@@ -60,3 +60,9 @@ Endringene ligger i utkast til PR #1. Ingen produksjonsutrulling er utført. Nes
 Implementert hurtigvalg, begrunnelser, angring, lagrede utkast og interesseområder for energi, maritim næring og nett/elektrifisering. RSS og nettsideindekser filtreres før fullteksthenting. Tilgang og kildegrunnlag vises, og lukkede saker kan få verifiserte åpne alternativer. Overvåkede URL-er lagres i databasen; slettede standardkilder gjenopprettes ikke. Se EDITORIAL.md.
 
 84 tester består. Railway-miljøet owis-review er opprettet for live-test med eget /data-volum. Produksjon er ikke oppgradert. Lokal AI-aktivering ble stoppet av automatisk godkjenningskontroll; eksisterende preview har fortsatt AI av.
+
+## Fullført live-test
+
+Live-test: https://owis-web-owis-review.up.railway.app/news. Utkast-rettelsen i 3e8e249 er rullet ut. Åtte artikler behandlet, sju med åpen artikkeltekst. Norsk LinkedIn-utkast ble generert og lagret. Hurtigvurdering ble testet i nettleser, bevart gjennom omstart og deretter angret. Alle fire registrerte kilder og utkastet var identiske etter omstart.
+
+Ved import av bare energiwatch.no ble kjent RSS-endepunkt funnet og lagret: https://rss-feed-api.aws.jyllands-posten.dk/energiwatch.no/latest. Live helsekontroll bekreftet at feeden inneholder artikler. Testmiljøet har eget /data-volum; produksjon er ikke oppgradert. GitHub pytest bestod alle 84 tester.
