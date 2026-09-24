@@ -1,3 +1,4 @@
+from owis.modules.news.processing.content import prepare
 from owis.core.storage.db import init_db
 from owis.modules.news.processing.pipeline import process_raw_item
 from owis.modules.news.storage.repository import NewsRepository
@@ -10,7 +11,7 @@ def main() -> None:
     processed_count = 0
 
     for raw in raws:
-        processed = process_raw_item(raw)
+        processed = process_raw_item(prepare(raw))
         repo.save_processed_item(processed)
         repo.mark_raw_processed(raw["id"])
         processed_count += 1

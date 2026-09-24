@@ -32,6 +32,7 @@ OPPORTUNITIES_ACTIVE_PROFILES = [
 ]
 OPPORTUNITIES_DAYS_BACK = int(os.getenv("OWI_OPP_DAYS_BACK", "30"))
 TED_API_KEY = os.getenv("TED_API_KEY", "")
+NEWS_RETENTION_DAYS = int(os.getenv("OWI_NEWS_RETENTION_DAYS", "30"))
 
 NOTION_API_KEY = os.getenv("NOTION_API_KEY", "")
 NOTION_OPPORTUNITIES_DB_ID = os.getenv(
@@ -54,3 +55,5 @@ AI_ENDPOINT = os.getenv("OWI_AI_ENDPOINT", "/chat/completions")
 AI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 AI_INPUT_MAX_CHARS = int(os.getenv("OWI_AI_INPUT_MAX_CHARS", "3500"))
 AI_MAX_TOKENS = int(os.getenv("OWI_AI_MAX_TOKENS", "220"))
+AI_EMBEDDING_MODEL = os.getenv("OWI_AI_EMBEDDING_MODEL", "text-embedding-3-small")
+MATCH_MAX_PAIRS = int(os.getenv("OWI_MATCH_MAX_PAIRS", "100"))

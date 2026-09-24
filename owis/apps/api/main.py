@@ -19,6 +19,18 @@ if web_dir.exists():
 
 @app.on_event("startup")
 def on_startup() -> None:
+    import os
+    from datetime import datetime, timezone
+    from owis.core.storage import db
+    from owis.scripts.backup_database import backup
+    database=Path(db.DB_PATH).resolve()
+    if os.getenv('RAILWAY_ENVIRONMENT_ID'):
+        mount=os.getenv('RAILWAY_VOLUME_MOUNT_PATH')
+        if not mount or not database.is_relative_to(Path(mount).resolve()):
+            raise RuntimeError('Railway requires a persistent volume containing OWI_DB_PATH before starting OWIS.')
+    if database.exists() and database.stat().st_size:
+        destination=database.parent/'backups'/f"startup-{datetime.now(timezone.utc):%Y-%m-%d}.db"
+        if not destination.exists():backup(destination)
     init_db()
 
 

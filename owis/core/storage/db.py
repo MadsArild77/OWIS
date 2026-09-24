@@ -1,19 +1,59 @@
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
 
 from owis.core.config.settings import DB_PATH
 
 
-def get_conn() -> sqlite3.Connection:
+@contextmanager
+def get_conn():
     db_path = Path(DB_PATH)
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
-    return conn
+    try:
+        with conn:
+            yield conn
+    finally:
+        conn.close()
 
 
 def init_db() -> None:
     with get_conn() as conn:
+        conn.executescript('''
+            CREATE TABLE IF NOT EXISTS news_registry_meta (key TEXT PRIMARY KEY,value TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS news_source_evidence (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, raw_id INTEGER NOT NULL,
+                url TEXT NOT NULL, title TEXT NOT NULL, publisher TEXT NOT NULL,
+                access TEXT NOT NULL, basis TEXT NOT NULL, content_hash TEXT NOT NULL,
+                text TEXT NOT NULL, checked_at TEXT NOT NULL,
+                UNIQUE(raw_id,url,content_hash,access,basis)
+            );
+            CREATE TABLE IF NOT EXISTS news_source_suggestions (
+                hostname TEXT PRIMARY KEY, example_url TEXT NOT NULL, discovered_at TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'suggested'
+            );
+            CREATE TABLE IF NOT EXISTS news_draft_provenance (
+                processed_id INTEGER PRIMARY KEY, evidence_id INTEGER NOT NULL, model TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS news_editorial_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, processed_id INTEGER NOT NULL,
+                topic TEXT NOT NULL, value TEXT NOT NULL, reason TEXT NOT NULL DEFAULT '',
+                previous_id INTEGER, undone INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS news_editorial_state (
+                processed_id INTEGER NOT NULL, topic TEXT NOT NULL, event_id INTEGER NOT NULL,
+                PRIMARY KEY(processed_id,topic)
+            );
+            CREATE TABLE IF NOT EXISTS news_editorial_drafts (
+                processed_id INTEGER PRIMARY KEY, body TEXT NOT NULL, created_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS news_content_basis (
+                raw_id INTEGER PRIMARY KEY, relevance TEXT NOT NULL, reason TEXT NOT NULL,
+                access TEXT NOT NULL, basis TEXT NOT NULL, text TEXT NOT NULL,
+                source_url TEXT NOT NULL, alternatives TEXT NOT NULL DEFAULT '[]', checked_at TEXT NOT NULL
+            );
+        ''')
         conn.executescript(
             """
             CREATE TABLE IF NOT EXISTS news_raw_items (
@@ -78,6 +118,23 @@ def init_db() -> None:
                 lead_item_id INTEGER,
                 article_count INTEGER NOT NULL,
                 synthesized_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS news_article_archive (
+                article_url TEXT PRIMARY KEY,
+                source_name TEXT NOT NULL,
+                title TEXT NOT NULL,
+                published_at TEXT,
+                first_seen_at TEXT,
+                last_seen_at TEXT,
+                archived_at TEXT NOT NULL,
+                theme_tags TEXT NOT NULL,
+                geography_tags TEXT NOT NULL,
+                actors TEXT NOT NULL,
+                domain_bucket TEXT,
+                signal_score INTEGER NOT NULL,
+                confidence REAL NOT NULL,
+                is_paywalled INTEGER NOT NULL DEFAULT 0
             );
 
             CREATE TABLE IF NOT EXISTS news_item_relevance (
@@ -191,3 +248,14 @@ def init_db() -> None:
         }
         if "image_url" not in raw_columns:
             conn.execute("ALTER TABLE news_raw_items ADD COLUMN image_url TEXT")
+        conn.execute("""CREATE TABLE IF NOT EXISTS news_ai_cache (
+            cache_key TEXT PRIMARY KEY, value_json TEXT NOT NULL
+        )""")
+        pair_columns = {row["name"] for row in conn.execute("PRAGMA table_info(news_match_review_pairs)")}
+        if "relationship" not in pair_columns:
+            conn.execute("ALTER TABLE news_match_review_pairs ADD COLUMN relationship TEXT NOT NULL DEFAULT 'uncertain'")
+        conn.execute("""CREATE TABLE IF NOT EXISTS news_story_links (
+            item_a_id INTEGER NOT NULL, item_b_id INTEGER NOT NULL,
+            relationship TEXT NOT NULL, created_at TEXT NOT NULL,
+            PRIMARY KEY (item_a_id, item_b_id)
+        )""")

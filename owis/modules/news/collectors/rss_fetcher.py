@@ -1,9 +1,12 @@
+from owis.modules.news.collectors.http_retry import get_with_retry
+from owis.modules.news.storage.source_events import record_attempts, error_message
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 import hashlib
 from typing import Any
 
 import feedparser
+import httpx
 
 from owis.modules.news.collectors.filters import is_probable_news_item
 from owis.modules.news.registry.source_discovery import load_source_registry
@@ -67,10 +70,13 @@ def load_sources() -> list[dict[str, Any]]:
 
 
 def _parse_feed(url: str):
-    try:
-        return feedparser.parse(url, request_headers={"User-Agent": USER_AGENT})
-    except TypeError:
-        return feedparser.parse(url)
+    response = get_with_retry(
+        lambda target: httpx.get(target, headers={"User-Agent": USER_AGENT}, timeout=httpx.Timeout(15, connect=5), follow_redirects=True), url)
+    response.raise_for_status()
+    feed = feedparser.parse(response.content)
+    if not feed.get("version"):
+        raise ValueError("Source did not return a recognized RSS or Atom feed")
+    return feed
 
 
 def fetch_rss_items_with_report() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -100,7 +106,9 @@ def fetch_rss_items_with_report() -> tuple[list[dict[str, Any]], list[dict[str, 
                     content_parts = [str(x.get("value", "")) for x in entry.get("content", []) if isinstance(x, dict)]
                     full_text = " ".join(content_parts)
 
-                if not is_probable_news_item(url=url, title=title, summary=summary, full_text=full_text):
+                # RSS entries may legitimately contain only a short excerpt;
+                # scraped-page minimum body lengths do not apply to feeds.
+                if not is_probable_news_item(url=url, title=title, summary=summary or full_text):
                     filtered_count += 1
                     continue
 
@@ -112,7 +120,7 @@ def fetch_rss_items_with_report() -> tuple[list[dict[str, Any]], list[dict[str, 
                         "article_url": url,
                         "title_raw": title,
                         "summary_raw": summary,
-                        "content_raw": summary,
+                        "content_raw": full_text or summary,
                         "content_hash": content_hash,
                         "image_url": _entry_image_url(entry),
                         "published_at": _normalized_published_at(entry),
@@ -121,7 +129,7 @@ def fetch_rss_items_with_report() -> tuple[list[dict[str, Any]], list[dict[str, 
                 )
                 source_count += 1
         except Exception as ex:
-            error = str(ex)
+            error = error_message(ex)
 
         report.append(
             {
@@ -135,6 +143,7 @@ def fetch_rss_items_with_report() -> tuple[list[dict[str, Any]], list[dict[str, 
             }
         )
 
+    record_attempts(report, "fetch")
     return items, report
 
 

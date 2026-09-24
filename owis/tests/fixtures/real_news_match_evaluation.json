@@ -1,0 +1,413 @@
+{
+  "model": "gpt-4o-mini",
+  "cases": [
+    {
+      "name": "real_101_102",
+      "expected": "same_event",
+      "actual": "same_event",
+      "candidate": true,
+      "urls": [
+        "https://orsted.com/en/media/news/2026/09/orsted-and-nuveen-inaugurate-borkum-riffgrund-3-on-15173591",
+        "https://orsted.de/presse-media/news/2026/09/orsted-und-nuveen-weihen-mit-borkum-riffgrund-3-ei-15171400"
+      ],
+      "reason": "Both articles report the same event, the inauguration of Borkum Riffgrund 3, with no conflicting details.",
+      "passed": true
+    },
+    {
+      "name": "real_103_104",
+      "expected": "same_event",
+      "actual": "same_event",
+      "candidate": true,
+      "urls": [
+        "https://orsted.de/presse-media/news/2026/08/borkum-riffgrund-3-nimmt-kommerziellen-betrieb-auf-15121451",
+        "https://orsted.dk/presse/nyheder/2026/08/borkum-riffgrund-3-i-kommerciel-drift-styrker-tysk-1512399512"
+      ],
+      "reason": "Begge artiklene rapporterer om den samme hendelsen, nemlig oppstart av kommersiell drift av Borkum Riffgrund 3.",
+      "passed": true
+    },
+    {
+      "name": "real_105_106",
+      "expected": "same_event",
+      "actual": "same_event",
+      "candidate": true,
+      "urls": [
+        "https://www.eqs-news.com/news/corporate/skyborn-reaches-financial-close-on-the-gennaker-offshore-wind-farm-project/a6366f10-bccf-4053-aa20-7e303771d658_en",
+        "https://www.eqs-news.com/news/corporate-news/skyborn-erreicht-financial-close-fuer-das-offshore-windparkprojekt-gennaker/a6366f10-bccf-4053-aa20-7e303771d658_de"
+      ],
+      "reason": "Begge artiklene rapporterer om den samme hendelsen, nemlig at Skyborn har nådd finansieringsavtale for Gennaker offshore vindparkprosjektet.",
+      "passed": true
+    },
+    {
+      "name": "real_47_105",
+      "expected": "same_event",
+      "actual": "same_event",
+      "candidate": true,
+      "urls": [
+        "https://offshorewind.biz/2026/09/11/gennaker-offshore-wind-farm-reaches-financial-close",
+        "https://www.eqs-news.com/news/corporate/skyborn-reaches-financial-close-on-the-gennaker-offshore-wind-farm-project/a6366f10-bccf-4053-aa20-7e303771d658_en"
+      ],
+      "reason": "Begge artikler beskriver den samme hendelsen om den finansielle avslutningen av Gennaker offshore vindpark av Skyborn Renewables.",
+      "passed": true
+    },
+    {
+      "name": "real_47_106",
+      "expected": "same_event",
+      "actual": "same_event",
+      "candidate": true,
+      "urls": [
+        "https://offshorewind.biz/2026/09/11/gennaker-offshore-wind-farm-reaches-financial-close",
+        "https://www.eqs-news.com/news/corporate-news/skyborn-erreicht-financial-close-fuer-das-offshore-windparkprojekt-gennaker/a6366f10-bccf-4053-aa20-7e303771d658_de"
+      ],
+      "reason": "Begge artikler beskriver den samme hendelsen om finansiering av Gennaker offshore vindpark.",
+      "passed": true
+    },
+    {
+      "name": "real_6_101",
+      "expected": "same_event",
+      "actual": "same_event",
+      "candidate": true,
+      "urls": [
+        "https://offshorewind.biz/2026/09/23/orsted-and-nuveen-inaugurate-913-mw-offshore-wind-farm-in-germany",
+        "https://orsted.com/en/media/news/2026/09/orsted-and-nuveen-inaugurate-borkum-riffgrund-3-on-15173591"
+      ],
+      "reason": "Both articles report on the same inauguration event of the Borkum Riffgrund 3 offshore wind farm.",
+      "passed": true
+    },
+    {
+      "name": "real_101_103",
+      "expected": "update",
+      "actual": "update",
+      "candidate": true,
+      "urls": [
+        "https://orsted.com/en/media/news/2026/09/orsted-and-nuveen-inaugurate-borkum-riffgrund-3-on-15173591",
+        "https://orsted.de/presse-media/news/2026/08/borkum-riffgrund-3-nimmt-kommerziellen-betrieb-auf-15121451"
+      ],
+      "reason": "Event B is a subsequent milestone following the inauguration described in Event A.",
+      "passed": true
+    },
+    {
+      "name": "real_102_104",
+      "expected": "update",
+      "actual": "update",
+      "candidate": true,
+      "urls": [
+        "https://orsted.de/presse-media/news/2026/09/orsted-und-nuveen-weihen-mit-borkum-riffgrund-3-ei-15171400",
+        "https://orsted.dk/presse/nyheder/2026/08/borkum-riffgrund-3-i-kommerciel-drift-styrker-tysk-1512399512"
+      ],
+      "reason": "Event B is a subsequent milestone following the inauguration in Event A.",
+      "passed": true
+    },
+    {
+      "name": "real_6_26",
+      "expected": "related_topic",
+      "actual": "unrelated",
+      "candidate": true,
+      "urls": [
+        "https://offshorewind.biz/2026/09/23/orsted-and-nuveen-inaugurate-913-mw-offshore-wind-farm-in-germany",
+        "https://offshorewind.biz/2026/09/18/germanys-960-mw-he-dreiht-offshore-wind-farm-inaugurated"
+      ],
+      "reason": "De to artiklene omhandler forskjellige offshore vindparker med ulike utviklere og kapasitet.",
+      "passed": false
+    },
+    {
+      "name": "real_19_21",
+      "expected": "related_topic",
+      "actual": "related_topic",
+      "candidate": true,
+      "urls": [
+        "https://offshorewind.biz/2026/09/21/abl-to-support-marine-operations-at-gennaker-offshore-wind-farm",
+        "https://offshorewind.biz/2026/09/21/gennaker-offshore-substation-topsides-loaded-out-ahead-of-sail-away"
+      ],
+      "reason": "Both events are related to the Gennaker Offshore Wind Farm but involve different aspects of the project.",
+      "passed": true
+    },
+    {
+      "name": "real_8_19",
+      "expected": "related_topic",
+      "actual": "related_topic",
+      "candidate": true,
+      "urls": [
+        "https://offshorewind.biz/2026/09/23/slpe-secures-foundation-engineering-work-on-enbws-1-gw-dreekant-offshore-wind-farm",
+        "https://offshorewind.biz/2026/09/21/abl-to-support-marine-operations-at-gennaker-offshore-wind-farm"
+      ],
+      "reason": "Both articles discuss contracts related to offshore wind farms, but they pertain to different projects and companies.",
+      "passed": true
+    },
+    {
+      "name": "real_13_53",
+      "expected": "related_topic",
+      "actual": "related_topic",
+      "candidate": false,
+      "urls": [
+        "https://offshorewind.biz/2026/09/22/njord-survey-inks-three-year-agreement-with-rwe",
+        "https://offshorewind.biz/2026/09/09/dwt-returns-to-riffgat-offshore-wind-farm"
+      ],
+      "reason": "Both articles discuss contracts related to offshore wind projects, but they involve different companies and services.",
+      "passed": true
+    }
+  ],
+  "passed": 11,
+  "total": 12,
+  "false_same_event": 0,
+  "corpus_size": 61,
+  "candidate_pairs": 97,
+  "estimated_usd": 0.0019431899999999998,
+  "max_usd": 0.1,
+  "usage": [
+    {
+      "model": "text-embedding-3-small",
+      "input_tokens": 5099,
+      "output_tokens": 0,
+      "estimated_usd": 0.00010198000000000001,
+      "status": "measured"
+    },
+    {
+      "model": "text-embedding-3-small",
+      "input_tokens": 1453,
+      "output_tokens": 0,
+      "estimated_usd": 2.9060000000000003e-05,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 335,
+      "output_tokens": 195,
+      "estimated_usd": 0.00016725,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 353,
+      "output_tokens": 177,
+      "estimated_usd": 0.00015915,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 313,
+      "output_tokens": 143,
+      "estimated_usd": 0.00013275,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 347,
+      "output_tokens": 171,
+      "estimated_usd": 0.00015464999999999996,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 348,
+      "output_tokens": 163,
+      "estimated_usd": 0.00015,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 369,
+      "output_tokens": 207,
+      "estimated_usd": 0.00017954999999999997,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 345,
+      "output_tokens": 167,
+      "estimated_usd": 0.00015194999999999998,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 343,
+      "output_tokens": 162,
+      "estimated_usd": 0.00014865,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 399,
+      "output_tokens": 139,
+      "estimated_usd": 0.00014325,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 387,
+      "output_tokens": 151,
+      "estimated_usd": 0.00014864999999999998,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 383,
+      "output_tokens": 133,
+      "estimated_usd": 0.00013725,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 383,
+      "output_tokens": 136,
+      "estimated_usd": 0.00013905,
+      "status": "measured"
+    }
+  ],
+  "limitations": [
+    "12 purposefully selected pairs, not a representative or independent benchmark",
+    "Agent-assigned labels before evaluation; no domain-expert validation",
+    "55 existing feed records plus six publisher headlines; 50 feed bodies are short excerpts",
+    "Three same-event pairs are language editions from the same publisher; these are not independent reporting",
+    "Real multilingual examples are English/German/Danish; Norwegian cross-language evidence remains synthetic",
+    "Only 12 labeled pairs were judged, not all 97 retrieved candidates; precision across the full queue is unknown",
+    "Original full-text HTTP retrieval failed; no full-text performance claim"
+  ],
+  "retrieval_positive_found": 8,
+  "retrieval_positive_total": 8,
+  "input_manifest": [
+    {
+      "name": "real_101_102",
+      "expected": "same_event",
+      "article_ids": [
+        101,
+        102
+      ],
+      "urls": [
+        "https://orsted.com/en/media/news/2026/09/orsted-and-nuveen-inaugurate-borkum-riffgrund-3-on-15173591",
+        "https://orsted.de/presse-media/news/2026/09/orsted-und-nuveen-weihen-mit-borkum-riffgrund-3-ei-15171400"
+      ]
+    },
+    {
+      "name": "real_103_104",
+      "expected": "same_event",
+      "article_ids": [
+        103,
+        104
+      ],
+      "urls": [
+        "https://orsted.de/presse-media/news/2026/08/borkum-riffgrund-3-nimmt-kommerziellen-betrieb-auf-15121451",
+        "https://orsted.dk/presse/nyheder/2026/08/borkum-riffgrund-3-i-kommerciel-drift-styrker-tysk-1512399512"
+      ]
+    },
+    {
+      "name": "real_105_106",
+      "expected": "same_event",
+      "article_ids": [
+        105,
+        106
+      ],
+      "urls": [
+        "https://www.eqs-news.com/news/corporate/skyborn-reaches-financial-close-on-the-gennaker-offshore-wind-farm-project/a6366f10-bccf-4053-aa20-7e303771d658_en",
+        "https://www.eqs-news.com/news/corporate-news/skyborn-erreicht-financial-close-fuer-das-offshore-windparkprojekt-gennaker/a6366f10-bccf-4053-aa20-7e303771d658_de"
+      ]
+    },
+    {
+      "name": "real_47_105",
+      "expected": "same_event",
+      "article_ids": [
+        47,
+        105
+      ],
+      "urls": [
+        "https://offshorewind.biz/2026/09/11/gennaker-offshore-wind-farm-reaches-financial-close",
+        "https://www.eqs-news.com/news/corporate/skyborn-reaches-financial-close-on-the-gennaker-offshore-wind-farm-project/a6366f10-bccf-4053-aa20-7e303771d658_en"
+      ]
+    },
+    {
+      "name": "real_47_106",
+      "expected": "same_event",
+      "article_ids": [
+        47,
+        106
+      ],
+      "urls": [
+        "https://offshorewind.biz/2026/09/11/gennaker-offshore-wind-farm-reaches-financial-close",
+        "https://www.eqs-news.com/news/corporate-news/skyborn-erreicht-financial-close-fuer-das-offshore-windparkprojekt-gennaker/a6366f10-bccf-4053-aa20-7e303771d658_de"
+      ]
+    },
+    {
+      "name": "real_6_101",
+      "expected": "same_event",
+      "article_ids": [
+        6,
+        101
+      ],
+      "urls": [
+        "https://offshorewind.biz/2026/09/23/orsted-and-nuveen-inaugurate-913-mw-offshore-wind-farm-in-germany",
+        "https://orsted.com/en/media/news/2026/09/orsted-and-nuveen-inaugurate-borkum-riffgrund-3-on-15173591"
+      ]
+    },
+    {
+      "name": "real_101_103",
+      "expected": "update",
+      "article_ids": [
+        101,
+        103
+      ],
+      "urls": [
+        "https://orsted.com/en/media/news/2026/09/orsted-and-nuveen-inaugurate-borkum-riffgrund-3-on-15173591",
+        "https://orsted.de/presse-media/news/2026/08/borkum-riffgrund-3-nimmt-kommerziellen-betrieb-auf-15121451"
+      ]
+    },
+    {
+      "name": "real_102_104",
+      "expected": "update",
+      "article_ids": [
+        102,
+        104
+      ],
+      "urls": [
+        "https://orsted.de/presse-media/news/2026/09/orsted-und-nuveen-weihen-mit-borkum-riffgrund-3-ei-15171400",
+        "https://orsted.dk/presse/nyheder/2026/08/borkum-riffgrund-3-i-kommerciel-drift-styrker-tysk-1512399512"
+      ]
+    },
+    {
+      "name": "real_6_26",
+      "expected": "related_topic",
+      "article_ids": [
+        6,
+        26
+      ],
+      "urls": [
+        "https://offshorewind.biz/2026/09/23/orsted-and-nuveen-inaugurate-913-mw-offshore-wind-farm-in-germany",
+        "https://offshorewind.biz/2026/09/18/germanys-960-mw-he-dreiht-offshore-wind-farm-inaugurated"
+      ]
+    },
+    {
+      "name": "real_19_21",
+      "expected": "related_topic",
+      "article_ids": [
+        19,
+        21
+      ],
+      "urls": [
+        "https://offshorewind.biz/2026/09/21/abl-to-support-marine-operations-at-gennaker-offshore-wind-farm",
+        "https://offshorewind.biz/2026/09/21/gennaker-offshore-substation-topsides-loaded-out-ahead-of-sail-away"
+      ]
+    },
+    {
+      "name": "real_8_19",
+      "expected": "related_topic",
+      "article_ids": [
+        8,
+        19
+      ],
+      "urls": [
+        "https://offshorewind.biz/2026/09/23/slpe-secures-foundation-engineering-work-on-enbws-1-gw-dreekant-offshore-wind-farm",
+        "https://offshorewind.biz/2026/09/21/abl-to-support-marine-operations-at-gennaker-offshore-wind-farm"
+      ]
+    },
+    {
+      "name": "real_13_53",
+      "expected": "related_topic",
+      "article_ids": [
+        13,
+        53
+      ],
+      "urls": [
+        "https://offshorewind.biz/2026/09/22/njord-survey-inks-three-year-agreement-with-rwe",
+        "https://offshorewind.biz/2026/09/09/dwt-returns-to-riffgat-offshore-wind-farm"
+      ]
+    }
+  ]
+}

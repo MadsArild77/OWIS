@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from owis.modules.news.collectors.http_retry import get_with_retry
+
+from owis.modules.news.storage.source_events import record_attempts, error_message
+
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
@@ -81,6 +85,7 @@ def _save_source_registry_to_db(sources: list[dict[str, Any]]) -> None:
     now_iso = datetime.now(timezone.utc).isoformat()
     with get_conn() as conn:
         conn.execute("DELETE FROM news_source_registry")
+        conn.execute("INSERT OR REPLACE INTO news_registry_meta VALUES('initialized','true')")
         for pos, source in enumerate(sources):
             conn.execute(
                 """
@@ -233,8 +238,8 @@ def parse_source_input(text: str) -> list[ParsedSourceLine]:
 
 def _validate_feed_url(url: str) -> tuple[bool, str]:
     try:
-        with httpx.Client(timeout=15, follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
-            resp = client.get(url)
+        with httpx.Client(timeout=httpx.Timeout(15, connect=5), follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
+            resp = get_with_retry(client.get, url, operation="health")
             resp.raise_for_status()
             content_type = (resp.headers.get("content-type") or "").lower()
             snippet = resp.text[:6000].lower()
@@ -254,7 +259,7 @@ def _validate_feed_url(url: str) -> tuple[bool, str]:
         if "<rss" in snippet or "<feed" in snippet:
             return True, "rss/atom tags in content"
     except Exception as exc:
-        return False, f"request/parse error: {exc.__class__.__name__}"
+        return False, error_message(exc)
 
     return False, "not recognized as RSS/Atom feed"
 
@@ -331,7 +336,7 @@ def discover_feed_url(homepage: str) -> str | None:
     html = ""
 
     try:
-        with httpx.Client(timeout=15, follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
+        with httpx.Client(timeout=httpx.Timeout(15, connect=5), follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
             resp = client.get(homepage)
             resp.raise_for_status()
             html = resp.text
@@ -345,7 +350,7 @@ def discover_feed_url(homepage: str) -> str | None:
 
         if "service/rss" in candidate or candidate.rstrip("/").endswith("/rss"):
             try:
-                with httpx.Client(timeout=15, follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
+                with httpx.Client(timeout=httpx.Timeout(15, connect=5), follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
                     resp2 = client.get(candidate)
                     resp2.raise_for_status()
                     soup2 = BeautifulSoup(resp2.text, "html.parser")
@@ -383,7 +388,7 @@ def discover_feed_url_with_debug(homepage: str) -> dict[str, Any]:
     homepage_error = ""
 
     try:
-        with httpx.Client(timeout=15, follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
+        with httpx.Client(timeout=httpx.Timeout(15, connect=5), follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
             resp = client.get(homepage)
             resp.raise_for_status()
             html = resp.text
@@ -406,7 +411,7 @@ def discover_feed_url_with_debug(homepage: str) -> dict[str, Any]:
 
         if "service/rss" in candidate or candidate.rstrip("/").endswith("/rss"):
             try:
-                with httpx.Client(timeout=15, follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
+                with httpx.Client(timeout=httpx.Timeout(15, connect=5), follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
                     resp2 = client.get(candidate)
                     resp2.raise_for_status()
                     soup2 = BeautifulSoup(resp2.text, "html.parser")
@@ -447,6 +452,7 @@ def source_health_report(only_enabled: bool = True) -> list[dict[str, Any]]:
             "source": src_name,
             "type": src_type,
             "homepage": homepage,
+            "url": source.get("url") if src_type == "rss" else homepage,
             "host": host,
             "enabled": bool(source.get("enabled")),
             "manual_override": bool(source.get("manual_override")),
@@ -474,14 +480,17 @@ def source_health_report(only_enabled: bool = True) -> list[dict[str, Any]]:
             continue
 
         try:
-            with httpx.Client(timeout=15, follow_redirects=True, headers=auth_headers, cookies=auth_cookies or None) as client:
-                resp = client.get(homepage)
+            with httpx.Client(timeout=httpx.Timeout(15, connect=5), follow_redirects=True, headers=auth_headers, cookies=auth_cookies or None) as client:
+                resp = get_with_retry(client.get, homepage, source=src_name, operation="health")
             body = (resp.text or "")[:8000].lower()
             has_paywall_signals = any(m in body for m in PAYWALL_MARKERS)
 
             if resp.status_code in {401, 403}:
                 row["status"] = "auth_forbidden" if auth_configured else "paywall_no_auth"
                 row["detail"] = f"http_{resp.status_code}"
+            elif resp.status_code >= 400:
+                row["status"] = "error"
+                row["detail"] = f"HTTP {resp.status_code}"
             elif has_paywall_signals:
                 row["status"] = "paywall_detected_with_auth" if auth_configured else "paywall_no_auth"
                 row["detail"] = "paywall_markers_detected"
@@ -490,10 +499,11 @@ def source_health_report(only_enabled: bool = True) -> list[dict[str, Any]]:
                 row["detail"] = f"http_{resp.status_code}"
         except Exception as exc:
             row["status"] = "error"
-            row["detail"] = f"{exc.__class__.__name__}: {exc}"
+            row["detail"] = error_message(exc)
 
         rows.append(row)
 
+    record_attempts(rows, "health")
     return rows
 
 
@@ -514,7 +524,9 @@ def load_source_registry() -> list[dict[str, Any]]:
     if _use_db_registry():
         init_db()
         db_sources = _load_source_registry_from_db()
-        if db_sources:
+        with get_conn() as conn:
+            initialized=conn.execute("SELECT 1 FROM news_registry_meta WHERE key='initialized'").fetchone()
+        if db_sources or initialized:
             return db_sources
 
     yaml_sources = _load_source_registry_from_yaml()
@@ -528,8 +540,6 @@ def load_source_registry() -> list[dict[str, Any]]:
 def save_source_registry(sources: list[dict[str, Any]]) -> None:
     if _use_db_registry():
         _save_source_registry_to_db(sources)
-        # Keep YAML in sync as a best-effort local/dev fallback.
-        _save_source_registry_to_yaml(sources, strict=False)
         return
 
     _save_source_registry_to_yaml(sources, strict=True)
@@ -595,6 +605,7 @@ def update_source(index: int, updates: dict[str, Any]) -> dict[str, Any] | None:
         "enabled",
         "priority",
         "geography_tags",
+        "interest_topic",
         "auth",
         "manual_override",
     }

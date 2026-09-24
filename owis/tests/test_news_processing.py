@@ -83,3 +83,22 @@ def test_process_raw_item_tags_obvious_energy_policy_context(monkeypatch):
     assert "energy_security" in processed["theme_tags"]
     assert "Norway" in processed["geography_tags"]
 
+
+
+def test_html_is_removed_before_summary_and_classification(monkeypatch):
+    monkeypatch.setattr(pipeline.AIClient, "enrich_news", lambda *args: None)
+    result = pipeline.process_raw_item(dict(id=10, title_raw="Project", content_raw='<p>Norway &amp; UK offshore wind.</p><script>subscription</script><style>subscription</style>'))
+    assert result["summary"] == "Norway & UK offshore wind."
+    assert "[Paywalled]" not in result["title"]
+
+
+def test_actor_acronyms_do_not_match_inside_words():
+    assert pipeline._extract_actors("Investment by Siemens Gamesa costs GBP 10 million.") == ["Siemens Gamesa"]
+    assert pipeline._extract_actors("NVE and ESA met BP.") == ["BP", "NVE", "ESA"]
+
+
+def test_classification_includes_headline(monkeypatch):
+    monkeypatch.setattr(pipeline.AIClient, "enrich_news", lambda *args: None)
+    result = pipeline.process_raw_item(dict(id=11, title_raw="RWE invests in Dutch offshore wind", content_raw="A new project was announced."))
+    assert "Netherlands" in result["geography_tags"]
+    assert "RWE" in result["actors"]

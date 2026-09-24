@@ -5,6 +5,7 @@ import re
 from typing import Any
 
 from owis.core.llm.client import AIClient
+from owis.modules.news.matching.semantic import cosine, cache_key, read_cache, write_cache, article_text
 
 
 def _parse_dt(value: Any) -> datetime | None:
@@ -48,9 +49,10 @@ def build_candidate_pairs(
     days_window: int = 7,
     top_k: int = 8,
     learned_pairs: dict[tuple[int, int], str] | None = None,
+    embeddings: dict[int, list[float]] | None = None,
 ) -> list[tuple[dict[str, Any], dict[str, Any], float]]:
     by_id = {int(x.get("id") or 0): x for x in items if int(x.get("id") or 0) > 0}
-    rows = [x for x in by_id.values()]
+    rows = sorted(by_id.values(), key=lambda row: int(row["id"]))
     learned_pairs = learned_pairs or {}
 
     pairs: list[tuple[dict[str, Any], dict[str, Any], float]] = []
@@ -71,12 +73,12 @@ def build_candidate_pairs(
                 continue
 
             right_bucket = str(right.get("domain_bucket") or "other_energy")
-            if not _domain_compatible(left_bucket, right_bucket):
+            if embeddings is None and not _domain_compatible(left_bucket, right_bucket):
                 continue
 
             right_dt = _parse_dt(right.get("published_at") or right.get("processed_at"))
             if left_dt and right_dt:
-                if abs((left_dt - right_dt).days) > max(days_window, 1):
+                if abs((left_dt - right_dt).total_seconds()) > max(days_window, 1) * 86400:
                     continue
 
             right_tokens = _tokenize(f"{right.get('title','')} {right.get('summary','')}")
@@ -88,6 +90,9 @@ def build_candidate_pairs(
             if learned_decision == "merge":
                 heuristic = max(heuristic, 0.98)
 
+            semantic = cosine((embeddings or {}).get(left_id, []), (embeddings or {}).get(right_id, []))
+            if semantic >= 0.55:
+                heuristic = max(heuristic, semantic)
             if heuristic < 0.14:
                 continue
             scored.append((right, heuristic))
@@ -96,13 +101,25 @@ def build_candidate_pairs(
         for right, score in scored[: max(top_k, 1)]:
             pairs.append((left, right, score))
 
-    return pairs
+    return sorted(pairs, key=lambda pair: pair[2], reverse=True)
+
+
+def judgement_cache_key(item_a, item_b):
+    ordered = sorted([item_a, item_b], key=lambda item: int(item["id"]))
+    return cache_key("judgement", [(article_text(item), item.get("published_at")) for item in ordered])
 
 
 def judge_pair(ai: AIClient, item_a: dict[str, Any], item_b: dict[str, Any], heuristic_score: float) -> dict[str, Any]:
-    ai_result = ai.judge_news_match(item_a=item_a, item_b=item_b)
+    ordered = sorted([item_a, item_b], key=lambda item: int(item["id"]))
+    key = judgement_cache_key(item_a, item_b)
+    ai_result = read_cache(key)
+    if ai_result is None:
+        ai_result = ai.judge_news_match(item_a=ordered[0], item_b=ordered[1])
+        if ai_result is not None:
+            write_cache(key, ai_result)
     if ai_result is None:
         return {
+            "relationship": "uncertain",
             "same_story": "no",
             "confidence": min(max(0.2 + heuristic_score, 0.0), 0.49),
             "reason_short": "ai_unavailable_or_invalid",
@@ -112,6 +129,7 @@ def judge_pair(ai: AIClient, item_a: dict[str, Any], item_b: dict[str, Any], heu
         }
 
     return {
+        "relationship": ai_result.get("relationship", "uncertain"),
         "same_story": str(ai_result.get("same_story") or "no"),
         "confidence": float(ai_result.get("confidence") or 0.0),
         "reason_short": str(ai_result.get("reason_short") or ""),
@@ -122,11 +140,11 @@ def judge_pair(ai: AIClient, item_a: dict[str, Any], item_b: dict[str, Any], heu
 
 
 def should_enqueue_review(judgement: dict[str, Any]) -> bool:
-    same_story = str(judgement.get("same_story") or "no").lower()
-    confidence = float(judgement.get("confidence") or 0.0)
     if judgement.get("fallback"):
-        return confidence >= 0.35
-    return same_story == "yes" and confidence >= 0.70
+        return False
+    relationship = judgement.get("relationship", "uncertain")
+    confidence = float(judgement.get("confidence") or 0)
+    return relationship == "uncertain" or (relationship in {"same_event", "update"} and confidence >= 0.70)
 
 
 def make_manual_collection_key() -> str:

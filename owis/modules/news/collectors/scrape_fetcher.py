@@ -1,3 +1,5 @@
+from owis.modules.news.collectors.http_retry import get_with_retry
+from owis.modules.news.storage.source_events import record_attempts, error_message
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from html import unescape
@@ -309,7 +311,7 @@ def _extract_article_metadata(html: str, url: str, anchor_title: str = "") -> di
 
 def fetch_article_preview(url: str, fallback_title: str = "", fallback_summary: str = "") -> dict[str, str]:
     try:
-        with httpx.Client(timeout=20, follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
+        with httpx.Client(timeout=httpx.Timeout(15, connect=5), follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
             response = client.get(url)
             response.raise_for_status()
         metadata = _extract_article_metadata(response.text, str(response.url), anchor_title=fallback_title)
@@ -387,12 +389,12 @@ def fetch_scrape_items_with_report(limit_per_source: int = 20) -> tuple[list[dic
         source_headers, source_cookies, auth_configured = _build_request_auth(source)
         try:
             with httpx.Client(
-                timeout=20,
+                timeout=httpx.Timeout(15, connect=5),
                 follow_redirects=True,
                 headers=source_headers,
                 cookies=source_cookies or None,
             ) as client:
-                response = client.get(homepage)
+                response = get_with_retry(client.get, homepage, source=src_name)
                 response.raise_for_status()
                 soup = BeautifulSoup(response.text, "html.parser")
 
@@ -412,71 +414,13 @@ def fetch_scrape_items_with_report(limit_per_source: int = 20) -> tuple[list[dic
                         filtered_count += 1
                         continue
 
-                    article_text = ""
-                    try:
-                        page_resp = client.get(url)
-                        if page_resp.status_code in {401, 403}:
-                            paywall_count += 1
-                            note = "Paywalled content; no full access available."
-                            items.append(_make_raw_item(src_name, url, title, note, f"{title}. {note}", now))
-                            source_count += 1
-                            if source_count >= limit_per_source:
-                                break
-                            continue
-
-                        page_resp.raise_for_status()
-                        metadata = _extract_article_metadata(page_resp.text, url, anchor_title=title)
-                        final_title = metadata.get("title") or title
-                        final_summary = metadata.get("description") or ""
-                        published_at = metadata.get("published_at")
-                        article_text = _extract_article_text(page_resp.text)
-                        if _has_paywall_marker(page_resp.text) and not auth_configured:
-                            paywall_count += 1
-                            note = "Likely paywalled; only partial/open text available."
-                            summary = final_summary or article_text[:500] or note
-                            content = f"{final_title}. {summary}"
-                            items.append(
-                                _make_raw_item(
-                                    src_name,
-                                    url,
-                                    final_title,
-                                    summary,
-                                    content,
-                                    now,
-                                    published_at=published_at,
-                                    image_url=str(metadata.get("image_url") or ""),
-                                )
-                            )
-                            source_count += 1
-                            if source_count >= limit_per_source:
-                                break
-                            continue
-                    except Exception:
-                        filtered_count += 1
-                        continue
-
-                    if not is_probable_news_item(url=url, title=title, summary="", full_text=article_text):
-                        filtered_count += 1
-                        continue
-
-                    summary = final_summary or article_text[:500]
-                    items.append(
-                        _make_raw_item(
-                            src_name,
-                            url,
-                            final_title,
-                            summary,
-                            article_text,
-                            now,
-                            published_at=published_at,
-                            image_url=str(metadata.get("image_url") or ""),
-                        )
-                    )
+                    # Discovery only: defer article requests until deduplication and relevance screening.
+                    items.append(_make_raw_item(src_name, url, title, "", "", now))
                     source_count += 1
                     if source_count >= limit_per_source:
                         break
         except Exception as ex:
-            error = str(ex)
+            error = error_message(ex)
 
         report.append(
             {
@@ -492,6 +436,7 @@ def fetch_scrape_items_with_report(limit_per_source: int = 20) -> tuple[list[dic
             }
         )
 
+    record_attempts(report, "fetch")
     return items, report
 
 

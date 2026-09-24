@@ -1,0 +1,602 @@
+[
+  {
+    "name": "translated_consent",
+    "expected": "same_event",
+    "a": {
+      "id": 1,
+      "title": "Regjeringen godkjenner Havbris havvindpark",
+      "summary": "Norske myndigheter ga 20. september 2026 konsesjon til Havbris, et flytende havvindprosjekt på 500 MW ved Karmøy.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 2,
+      "title": "Norway gives green light to 500 MW floating wind development",
+      "summary": "On 20 September 2026 Norwegian authorities approved the Havbris floating offshore wind farm near Karmoy, with 500 MW capacity.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "different_contracts",
+    "expected": "related_topic",
+    "a": {
+      "id": 3,
+      "title": "Havbris velger Vestas til turbinleveranse",
+      "summary": "Havbris inngikk en avtale med Vestas om turbiner 20. september 2026.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 4,
+      "title": "Nexans wins Havbris cable contract",
+      "summary": "Havbris awarded Nexans a separate export cable contract on 20 September 2026.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "project_update",
+    "expected": "update",
+    "a": {
+      "id": 5,
+      "title": "Havbris får konsesjon",
+      "summary": "Havbris fikk byggetillatelse 1. september 2026. Byggingen har ikke startet.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 6,
+      "title": "Construction begins at Havbris",
+      "summary": "On 23 September 2026 work started at Havbris following its construction permit on 1 September.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "similar_different_projects",
+    "expected": "related_topic",
+    "a": {
+      "id": 7,
+      "title": "RWE bestiller turbiner til Nordhav",
+      "summary": "RWE bestilte 40 turbiner til Nordhav havvindpark i Norge.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 8,
+      "title": "RWE orders turbines for Southbank",
+      "summary": "RWE ordered 40 turbines for the separate Southbank offshore wind farm in the United Kingdom.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "unrelated",
+    "expected": "unrelated",
+    "a": {
+      "id": 9,
+      "title": "Havbris får godkjent kabeltrasé",
+      "summary": "Myndighetene godkjente kabeltraséen til Havbris havvindpark.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 10,
+      "title": "City opens new public library",
+      "summary": "The city council opened a public library with a children reading room.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "insufficient",
+    "expected": "uncertain",
+    "a": {
+      "id": 11,
+      "title": "Ny avtale for havvind",
+      "summary": "Et selskap har inngått en avtale. Partene, prosjektet og datoen er ikke oppgitt.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 12,
+      "title": "Offshore wind agreement announced",
+      "summary": "A company announced an agreement. Parties, project and date have not been disclosed.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "expanded_07",
+    "expected": "same_event",
+    "a": {
+      "id": 13,
+      "title": "Nordlys tildeler kabelkontrakt til Nexans for 2 milliarder kroner.",
+      "summary": "Nordlys tildeler kabelkontrakt til Nexans for 2 milliarder kroner.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 14,
+      "title": "Nexans won the NOK 2 billion cable supply contract for Nordlys.",
+      "summary": "Nexans won the NOK 2 billion cable supply contract for Nordlys.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "expanded_08",
+    "expected": "same_event",
+    "a": {
+      "id": 15,
+      "title": "Vestas skal levere 40 turbiner til Fjordvind. Avtalen ble inngått mandag.",
+      "summary": "Vestas skal levere 40 turbiner til Fjordvind. Avtalen ble inngått mandag.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 16,
+      "title": "On Monday Fjordvind signed Vestas to supply forty wind turbines.",
+      "summary": "On Monday Fjordvind signed Vestas to supply forty wind turbines.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "expanded_09",
+    "expected": "same_event",
+    "a": {
+      "id": 17,
+      "title": "Havbris får konsesjon på 500 MW. Vedtaket kom 21. september.",
+      "summary": "Havbris får konsesjon på 500 MW. Vedtaket kom 21. september.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 18,
+      "title": "The 21 September permit authorises 0.5 GW at Havbris.",
+      "summary": "The 21 September permit authorises 0.5 GW at Havbris.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "expanded_10",
+    "expected": "same_event",
+    "a": {
+      "id": 19,
+      "title": "Equinor selger 25 prosent av Nordlys til RWE.",
+      "summary": "Equinor selger 25 prosent av Nordlys til RWE.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 20,
+      "title": "RWE acquires a quarter of the Nordlys project from Equinor.",
+      "summary": "RWE acquires a quarter of the Nordlys project from Equinor.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "expanded_11",
+    "expected": "same_event",
+    "a": {
+      "id": 21,
+      "title": "Byggestart på Sørvind er utsatt fra 2027 til 2029.",
+      "summary": "Byggestart på Sørvind er utsatt fra 2027 til 2029.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 22,
+      "title": "Sorvind construction delayed two years: work now starts in 2029 instead of 2027.",
+      "summary": "Sorvind construction delayed two years: work now starts in 2029 instead of 2027.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "expanded_12",
+    "expected": "same_event",
+    "a": {
+      "id": 23,
+      "title": "Kommunen avviser søknaden om ny havn for Nordlys.",
+      "summary": "Kommunen avviser søknaden om ny havn for Nordlys.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 24,
+      "title": "The local council rejected the Nordlys harbour application.",
+      "summary": "The local council rejected the Nordlys harbour application.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "expanded_13",
+    "expected": "related_topic",
+    "a": {
+      "id": 25,
+      "title": "Vestas får turbinkontrakten for Fjordvind.",
+      "summary": "Vestas får turbinkontrakten for Fjordvind.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 26,
+      "title": "Nexans secures the export cable package for Fjordvind.",
+      "summary": "Nexans secures the export cable package for Fjordvind.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "expanded_14",
+    "expected": "related_topic",
+    "a": {
+      "id": 27,
+      "title": "RWE bestiller monopeler til Nordlys fra SteelCo.",
+      "summary": "RWE bestiller monopeler til Nordlys fra SteelCo.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 28,
+      "title": "RWE awards OceanCo a vessel charter for Nordlys installation.",
+      "summary": "RWE awards OceanCo a vessel charter for Nordlys installation.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "expanded_15",
+    "expected": "related_topic",
+    "a": {
+      "id": 29,
+      "title": "Havbris får miljøtillatelse fra departementet.",
+      "summary": "Havbris får miljøtillatelse fra departementet.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 30,
+      "title": "Havbris obtained a separate grid connection agreement from the grid operator.",
+      "summary": "Havbris obtained a separate grid connection agreement from the grid operator.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "expanded_16",
+    "expected": "related_topic",
+    "a": {
+      "id": 31,
+      "title": "Nordlys inngår vedlikeholdsavtale med Vestas.",
+      "summary": "Nordlys inngår vedlikeholdsavtale med Vestas.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 32,
+      "title": "Nordlys signs a distinct turbine supply contract with Vestas.",
+      "summary": "Nordlys signs a distinct turbine supply contract with Vestas.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "expanded_17",
+    "expected": "related_topic",
+    "a": {
+      "id": 33,
+      "title": "RWE kjøper 20 prosent av Fjordvind.",
+      "summary": "RWE kjøper 20 prosent av Fjordvind.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 34,
+      "title": "RWE buys 20 percent of Havbris, a different wind farm.",
+      "summary": "RWE buys 20 percent of Havbris, a different wind farm.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "expanded_18",
+    "expected": "related_topic",
+    "a": {
+      "id": 35,
+      "title": "Equinor lanserer Nordlys på 1 GW i Norge.",
+      "summary": "Equinor lanserer Nordlys på 1 GW i Norge.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 36,
+      "title": "Equinor launches Southbank, a separate 1 GW project in Britain.",
+      "summary": "Equinor launches Southbank, a separate 1 GW project in Britain.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "expanded_19",
+    "expected": "update",
+    "a": {
+      "id": 37,
+      "title": "Havbris søker konsesjon. Søknaden er ikke avgjort.",
+      "summary": "Havbris søker konsesjon. Søknaden er ikke avgjort.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 38,
+      "title": "The Havbris permit application has now been approved.",
+      "summary": "The Havbris permit application has now been approved.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "expanded_20",
+    "expected": "update",
+    "a": {
+      "id": 39,
+      "title": "Nordlys har inngått kontrakt med Nexans om kabel.",
+      "summary": "Nordlys har inngått kontrakt med Nexans om kabel.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 40,
+      "title": "Nexans has now delivered the cable ordered under the Nordlys contract.",
+      "summary": "Nexans has now delivered the cable ordered under the Nordlys contract.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "expanded_21",
+    "expected": "update",
+    "a": {
+      "id": 41,
+      "title": "Fjordvind har fått konsesjon. Ingen anke er levert.",
+      "summary": "Fjordvind har fått konsesjon. Ingen anke er levert.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 42,
+      "title": "An environmental group has now appealed the Fjordvind permit.",
+      "summary": "An environmental group has now appealed the Fjordvind permit.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "expanded_22",
+    "expected": "update",
+    "a": {
+      "id": 43,
+      "title": "RWE planlegger å kjøpe 25 prosent av Nordlys.",
+      "summary": "RWE planlegger å kjøpe 25 prosent av Nordlys.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 44,
+      "title": "The previously announced RWE acquisition of 25 percent of Nordlys has closed.",
+      "summary": "The previously announced RWE acquisition of 25 percent of Nordlys has closed.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "expanded_23",
+    "expected": "update",
+    "a": {
+      "id": 45,
+      "title": "Havbris venter på endelig investeringsbeslutning.",
+      "summary": "Havbris venter på endelig investeringsbeslutning.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 46,
+      "title": "Havbris has now reached its final investment decision.",
+      "summary": "Havbris has now reached its final investment decision.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "expanded_24",
+    "expected": "update",
+    "a": {
+      "id": 47,
+      "title": "Sørvind fikk konsesjon i april.",
+      "summary": "Sørvind fikk konsesjon i april.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 48,
+      "title": "Sorvind permit was revoked in September following a court ruling.",
+      "summary": "Sorvind permit was revoked in September following a court ruling.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "expanded_25",
+    "expected": "uncertain",
+    "a": {
+      "id": 49,
+      "title": "Et havvindselskap har vunnet en kontrakt. Ingen navn er offentliggjort.",
+      "summary": "Et havvindselskap har vunnet en kontrakt. Ingen navn er offentliggjort.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 50,
+      "title": "A wind supplier won a contract. Neither customer nor project was identified.",
+      "summary": "A wind supplier won a contract. Neither customer nor project was identified.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "expanded_26",
+    "expected": "uncertain",
+    "a": {
+      "id": 51,
+      "title": "Havbris omtales i en artikkel som kun er tilgjengelig for abonnenter. Ingen hendelse er oppgitt.",
+      "summary": "Havbris omtales i en artikkel som kun er tilgjengelig for abonnenter. Ingen hendelse er oppgitt.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 52,
+      "title": "A paywalled Havbris article has no accessible details about the event.",
+      "summary": "A paywalled Havbris article has no accessible details about the event.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "expanded_27",
+    "expected": "uncertain",
+    "a": {
+      "id": 53,
+      "title": "En avtale kan bli inngått. Prosjekt og parter er ikke navngitt.",
+      "summary": "En avtale kan bli inngått. Prosjekt og parter er ikke navngitt.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 54,
+      "title": "A deal might be signed. Parties and project are not named.",
+      "summary": "A deal might be signed. Parties and project are not named.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "expanded_28",
+    "expected": "unrelated",
+    "a": {
+      "id": 55,
+      "title": "Nexans leverer kabel til Nordlys havvindpark.",
+      "summary": "Nexans leverer kabel til Nordlys havvindpark.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 56,
+      "title": "A hospital opened a new emergency department.",
+      "summary": "A hospital opened a new emergency department.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "expanded_29",
+    "expected": "unrelated",
+    "a": {
+      "id": 57,
+      "title": "Havbris fikk tillatelse til turbiner.",
+      "summary": "Havbris fikk tillatelse til turbiner.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 58,
+      "title": "A football club hired a new goalkeeper.",
+      "summary": "A football club hired a new goalkeeper.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  },
+  {
+    "name": "expanded_30",
+    "expected": "unrelated",
+    "a": {
+      "id": 59,
+      "title": "RWE inngår kontrakt om fundamenter til Fjordvind.",
+      "summary": "RWE inngår kontrakt om fundamenter til Fjordvind.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    },
+    "b": {
+      "id": 60,
+      "title": "Researchers discovered a new species of freshwater frog.",
+      "summary": "Researchers discovered a new species of freshwater frog.",
+      "published_at": "2026-09-23T10:00:00Z",
+      "actors": "",
+      "domain_bucket": "offshore_wind"
+    }
+  }
+]

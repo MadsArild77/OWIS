@@ -28,4 +28,6 @@ Thumbs.db
 owis/data/*.db
 owis/data/*.sqlite
 owis/data/*.sqlite3
+owis/data/backups/
+work/
 

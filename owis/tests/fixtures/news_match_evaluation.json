@@ -1,0 +1,476 @@
+{
+  "model": "gpt-4o-mini",
+  "cases": [
+    {
+      "name": "translated_consent",
+      "expected": "same_event",
+      "actual": "same_event",
+      "candidate": true,
+      "reason": "Begge artiklene beskriver den samme hendelsen, nemlig godkjenningen av Havbris havvindpark.",
+      "passed": true
+    },
+    {
+      "name": "different_contracts",
+      "expected": "related_topic",
+      "actual": "related_topic",
+      "candidate": false,
+      "reason": "Begge artiklene omhandler kontrakter relatert til Havbris, men de gjelder forskjellige typer leveranser.",
+      "passed": true
+    },
+    {
+      "name": "project_update",
+      "expected": "update",
+      "actual": "update",
+      "candidate": true,
+      "reason": "Event B is a subsequent development following the permit granted in Event A.",
+      "passed": true
+    },
+    {
+      "name": "similar_different_projects",
+      "expected": "related_topic",
+      "actual": "related_topic",
+      "candidate": true,
+      "reason": "Both events involve RWE ordering turbines for offshore wind farms, but they are for different projects.",
+      "passed": true
+    },
+    {
+      "name": "unrelated",
+      "expected": "unrelated",
+      "actual": "unrelated",
+      "candidate": false,
+      "reason": "De to hendelsene omhandler helt forskjellige prosjekter og temaer.",
+      "passed": true
+    },
+    {
+      "name": "insufficient",
+      "expected": "uncertain",
+      "actual": "uncertain",
+      "candidate": true,
+      "reason": "Uklare detaljer om parter og prosjekt gjør det usikkert om det er samme hendelse.",
+      "passed": true
+    },
+    {
+      "name": "expanded_07",
+      "expected": "same_event",
+      "actual": "same_event",
+      "candidate": true,
+      "reason": "Begge artikler beskriver den samme kontrakten for kabelleveranse til Nexans fra Nordlys, med identiske beløp.",
+      "passed": true
+    },
+    {
+      "name": "expanded_08",
+      "expected": "same_event",
+      "actual": "same_event",
+      "candidate": true,
+      "reason": "Begge artikler rapporterer om den samme avtalen mellom Vestas og Fjordvind om levering av 40 turbiner.",
+      "passed": true
+    },
+    {
+      "name": "expanded_09",
+      "expected": "same_event",
+      "actual": "same_event",
+      "candidate": true,
+      "reason": "Begge artikler refererer til den samme konsesjonen for 500 MW ved Havbris, med identiske detaljer om dato og kapasitet.",
+      "passed": true
+    },
+    {
+      "name": "expanded_10",
+      "expected": "same_event",
+      "actual": "same_event",
+      "candidate": true,
+      "reason": "Begge artikler rapporterer om den samme avtalen om salg av 25 prosent av Nordlys-prosjektet fra Equinor til RWE.",
+      "passed": true
+    },
+    {
+      "name": "expanded_11",
+      "expected": "same_event",
+      "actual": "same_event",
+      "candidate": true,
+      "reason": "Begge artiklene beskriver den samme forsinkelsen i byggestart for Sørvind, med identiske detaljer.",
+      "passed": true
+    },
+    {
+      "name": "expanded_12",
+      "expected": "same_event",
+      "actual": "same_event",
+      "candidate": true,
+      "reason": "Begge artikler beskriver den samme hendelsen om avvisning av havnesøknaden for Nordlys.",
+      "passed": true
+    },
+    {
+      "name": "expanded_13",
+      "expected": "related_topic",
+      "actual": "related_topic",
+      "candidate": true,
+      "reason": "Kontraktene gjelder forskjellige aspekter av prosjektet Fjordvind.",
+      "passed": true
+    },
+    {
+      "name": "expanded_14",
+      "expected": "related_topic",
+      "actual": "related_topic",
+      "candidate": true,
+      "reason": "De to artiklene omhandler forskjellige kontrakter knyttet til prosjektet Nordlys, men de involverer forskjellige leverandører og kontraktspakker.",
+      "passed": true
+    },
+    {
+      "name": "expanded_15",
+      "expected": "related_topic",
+      "actual": "related_topic",
+      "candidate": false,
+      "reason": "Both events pertain to the Havbris project but involve different types of agreements.",
+      "passed": true
+    },
+    {
+      "name": "expanded_16",
+      "expected": "related_topic",
+      "actual": "related_topic",
+      "candidate": true,
+      "reason": "De to hendelsene involverer Nordlys og Vestas, men de omhandler forskjellige typer avtaler.",
+      "passed": true
+    },
+    {
+      "name": "expanded_17",
+      "expected": "related_topic",
+      "actual": "related_topic",
+      "candidate": true,
+      "reason": "Both events involve RWE purchasing a stake in wind farms, but they are different projects.",
+      "passed": true
+    },
+    {
+      "name": "expanded_18",
+      "expected": "related_topic",
+      "actual": "related_topic",
+      "candidate": true,
+      "reason": "Both projects are related to Equinor and involve renewable energy, but they are distinct projects in different countries.",
+      "passed": true
+    },
+    {
+      "name": "expanded_19",
+      "expected": "update",
+      "actual": "update",
+      "candidate": true,
+      "reason": "Event B is a subsequent development of Event A, indicating the approval of the previously pending application.",
+      "passed": true
+    },
+    {
+      "name": "expanded_20",
+      "expected": "update",
+      "actual": "update",
+      "candidate": true,
+      "reason": "Event B is a subsequent milestone related to the contract signed in Event A.",
+      "passed": true
+    },
+    {
+      "name": "expanded_21",
+      "expected": "update",
+      "actual": "update",
+      "candidate": true,
+      "reason": "Event B is a subsequent development regarding the same permit that was mentioned in Event A.",
+      "passed": true
+    },
+    {
+      "name": "expanded_22",
+      "expected": "update",
+      "actual": "update",
+      "candidate": true,
+      "reason": "Event B is a subsequent milestone of Event A, indicating the acquisition has been finalized.",
+      "passed": true
+    },
+    {
+      "name": "expanded_23",
+      "expected": "update",
+      "actual": "update",
+      "candidate": true,
+      "reason": "Event B is a subsequent milestone indicating that the final investment decision has been made after the waiting period mentioned in Event A.",
+      "passed": true
+    },
+    {
+      "name": "expanded_24",
+      "expected": "update",
+      "actual": "update",
+      "candidate": true,
+      "reason": "Event B is a subsequent development regarding the same permit issued in Event A.",
+      "passed": true
+    },
+    {
+      "name": "expanded_25",
+      "expected": "uncertain",
+      "actual": "uncertain",
+      "candidate": true,
+      "reason": "Det er ikke tilstrekkelig informasjon til å bekrefte om det er snakk om samme kontrakt eller prosjekt.",
+      "passed": true
+    },
+    {
+      "name": "expanded_26",
+      "expected": "uncertain",
+      "actual": "uncertain",
+      "candidate": true,
+      "reason": "Det er ikke tilstrekkelig informasjon i artiklene for å bekrefte en spesifikk hendelse.",
+      "passed": true
+    },
+    {
+      "name": "expanded_27",
+      "expected": "uncertain",
+      "actual": "uncertain",
+      "candidate": true,
+      "reason": "Det er ikke tilstrekkelig informasjon til å bekrefte om de refererer til samme avtale eller prosjekt.",
+      "passed": true
+    },
+    {
+      "name": "expanded_28",
+      "expected": "unrelated",
+      "actual": "unrelated",
+      "candidate": false,
+      "reason": "Artiklene omhandler forskjellige prosjekter og hendelser.",
+      "passed": true
+    },
+    {
+      "name": "expanded_29",
+      "expected": "unrelated",
+      "actual": "unrelated",
+      "candidate": false,
+      "reason": "De to hendelsene omhandler helt forskjellige emner og bransjer.",
+      "passed": true
+    },
+    {
+      "name": "expanded_30",
+      "expected": "unrelated",
+      "actual": "unrelated",
+      "candidate": false,
+      "reason": "De to hendelsene omhandler helt forskjellige emner og prosjekter.",
+      "passed": true
+    }
+  ],
+  "passed": 30,
+  "total": 30,
+  "false_same_event": 0,
+  "estimated_usd": 0.00418107,
+  "max_usd": 0.1,
+  "usage": [
+    {
+      "model": "text-embedding-3-small",
+      "input_tokens": 1091,
+      "output_tokens": 0,
+      "estimated_usd": 2.182e-05,
+      "status": "measured"
+    },
+    {
+      "model": "text-embedding-3-small",
+      "input_tokens": 880,
+      "output_tokens": 0,
+      "estimated_usd": 1.76e-05,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 386,
+      "output_tokens": 196,
+      "estimated_usd": 0.0001755,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 359,
+      "output_tokens": 162,
+      "estimated_usd": 0.00015105,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 354,
+      "output_tokens": 151,
+      "estimated_usd": 0.0001437,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 350,
+      "output_tokens": 150,
+      "estimated_usd": 0.0001425,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 344,
+      "output_tokens": 132,
+      "estimated_usd": 0.0001308,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 350,
+      "output_tokens": 131,
+      "estimated_usd": 0.0001311,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 366,
+      "output_tokens": 165,
+      "estimated_usd": 0.0001539,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 372,
+      "output_tokens": 154,
+      "estimated_usd": 0.0001482,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 370,
+      "output_tokens": 153,
+      "estimated_usd": 0.0001473,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 358,
+      "output_tokens": 159,
+      "estimated_usd": 0.0001491,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 374,
+      "output_tokens": 158,
+      "estimated_usd": 0.0001509,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 346,
+      "output_tokens": 142,
+      "estimated_usd": 0.0001371,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 350,
+      "output_tokens": 126,
+      "estimated_usd": 0.0001281,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 348,
+      "output_tokens": 161,
+      "estimated_usd": 0.00014879999999999998,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 350,
+      "output_tokens": 134,
+      "estimated_usd": 0.00013289999999999998,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 348,
+      "output_tokens": 139,
+      "estimated_usd": 0.0001356,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 350,
+      "output_tokens": 140,
+      "estimated_usd": 0.0001365,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 358,
+      "output_tokens": 138,
+      "estimated_usd": 0.0001365,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 350,
+      "output_tokens": 135,
+      "estimated_usd": 0.0001335,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 354,
+      "output_tokens": 135,
+      "estimated_usd": 0.0001341,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 350,
+      "output_tokens": 134,
+      "estimated_usd": 0.00013289999999999998,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 356,
+      "output_tokens": 131,
+      "estimated_usd": 0.000132,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 346,
+      "output_tokens": 144,
+      "estimated_usd": 0.00013829999999999997,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 340,
+      "output_tokens": 130,
+      "estimated_usd": 0.000129,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 364,
+      "output_tokens": 123,
+      "estimated_usd": 0.0001284,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 378,
+      "output_tokens": 142,
+      "estimated_usd": 0.0001419,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 362,
+      "output_tokens": 143,
+      "estimated_usd": 0.0001401,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 338,
+      "output_tokens": 101,
+      "estimated_usd": 0.00011129999999999998,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 334,
+      "output_tokens": 114,
+      "estimated_usd": 0.0001185,
+      "status": "measured"
+    },
+    {
+      "model": "gpt-4o-mini",
+      "input_tokens": 342,
+      "output_tokens": 118,
+      "estimated_usd": 0.00012209999999999999,
+      "status": "measured"
+    }
+  ]
+}
