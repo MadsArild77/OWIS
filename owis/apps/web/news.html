@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>OWIS News</title>
   <style>
+    [hidden] { display: none !important; }
     :root {
       --bg: #07111f;
       --bg-2: #0b1d33;
@@ -758,18 +759,12 @@
       </div>
     </section>
 
-    <section class="card">
-      <details id="sourceSettings" class="settings-details">
-        <summary>
-          <span class="settings-title">
-            <h2>Settings</h2>
-            <span class="muted">Sources, filters, RSS checks, health and pipeline controls.</span>
-          </span>
-          <span class="settings-chevron" aria-hidden="true"></span>
-        </summary>
+<nav class="tab-bar" aria-label="Visning"><button id="showNewsView" type="button" aria-pressed="true">Nyheter</button><button id="showSettingsView" type="button" aria-pressed="false">Innstillinger</button></nav>
+    <section id="settingsView" class="card" hidden>
+      <h2>Innstillinger</h2>
         <div class="settings-body">
 
-          <h3>Nettadresser vi overvåker</h3><p class="muted">RSS, nyhetssider og presserom lagres i kilderegisteret. Av/på og redigering huskes ved neste innhenting.</p>
+          <p class="muted">Påfyll: Interessant eller score ≥70. Maks tre kildekandidater per sak og ett søk per uke. Casebeskrivelse på 150–250 ord når kildegrunnlaget tillater det.</p><h3>Nettadresser vi overvåker</h3><p class="muted">RSS, nyhetssider og presserom lagres i kilderegisteret. Av/på og redigering huskes ved neste innhenting.</p>
           <textarea id="sourceInput" placeholder="Recharge - https://www.rechargenews.com\nhttps://windeurope.org"></textarea>
           <button id="importBtn">Import Sources</button>
 
@@ -809,6 +804,7 @@
             <button id="dedupeBtn" class="btn-warning">Remove Duplicates</button>
             <button id='rediscoverBtn' class='btn-secondary'>Rediscover RSS</button>
             <button id='healthBtn' class='btn-secondary'>Source Health</button>
+            <button id="backfillBtn" class="btn-secondary">Fyll på eldre saker (maks 5)</button>
             <button id="runPipelineBtn">Run Fetch + Processing</button>
           </div>
           <div class="two-col" style="margin-top:8px;">
@@ -843,16 +839,8 @@
             </div>
           </div>
         </div>
-      </details>
 
-      <div class="card-actions-inline" style="margin:12px 0;flex-wrap:wrap">
-        <label>Interesseområde <select id="interestFilter"><option value="all">Alle interesseområder</option><option value="energy">Havvind og energiomstilling</option><option value="maritime">Maritim næring og havner</option><option value="grid">Strømnett og elektrifisering</option></select></label>
-        <label><input type="checkbox" id="showDismissed"> Vis skjulte / filtrerte</label>
-        <button type="button" id="showFeedbackHistory">Lagrede vurderinger</button>
-      </div>
-      <div id="feedbackNotice" class="status" role="status" aria-live="polite"></div>
-      <div id="editorialHistory" class="card" hidden><h3>Lagrede vurderinger</h3><div id="editorialHistoryBody"></div><button type="button" onclick="this.parentElement.hidden=true">Lukk</button></div>
-      <div id="editorialDraft" class="card" hidden><h3>LinkedIn-utkast · lagret</h3><textarea id="draftBody" readonly rows="10" style="width:100%"></textarea><button id="copyDraft" type="button">Kopier</button><button type="button" onclick="this.parentElement.hidden=true">Lukk</button></div>
+
       <div id="adminStatus" class="status"></div>
       <div id="runProgress" class="run-progress" aria-live="polite">
         <div class="run-progress-head">
@@ -885,6 +873,16 @@
       </table>
     </section>
 
+    <div id="articlesView">
+<section class="card">      <div class="card-actions-inline" style="margin:12px 0;flex-wrap:wrap">
+        <label>Interesseområde <select id="interestFilter"><option value="all">Alle interesseområder</option><option value="energy">Havvind og energiomstilling</option><option value="maritime">Maritim næring og havner</option><option value="grid">Strømnett og elektrifisering</option></select></label>
+        <label><input type="checkbox" id="showDismissed"> Vis skjulte / filtrerte</label>
+        <button type="button" id="showFeedbackHistory">Lagrede vurderinger</button>
+      </div>
+      <div id="feedbackNotice" class="status" role="status" aria-live="polite"></div>
+      <div id="editorialHistory" class="card" hidden><h3>Lagrede vurderinger</h3><div id="editorialHistoryBody"></div><button type="button" onclick="this.parentElement.hidden=true">Lukk</button></div>
+      <div id="editorialDraft" class="card" hidden><h3>LinkedIn-utkast · lagret</h3><textarea id="draftBody" readonly rows="10" style="width:100%"></textarea><button id="copyDraft" type="button">Kopier</button><button type="button" onclick="this.parentElement.hidden=true">Lukk</button></div>
+</section>
     <section class="card">
       <div class="tab-bar">
         <button class="tab-btn active" data-tab="reading" type="button">Nyheter</button>
@@ -942,6 +940,8 @@
         </div>
       </div>
     </section>
+  </div>
+
   </div>
 
   <div id="detailOverlay" class="detail-overlay" aria-hidden="true">
@@ -1017,7 +1017,7 @@
     }
 
     function setStatus(msg, warn = false) {
-      const el = document.getElementById('adminStatus');
+      const el = document.getElementById(document.getElementById('settingsView').hidden ? 'feedbackNotice' : 'adminStatus');
       el.textContent = msg;
       el.className = warn ? 'status warn' : 'status';
     }
@@ -1838,10 +1838,10 @@
             <button type="button" class="btn-secondary" data-editorial="${itemId}" data-vote="relevant" aria-pressed="${item.editorial?.[scope]?.value==='relevant'}">👍 Interessant</button>
             <button type="button" class="btn-secondary" data-editorial="${itemId}" data-vote="non_relevant">👎 Ikke for meg</button>
             <button type="button" class="btn-secondary" data-draft="${itemId}">${item.draft ? 'Vis utkast' : 'Lag utkast'}</button>
-            <button type="button" class="btn-secondary" data-enrich="${itemId}">Les mer / sjekk tilgang</button>
+            <button type="button" class="btn-secondary" data-enrich="${itemId}">Fyll på / oppdater beskrivelse</button>
           </div>
           ${(basis.alternatives||[]).map(a=>`<a href="${escapeHtml(a.url)}" target="_blank" rel="noopener noreferrer">Åpen kilde: ${escapeHtml(a.title)}</a>`).join('<br>')}
-          ${basis.access==='restricted' && !(basis.alternatives||[]).length ? '<p class="muted">Ingen verifisert åpen alternativkilde funnet blant innhentede artikler.</p>' : ''}
+          ${basis.reason?.includes('Begrenset kildegrunnlag') ? '<p class="muted">Begrenset kildegrunnlag: ingen verifisert åpen alternativkilde funnet.</p>' : ''}
         `;
         const relatedHtml = related.length
           ? `
@@ -1863,7 +1863,7 @@
         div.innerHTML = `
           ${imageHtml}
           <h3>${escapeHtml(item.title)}${paywalled ? '<span class="badge-paywall">Paywall</span>' : ''}</h3>
-          <p class="compact-summary">${escapeHtml(leadText)}</p>
+          <p class="compact-summary">${escapeHtml(shortText(leadText, 340))}</p>
           <div class="compact-meta-row">
             <span>Score ${item.signal_score}</span>
             <span>${escapeHtml(item.source_name || 'Unknown')}</span>
@@ -2163,7 +2163,7 @@
         try {
           const rows=await getJson(`/api/news/item/${btn.dataset.sources}/sources`);
           const body=document.getElementById('editorialHistoryBody');
-          body.innerHTML='<h4>Kildegrunnlag</h4>'+ (rows.length ? rows.map(r=>`<p><a href="${escapeHtml(r.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(r.title)}</a><br>${escapeHtml(r.publisher)} · ${escapeHtml(r.checked_at)}</p>`).join('') : '<p>Foreløpig bare den opprinnelige RSS-kilden. Bruk «Les mer / sjekk tilgang» for å hente og lagre kildegrunnlaget.</p>');
+          body.innerHTML='<h4>Kildegrunnlag</h4>'+ (rows.length ? rows.map(r=>`<p><a href="${escapeHtml(r.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(r.title)}</a><br>${escapeHtml(r.publisher)} · ${escapeHtml(r.checked_at)}</p>`).join('') : '<p>Foreløpig bare den opprinnelige RSS-kilden. Bruk «Fyll på / oppdater beskrivelse» for å hente og lagre kildegrunnlaget.</p>');
           document.getElementById('editorialHistory').hidden=false;
           document.getElementById('editorialHistory').scrollIntoView({behavior:'smooth'});
         }catch(err){setStatus('Kunne ikke hente kildene: '+err.message,true);}
@@ -2612,6 +2612,22 @@
       document.getElementById('relevantBtn').addEventListener('click', relevantSelected);
       document.getElementById('nonRelevantBtn').addEventListener('click', nonRelevantSelected);
       document.getElementById('clearRatingBtn').addEventListener('click', clearRatingSelected);
+      function showView(settings) {
+        closeDetailOverlay();
+        document.getElementById('settingsView').hidden=!settings;
+        document.getElementById('articlesView').hidden=settings;
+        document.getElementById('showNewsView').setAttribute('aria-pressed',String(!settings));
+        document.getElementById('showSettingsView').setAttribute('aria-pressed',String(settings));
+      }
+      document.getElementById('showNewsView').addEventListener('click',()=>showView(false));
+      document.getElementById('showSettingsView').addEventListener('click',()=>showView(true));
+      document.getElementById('backfillBtn').addEventListener('click',async()=>{
+        const button=document.getElementById('backfillBtn');button.disabled=true;
+        try {
+          const result=await startBackendJob('enrich_backfill',{limit:5},{title:'Fyller på eldre saker'});
+          await refreshSignals();setStatus(`Oppdatert ${result.updated.length} saker. Feil: ${result.errors.length}.`);
+        } catch(err){setStatus(err.message,true);} finally {button.disabled=false;}
+      });
       document.getElementById('detailCloseBtn').addEventListener('click', closeDetailOverlay);
       document.getElementById('detailPrevBtn').addEventListener('click', () => stepDetailItem(-1));
       document.getElementById('detailNextBtn').addEventListener('click', () => stepDetailItem(1));
