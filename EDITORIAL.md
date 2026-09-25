@@ -29,3 +29,9 @@ Source fetches (web and scheduled collectors) and manual health checks now appen
 Source RSS/scrape fetch and health requests have a 5-second connection timeout and 15-second network inactivity timeout, with at most three retries (four attempts total). Only transient network errors and HTTP 408/429/500/502/503/504 retry, with 1/2/4-second backoff. Long Retry-After values stop the request instead of holding up the job. Failed attempts are logged separately. Article fulltext retains its existing 12-second timeout and no retries. These are network timeouts, not a hard deadline for the entire multi-source job.
 
 Story collections now sort by newest publication date first, then score and article count, so older high-scoring groups cannot crowd out recent news.
+
+
+### Open-source expansion and case descriptions
+Interesting feedback queues article enrichment. Otherwise, automatic alternative lookup requires a matching interest area and signal score at least `OWI_OPEN_SOURCE_MIN_SCORE` (default 70). New raw articles use a cheap preliminary signal score; existing articles use their stored score. Thin evidence (<800 readable characters), restricted and blocked sources qualify. Searches check at most three distinct candidates in total, keep up to two verified open same-event sources, and reserve/cache attempts for seven days, including no-result searches. Existing verified alternative evidence survives rechecks. Broad web discovery still requires BRAVE_SEARCH_API_KEY; without it, only collected sources are searched.
+
+Case descriptions aim for 150–250 Norwegian words when the evidence supports it; short excerpts remain shorter with uncertainty disclosed. Cards show 340-character previews; detail views retain the full text. A background backfill button updates at most five eligible older articles per run, preserving IDs and human feedback. News and settings are mutually exclusive views, including source tables and status controls.

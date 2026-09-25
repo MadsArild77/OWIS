@@ -4,13 +4,13 @@ import json
 import os
 import re
 import socket
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from urllib.parse import urlparse, urljoin
 import httpx
 from bs4 import BeautifulSoup
 from owis.core.storage.db import get_conn
 from owis.core.llm.client import AIClient
-from owis.modules.news.processing.editorial import prefilter
+from owis.modules.news.processing.editorial import prefilter, topics_for
 from owis.modules.news.collectors.scrape_fetcher import _extract_article_text
 
 def public_url(url):
@@ -66,7 +66,7 @@ def alternative_sources(raw, ai):
     candidates=[a if b['id']==target['id'] else b for a,b,_ in pairs if target['id'] in (a['id'],b['id'])][:3]
     # Optional broader search; one request, no more than three external candidates.
     key=os.getenv('BRAVE_SEARCH_API_KEY','')
-    if key:
+    if key and len(candidates)<3:
         try:
             response=httpx.get('https://api.search.brave.com/res/v1/web/search',
                 params={'q':raw['title_raw'][:300], 'count':3},
@@ -78,7 +78,8 @@ def alternative_sources(raw, ai):
                     'article_url':row['url'],'published_at':None})
         except Exception:pass
     results=[]
-    for item in candidates:
+    unique={item['article_url']:item for item in candidates if item['article_url'] != raw['article_url']}
+    for item in list(unique.values())[:3]:
         try:access,text,url=fetch_public(item['article_url'])
         except Exception:continue
         if access!='open':continue
@@ -89,18 +90,29 @@ def alternative_sources(raw, ai):
         if len(results)>=2:break
     return results
 
+def enrichment_eligible(raw):
+    from owis.modules.news.processing.pipeline import _score, _classify_theme, _classify_geo, _extract_actors, _clean_text
+    with get_conn() as c:
+        positive=c.execute("""SELECT 1 FROM news_editorial_state s JOIN news_editorial_events e ON e.id=s.event_id
+            JOIN news_processed_items p ON p.id=s.processed_id WHERE p.raw_item_id=? AND e.value='relevant' LIMIT 1""",(raw['id'],)).fetchone()
+        stored=c.execute('SELECT signal_score FROM news_processed_items WHERE raw_item_id=?',(raw['id'],)).fetchone()
+    text=_clean_text(f"{raw.get('title_raw','')} {raw.get('content_raw') or raw.get('summary_raw','')}")
+    score=stored['signal_score'] if stored else _score(_classify_theme(text),_classify_geo(text),_extract_actors(text),text)
+    try:threshold=max(0,min(100,int(os.getenv('OWI_OPEN_SOURCE_MIN_SCORE','70'))))
+    except ValueError:threshold=70
+    return bool(positive) or (score>=threshold and bool(topics_for(text))), bool(positive)
+
+
 def prepare(raw, refresh=False):
     from owis.modules.news.storage.evidence import save
+    eligible,positive=enrichment_eligible(raw)
     with get_conn() as c:
         saved=c.execute('SELECT * FROM news_content_basis WHERE raw_id=?',(raw['id'],)).fetchone()
+    ai=AIClient()
     if saved and not refresh:
         meta=dict(saved)
     else:
-        ai=AIClient()
         decision,reason,_=prefilter(raw,ai)
-        with get_conn() as c:
-            positive=c.execute('''SELECT 1 FROM news_editorial_state s JOIN news_editorial_events e ON e.id=s.event_id
-                JOIN news_processed_items p ON p.id=s.processed_id WHERE p.raw_item_id=? AND e.value='relevant' LIMIT 1''',(raw['id'],)).fetchone()
         if positive:decision,reason='relevant','Manuelt vurdert som interessant'
         feed=raw.get('content_raw') or raw.get('summary_raw') or ''
         save(raw['id'],raw['article_url'],raw['title_raw'],raw.get('source_name',''),
@@ -111,18 +123,33 @@ def prepare(raw, refresh=False):
                 access,text,url=fetch_public(raw['article_url'])
                 meta['access']=access
                 if access=='open':meta.update(text=text,source_url=url,basis='fulltext')
-                elif access=='restricted':
-                    alternatives=alternative_sources(raw,ai)
-                    for alternative in alternatives:
-                        save(raw['id'],alternative['url'],alternative['title'],urlparse(alternative['url']).hostname or '',
-                             'open','alternative_fulltext',alternative['text'],suggest=True)
-                    meta['alternatives']=json.dumps([{k:v for k,v in x.items() if k!='text'} for x in alternatives],ensure_ascii=False)
-                    if alternatives:meta.update(text=alternatives[0]['text'],source_url=alternatives[0]['url'],basis='alternative_fulltext')
             except Exception as exc:meta['reason']+=f'; Fulltekst ikke tilgjengelig ({type(exc).__name__})'
+        save(raw['id'],raw['article_url'],raw['title_raw'],raw.get('source_name',''),meta['access'],meta['basis'],meta['text'])
+    if saved and saved['basis']=='alternative_fulltext' and meta['basis']!='fulltext':
+        meta=dict(saved)  # Preserve verified evidence during cached rechecks.
+    if positive:meta.update(relevance='relevant',reason='Manuelt vurdert som interessant')
+    thin=len(BeautifulSoup(meta['text'],'html.parser').get_text(' ',strip=True))<800
+    needs_more=meta['basis']!='alternative_fulltext' and (thin or meta['access'] in {'restricted','blocked'})
+    if eligible and meta['relevance']!='excluded' and needs_more and os.getenv('OWI_FULLTEXT_ENABLED','true').lower()=='true':
+        # Atomically reserve one search per story per week, including failed/no-result searches.
+        now=datetime.now(timezone.utc)
         with get_conn() as c:
-            c.execute('''INSERT OR REPLACE INTO news_content_basis(raw_id,relevance,reason,access,basis,text,source_url,alternatives,checked_at)
-                VALUES(:raw_id,:relevance,:reason,:access,:basis,:text,:source_url,:alternatives,:checked_at)''',meta)
-        save(raw['id'],raw['article_url'],raw['title_raw'],raw.get('source_name',''),meta['access'],
-             'feed_excerpt' if meta['basis']=='alternative_fulltext' else meta['basis'],feed if meta['basis']=='alternative_fulltext' else meta['text'])
+            cursor=c.execute("""INSERT INTO news_open_search_attempts(raw_id,checked_at) VALUES(?,?)
+                ON CONFLICT(raw_id) DO UPDATE SET checked_at=excluded.checked_at,result_count=0
+                WHERE news_open_search_attempts.checked_at < ?""",(raw['id'],now.isoformat(),(now-timedelta(days=7)).isoformat()))
+            search=cursor.rowcount>0
+        if search:
+            try:alternatives=alternative_sources(raw,ai)
+            except Exception:alternatives=[]
+            for alternative in alternatives:
+                save(raw['id'],alternative['url'],alternative['title'],urlparse(alternative['url']).hostname or '',
+                     'open','alternative_fulltext',alternative['text'],suggest=True)
+            meta['alternatives']=json.dumps([{k:v for k,v in x.items() if k!='text'} for x in alternatives],ensure_ascii=False)
+            if alternatives:meta.update(text=alternatives[0]['text'],source_url=alternatives[0]['url'],basis='alternative_fulltext')
+            else:meta['reason']+='; Begrenset kildegrunnlag: ingen verifisert åpen alternativkilde funnet'
+            with get_conn() as c:c.execute('UPDATE news_open_search_attempts SET result_count=? WHERE raw_id=?',(len(alternatives),raw['id']))
+    with get_conn() as c:
+        c.execute("""INSERT OR REPLACE INTO news_content_basis(raw_id,relevance,reason,access,basis,text,source_url,alternatives,checked_at)
+            VALUES(:raw_id,:relevance,:reason,:access,:basis,:text,:source_url,:alternatives,:checked_at)""",meta)
     result=dict(raw);result['content_raw']=meta['text'];result['_content_basis']=meta
     return result

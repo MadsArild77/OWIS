@@ -41,7 +41,7 @@ def root():
 
 @app.get("/news", include_in_schema=False)
 def news_page():
-    return FileResponse(web_dir / "news.html")
+    return FileResponse(web_dir / "news.html", headers={"Cache-Control": "no-store"})
 
 
 @app.get("/opportunities", include_in_schema=False)

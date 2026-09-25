@@ -53,7 +53,8 @@ def test_fulltext_cached_and_citations_saved(setup,monkeypatch):
         assert c.execute('SELECT count(*) FROM news_source_evidence').fetchone()[0]==2
 
 def test_closed_article_uses_attributed_alternative(setup,monkeypatch):
-    _,raw,_=setup
+    _,raw,item=setup
+    editorial.record(item,'all','relevant')
     monkeypatch.setattr(content,'fetch_public',lambda url:('restricted','',url))
     monkeypatch.setattr(content,'alternative_sources',lambda *a:[dict(url='https://open.example/story',title='Open report',access='open',text='Open evidence. '*100)])
     result=content.prepare(raw)
@@ -100,6 +101,8 @@ def test_editorial_api_and_separate_draft_signal(setup,monkeypatch):
     from fastapi.testclient import TestClient
     from owis.apps.api.main import app
     _,raw,item=setup
+    from owis.modules.news.presentation import api
+    monkeypatch.setattr(api,'_create_job',lambda *a:'test-job')
     with TestClient(app) as client:
         result=client.post(f'/api/news/item/{item}/feedback',json={'topic':'grid','value':'relevant'})
         assert result.status_code==200
@@ -159,3 +162,47 @@ def test_positive_vote_releases_cached_exclusion(setup,monkeypatch):
     content.prepare(raw)
     editorial.record(item,'energy','relevant')
     assert content.prepare(raw)['_content_basis']['relevance']=='relevant'
+
+
+@pytest.mark.parametrize('access',['blocked','unknown','restricted'])
+def test_alternative_threshold_cache_and_positive_override(setup,monkeypatch,access):
+    _,raw,item=setup
+    with db.get_conn() as c:c.execute('UPDATE news_processed_items SET signal_score=69 WHERE id=?',(item,))
+    calls=[]
+    monkeypatch.setattr(content,'fetch_public',lambda url:(access,'',url))
+    monkeypatch.setattr(content,'alternative_sources',lambda *a:(calls.append(1) or []))
+    content.prepare(raw)
+    assert calls==[]
+    editorial.record(item,'all','relevant')
+    content.prepare(raw)
+    content.prepare(raw,refresh=True)
+    assert calls==[1]
+    with db.get_conn() as c:assert c.execute('SELECT count(*) FROM news_open_search_attempts').fetchone()[0]==1
+
+
+def test_score_boundary_and_sufficient_text(setup,monkeypatch):
+    _,raw,item=setup
+    with db.get_conn() as c:c.execute('UPDATE news_processed_items SET signal_score=70 WHERE id=?',(item,))
+    calls=[]
+    monkeypatch.setattr(content,'alternative_sources',lambda *a:(calls.append(1) or []))
+    content.prepare(raw)
+    assert calls==[1]
+    raw['content_raw']='Wind project evidence. '*100
+    calls.clear()
+    content.prepare(raw,refresh=True)
+    assert calls==[]
+
+
+def test_alternative_candidates_bounded_and_deduplicated(setup,monkeypatch):
+    from owis.modules.news.matching import service
+    _,raw,_=setup
+    def pairs(rows,**kwargs):
+        target=rows[-1]
+        return [(target,dict(id=i,title='Same event',article_url=f'https://example.com/{i//2}'),0) for i in range(10)]
+    monkeypatch.setattr(service,'build_candidate_pairs',pairs)
+    monkeypatch.setattr(service,'judge_pair',lambda *a:dict(fallback=False,relationship='unrelated',confidence=1))
+    monkeypatch.delenv('BRAVE_SEARCH_API_KEY',raising=False)
+    calls=[]
+    monkeypatch.setattr(content,'fetch_public',lambda url:(calls.append(url) or ('open','Evidence '*200,url)))
+    assert content.alternative_sources(raw,object())==[]
+    assert len(calls)<=3 and len(calls)==len(set(calls))

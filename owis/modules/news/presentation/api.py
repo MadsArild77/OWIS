@@ -234,6 +234,29 @@ def _run_job(job_id: str, operation: str, payload: dict[str, Any]) -> None:
             _run_fetch_process(RunFetchProcessRequest(**payload), job_id=job_id)
             return
 
+        if operation == "enrich_one":
+            _update_job(job_id,status="running",percent=10,step="Henter kildegrunnlag")
+            enrich_article(int(payload['item_id']))
+            _update_job(job_id,status="completed",percent=100,step="Casebeskrivelse oppdatert",result={'updated':[payload['item_id']]})
+            return
+        if operation == "enrich_backfill":
+            from owis.modules.news.processing.content import enrichment_eligible
+            with get_conn() as c:
+                rows=[dict(r) for r in c.execute("""SELECT r.*,p.id AS processed_id FROM news_raw_items r
+                    JOIN news_processed_items p ON p.raw_item_id=r.id
+                    LEFT JOIN news_case_versions v ON v.processed_id=p.id
+                    WHERE COALESCE(v.version,0)<2 ORDER BY COALESCE(r.published_at,r.fetched_at) DESC LIMIT 300""")]
+            selected=[r for r in rows if enrichment_eligible(r)[0]][:max(1,min(5,int(payload.get('limit',5))))]
+            completed=[];errors=[]
+            for index,raw in enumerate(selected):
+                _update_job(job_id,status="running",percent=10+index*15,step=f"Fyller på sak {index+1}/{len(selected)}")
+                try:
+                    enrich_article(raw['processed_id'])
+                    completed.append(raw['processed_id'])
+                except Exception as exc:errors.append({'id':raw['processed_id'],'error':type(exc).__name__})
+            _update_job(job_id,status="completed",percent=100,step="Påfyll fullført",result={'updated':completed,'errors':errors})
+            return
+
         if operation == "rediscover_rss":
             _update_job(
                 job_id,
@@ -725,7 +748,10 @@ class EditorialRequest(BaseModel):
 @router.post('/item/{item_id}/feedback')
 def editorial_feedback(item_id: int, payload: EditorialRequest):
     from owis.modules.news.processing.editorial import record
-    try:return record(item_id,payload.topic,payload.value,payload.reason)
+    try:
+        result=record(item_id,payload.topic,payload.value,payload.reason)
+        if payload.value=='relevant':result['enrichment_job_id']=_create_job('enrich_one',{'item_id':item_id})
+        return result
     except LookupError as ex:raise HTTPException(404,str(ex))
     except ValueError as ex:raise HTTPException(400,str(ex))
 
@@ -770,6 +796,7 @@ def enrich_article(item_id: int, refresh: bool = False):
     with get_conn() as c:
         c.execute('UPDATE news_processed_items SET cleaned_text=?,summary=?,why_it_matters=?,linkedin_angle=? WHERE id=?',
                   (processed['cleaned_text'],processed['summary'],processed['why_it_matters'],processed['linkedin_angle'],item_id))
+    with get_conn() as c:c.execute('INSERT OR REPLACE INTO news_case_versions VALUES(?,2)',(item_id,))
     return item(item_id)
 
 
@@ -1089,7 +1116,7 @@ def source_health_state():
 @router.post("/jobs/start")
 def start_news_job(payload: StartJobRequest):
     operation = str(payload.operation or "").strip()
-    allowed = {"fetch_process", "rediscover_rss", "source_health", "match_review", "retention_archive"}
+    allowed = {"enrich_backfill", "fetch_process", "rediscover_rss", "source_health", "match_review", "retention_archive"}
     if operation not in allowed:
         raise HTTPException(status_code=400, detail=f"Unsupported operation: {operation}")
     job_id = _create_job(operation, payload.payload or {})
