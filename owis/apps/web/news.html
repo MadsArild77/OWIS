@@ -456,6 +456,31 @@
       flex-direction: column;
       gap: 10px;
     }
+    .story-row { padding: 14px 18px; cursor: pointer; }
+    .story-row h3 { margin: 0; }
+    .story-open { margin: 0; padding: 0; background: transparent; border: 0; box-shadow: none; color: var(--ink); text-align: left; font: inherit; }
+    .story-open:focus-visible { outline: 2px solid #38bdf8; outline-offset: 4px; }
+    .story-description { margin: 6px 0; font-size: .9rem; line-height: 1.45; color: var(--muted); }
+    .story-meta { font-size: .8rem; }
+    .overview-heading { margin: 0 0 18px; }
+    .overview-heading h1 { font-size: 1.65rem; margin: 0 0 4px; }
+    .overview-heading p { margin: 0; color: var(--muted); font-size: .9rem; }
+    .overview-filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+    .overview-filters label { flex: 1 1 145px; font-size: .8rem; color: var(--muted); }
+    .overview-filters select { display: block; width: 100%; margin-top: 4px; }
+    .story-list { gap: 0; }
+    .story-list .story-row { border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; box-shadow: none; padding: 15px 0; }
+    .story-row h3 { font-size: 1rem; line-height: 1.4; }
+    .story-row:hover .story-open { color: var(--brand); }
+    .story-context { color: var(--accent); }
+    #articlesView > .card { padding: 16px 20px; }
+    #articlesView > .card { margin-bottom: 12px; }
+    #articlesView .card-actions-inline > label { display: inline-flex; align-items: center; gap: 6px; font-size: .8rem; }
+    #showDismissed { width: auto; margin: 0; }
+    #showFeedbackHistory { margin: 0; padding: 6px 10px; background: transparent; box-shadow: none; color: var(--muted); font-size: .8rem; }
+    #tab-reading .view-toolbar { margin: 0 0 4px; }
+    #feedbackNotice:empty { display: none; }
+    @media (max-width: 600px) { .wrap { padding: 14px; } .topbar { margin: -14px -14px 16px; padding: 14px; } .brand-mark { font-size: .7rem; letter-spacing: .08em; } .topnav { gap: 10px; font-size: .8rem; } .overview-heading h1 { font-size: 1.4rem; } #articlesView > .card { padding: 12px; } }
     .story-list .story-card {
       padding: 12px;
       border-radius: 18px;
@@ -746,29 +771,18 @@
       </div>
     </header>
 
-    <section class="hero">
-      <p class="eyebrow">NorthernBlue intelligence dashboard</p>
-      <h1>OWIS · Nyheter til faglig innhold</h1>
-      <p class="hero-lead">
-        Følg energi, maritim næring og elektrifisering. Finn interessante saker og lag kildebaserte LinkedIn-utkast.
-      </p>
-      <div class="hero-metrics">
-        <span class="metric-pill">Nyheter: vurder og lag utkast</span>
-        <span class="metric-pill">Review: merge and train</span>
-        <span class="metric-pill">Source health and pipeline status</span>
-      </div>
-    </section>
+    <section class="overview-heading"><h1>Industry brief</h1><p>Energy, maritime and electrification — what is happening and who is involved.</p></section>
 
-<nav class="tab-bar" aria-label="Visning"><button id="showNewsView" type="button" aria-pressed="true">Nyheter</button><button id="showSettingsView" type="button" aria-pressed="false">Innstillinger</button></nav>
+<nav class="tab-bar" aria-label="View"><button id="showNewsView" type="button" aria-pressed="true">News</button><button id="showSettingsView" type="button" aria-pressed="false">Settings</button></nav>
     <section id="settingsView" class="card" hidden>
-      <h2>Innstillinger</h2>
+      <h2>Settings</h2>
         <div class="settings-body">
 
-          <p class="muted">Påfyll: Interessant eller score ≥70. Maks tre kildekandidater per sak og ett søk per uke. Casebeskrivelse på 150–250 ord når kildegrunnlaget tillater det.</p><h3>Nettadresser vi overvåker</h3><p class="muted">RSS, nyhetssider og presserom lagres i kilderegisteret. Av/på og redigering huskes ved neste innhenting.</p>
+          <p class="muted">Expand relevant stories with additional reporting when available.</p><h3>Monitored sources</h3><p class="muted">Manage RSS feeds, news sites and press rooms. Source settings are saved for future fetches.</p>
           <textarea id="sourceInput" placeholder="Recharge - https://www.rechargenews.com\nhttps://windeurope.org"></textarea>
           <button id="importBtn">Import Sources</button>
 
-          <h3>Rediger kilde</h3><label>Interesseområde <select id="editInterest"><option value="all">Alle</option><option value="energy">Havvind / energi</option><option value="maritime">Maritim / havner</option><option value="grid">Nett / elektrifisering</option></select></label>
+          <h3>Edit source</h3><label>Topic <select id="editInterest"><option value="all">All</option><option value="energy">Offshore wind / energy</option><option value="maritime">Maritime / ports</option><option value="grid">Grid / electrification</option></select></label>
           <div class="two-col">
             <div>
               <label class="muted">Index</label>
@@ -804,7 +818,7 @@
             <button id="dedupeBtn" class="btn-warning">Remove Duplicates</button>
             <button id='rediscoverBtn' class='btn-secondary'>Rediscover RSS</button>
             <button id='healthBtn' class='btn-secondary'>Source Health</button>
-            <button id="backfillBtn" class="btn-secondary">Fyll på eldre saker (maks 5)</button>
+            <button id="backfillBtn" class="btn-secondary">Expand older stories (up to 5)</button>
             <button id="runPipelineBtn">Run Fetch + Processing</button>
           </div>
           <div class="two-col" style="margin-top:8px;">
@@ -874,27 +888,29 @@
     </section>
 
     <div id="articlesView">
-<section class="card">      <div class="card-actions-inline" style="margin:12px 0;flex-wrap:wrap">
-        <label>Interesseområde <select id="interestFilter"><option value="all">Alle interesseområder</option><option value="energy">Havvind og energiomstilling</option><option value="maritime">Maritim næring og havner</option><option value="grid">Strømnett og elektrifisering</option></select></label>
-        <label><input type="checkbox" id="showDismissed"> Vis skjulte / filtrerte</label>
-        <button type="button" id="showFeedbackHistory">Lagrede vurderinger</button>
+<section class="card">      <div class="overview-filters">
+        <label>Topic <select id="interestFilter"><option value="all">All topics</option><option value="energy">Offshore wind & energy</option><option value="maritime">Maritime & ports</option><option value="grid">Grid & electrification</option></select></label>
+        <label>Geography <select id="geographyFilter"><option value="">All geographies</option></select></label>
+        <label>Company <select id="companyFilter"><option value="">All companies</option></select></label>
+        <label>Sort by <select id="storySort"><option value="latest">Latest</option><option value="relevance">Most relevant</option></select></label>
+      </div><div class="card-actions-inline" style="margin-top:8px;flex-wrap:wrap">
+        <label><input type="checkbox" id="showDismissed"> Include hidden</label>
+        <button type="button" id="showFeedbackHistory">Saved feedback</button>
       </div>
       <div id="feedbackNotice" class="status" role="status" aria-live="polite"></div>
-      <div id="editorialHistory" class="card" hidden><h3>Lagrede vurderinger</h3><div id="editorialHistoryBody"></div><button type="button" onclick="this.parentElement.hidden=true">Lukk</button></div>
-      <div id="editorialDraft" class="card" hidden><h3>LinkedIn-utkast · lagret</h3><textarea id="draftBody" readonly rows="10" style="width:100%"></textarea><button id="copyDraft" type="button">Kopier</button><button type="button" onclick="this.parentElement.hidden=true">Lukk</button></div>
+      <div id="editorialHistory" class="card" hidden><h3>Saved feedback</h3><div id="editorialHistoryBody"></div><button type="button" onclick="this.parentElement.hidden=true">Close</button></div>
+      <div id="editorialDraft" class="card" hidden><h3>LinkedIn draft · saved</h3><textarea id="draftBody" readonly rows="10" style="width:100%"></textarea><button id="copyDraft" type="button">Copy</button><button type="button" onclick="this.parentElement.hidden=true">Close</button></div>
 </section>
     <section class="card">
       <div class="tab-bar">
-        <button class="tab-btn active" data-tab="reading" type="button">Nyheter</button>
+        <button class="tab-btn active" data-tab="reading" type="button">News</button>
         <button class="tab-btn" data-tab="review" type="button">Review</button>
       </div>
 
 
       <div id="tab-reading" class="tab-panel active">
-        <h2>Nyheter for deg</h2>
-        <p class="muted">Vurder nyheten direkte, eller lag et kildebasert utkast. Samlede saker og treffkontroll ligger under Review.</p>
         <div class="view-toolbar">
-          <span class="muted">Åpne artikkelen for casebeskrivelse og kildegrunnlag.</span>
+          <strong>Headlines</strong>
           <div class="view-toggle" aria-label="Reading layout">
             <button id="readingListViewBtn" class="active" type="button" data-reading-layout="list">List</button>
             <button id="readingCardViewBtn" type="button" data-reading-layout="cards">Cards</button>
@@ -931,7 +947,7 @@
         </div>
         <div id="collections" class="grid" style="margin-top:12px;"></div>
         <h3 style="margin-top:16px;">AI Match Review</h3>
-        <p class="muted">AI foreslår par som kan være samme sak. Godkjenn eller avvis.</p>
+        <p class="muted">Review suggested matches before combining stories.</p>
         <div id="matchReview" class="grid" style="margin-top:10px;"></div>
         <div class="pager">
           <button id="mergedPrev" class="btn-secondary" type="button">Prev</button>
@@ -1335,7 +1351,7 @@
     }
 
     function currentVisibleCollections() {
-      return mergedItems || [];
+      return viewMode === 'review' ? mergedItems : visibleCollections();
     }
 
     function findCollectionByKey(collectionKey) {
@@ -1504,6 +1520,7 @@
             <div class="collection-item">
               <a href="${escapeHtml(item.article_url || '#')}" target="_blank" rel="noopener noreferrer"><strong>${escapeHtml(item.title || 'Untitled')}</strong></a>
               <div class="meta">${escapeHtml(item.source_name || 'Unknown')} | score ${escapeHtml(item.signal_score ?? 'n/a')} | ${escapeHtml(relevanceLabel(item.relevance_status))}</div>
+              <button type="button" class="btn-secondary" data-open-story-item="${Number(item.id)}">Read article</button>
             </div>
           `).join('')
         : '<p class="muted">No source articles loaded for this story.</p>';
@@ -1538,6 +1555,9 @@
           <div>${sourceRows}</div>
         </div>
       `;
+      document.getElementById('detailContent').querySelectorAll('[data-open-story-item]').forEach(button => {
+        button.addEventListener('click', () => showItemDetails(Number(button.dataset.openStoryItem)));
+      });
     }
 
     async function showItemDetails(itemId) {
@@ -1611,7 +1631,14 @@
             ${detailMetaChip('Confidence', String(item.confidence ?? 'n/a'))}
           </div>
           <div class="detail-source-link"><a href="${escapeHtml(item.article_url || '#')}" target="_blank" rel="noopener noreferrer">Open original source</a></div>
+          <div class="card-actions-inline">
+            <button type="button" class="btn-secondary" data-editorial="${itemId}" data-vote="relevant">👍 Relevant</button>
+            <button type="button" class="btn-secondary" data-editorial="${itemId}" data-vote="non_relevant">👎 Hide</button>
+            <button type="button" class="btn-secondary" data-draft="${itemId}">View / create draft</button>
+            <button type="button" class="btn-secondary" data-enrich="${itemId}">Expand description</button>
+          </div>
         `;
+        bindInlineActions(document.getElementById('detailContent'));
         document.querySelectorAll('[data-toggle-linkedin]').forEach(btn => {
           btn.addEventListener('click', (evt) => {
             evt.preventDefault();
@@ -1738,7 +1765,7 @@
       pageState[kind] = page;
       prev.disabled = page <= 1;
       next.disabled = page >= totalPages;
-      info.textContent = `Page ${page}/${totalPages} (${totalItems} articles)`;
+      info.textContent = `Page ${page}/${totalPages} (${totalItems} ${kind === 'reading' ? 'stories' : 'articles'})`;
     }
 
     function renderLatestPage() {
@@ -1760,12 +1787,75 @@
         (hidden || (item.editorial?.[scope]?.value!=='non_relevant' && item.content_basis?.relevance!=='excluded')));
     }
     function renderReadingPage() {
-      const visible=visibleArticles(latestItems);
+      const visible=visibleCollections();
       const {pageItems}=getPageSlice('reading',visible);
       const root=document.getElementById('readingStories');
       if(root){root.classList.toggle('grid',readingLayout==='cards');root.classList.toggle('story-list',readingLayout==='list');}
-      renderCards('readingStories',pageItems);
+      renderStoryRows(root,pageItems);
       updatePager('reading',visible.length);
+    }
+
+    function visibleCollections() {
+      const current = new Map(latestItems.map(item => [Number(item.id), item]));
+      const geography = document.getElementById('geographyFilter')?.value;
+      const company = document.getElementById('companyFilter')?.value;
+      const visible = mergedItems.filter(col =>
+        (!geography || (col.master?.geographies || []).includes(geography)) &&
+        (!company || (col.master?.actors || []).includes(company)) &&
+        visibleArticles((col.items || []).map(item => current.get(Number(item.id)) || item)).length);
+      const timestamp = col => Date.parse(col.latest_published_at) || 0;
+      return visible.sort(document.getElementById('storySort')?.value === 'relevance'
+        ? (a,b) => (Number(b.top_signal_score) - Number(a.top_signal_score)) || timestamp(b) - timestamp(a)
+        : (a,b) => timestamp(b) - timestamp(a));
+    }
+
+    function updateStoryFilters() {
+      for (const [id, field, label] of [['geographyFilter','geographies','All geographies'], ['companyFilter','actors','All companies']]) {
+        const select = document.getElementById(id);
+        const previous = select.value;
+        const values = [...new Set(mergedItems.flatMap(col => col.master?.[field] || []))].sort((a,b) => a.localeCompare(b));
+        select.replaceChildren(new Option(label, ''), ...values.map(value => new Option(value, value)));
+        if (values.includes(previous)) select.value = previous;
+      }
+    }
+
+    function storyBrief(col) {
+      const text = (col.master?.summary || '').replace(/\s+/g, ' ').trim();
+      // Prefer complete sentences, without inventing missing details from a feed excerpt.
+      const sentences = [...new Intl.Segmenter('en', {granularity:'sentence'}).segment(text)].map(part => part.segment.trim());
+      const complete = sentences.filter(sentence => /[.!?][”"')]*$/.test(sentence) && !/(?:\.{2,}|…)[”"')]*$/.test(sentence));
+      let brief = '';
+      for (const sentence of complete.slice(0, 2)) {
+        if (brief && (brief.length + sentence.length > 320)) break;
+        brief += (brief ? ' ' : '') + sentence;
+      }
+      return brief || text;
+    }
+
+    function renderStoryRows(root, items) {
+      if (!root) return;
+      root.innerHTML = '';
+      if (!items.length) {
+        root.innerHTML = '<p class="muted">No stories match these filters.</p>';
+        return;
+      }
+      for (const col of items) {
+        const master = col.master || {};
+        const row = document.createElement('article');
+        row.className = 'card story-row';
+        const date = new Date(col.latest_published_at);
+        const dateLabel = col.latest_published_at && !Number.isNaN(date.getTime())
+          ? date.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}) : 'Date unavailable';
+        const context = [...(master.geographies || []).slice(0,2), ...(master.actors || []).slice(0,2)].join(' · ');
+        row.innerHTML = `<h3><button type="button" class="story-open">${escapeHtml(master.title || 'Untitled')}</button></h3>
+          <p class="story-description">${escapeHtml(storyBrief(col))}</p>
+          <div class="muted story-meta">${escapeHtml(dateLabel)}${context ? ` · <span class="story-context">${escapeHtml(context)}</span>` : ''}</div>`;
+        row.querySelector('button').addEventListener('click', () => showCollectionDetails(col.collection_key));
+        row.addEventListener('click', event => {
+          if (!event.target.closest('button')) showCollectionDetails(col.collection_key);
+        });
+        root.appendChild(row);
+      }
     }
 
     function renderMergedPage() {
@@ -1803,7 +1893,7 @@
         const vote = item.editorial?.[scope]?.value;
         return showHidden || (vote !== 'non_relevant' && item.content_basis?.relevance !== 'excluded');
       });
-      if (!items.length) root.innerHTML = '<p class="muted">Ingen artikler i dette utvalget. Prøv et annet interesseområde eller vis skjulte.</p>';
+      if (!items.length) root.innerHTML = '<p class="muted">No articles match. Try another topic or include hidden articles.</p>';
       const relatedPool = elId === 'top' ? topItems : latestItems;
       for (const item of items) {
         const paywalled = isPaywalled(item);
@@ -1830,18 +1920,18 @@
         ].join('');
         const related = viewMode === 'review' ? relatedItemsFor(item, relatedPool, 3) : [];
         const basis=item.content_basis || {};
-        const accessLabel=({open:'Åpen',restricted:'Lukket / abonnement',blocked:'Tilgang blokkert',unknown:'Tilgang ikke avklart'})[basis.access] || 'Tilgang ikke avklart';
-        const basisLabel=({fulltext:'Artikkeltekst hentet',alternative_fulltext:'Åpen alternativ kilde',feed_text:'Tekst fra RSS',feed_excerpt:'Kort RSS-utdrag'})[basis.basis] || 'Kort utdrag';
+        const accessLabel=({open:'Open',restricted:'Subscription',blocked:'Access blocked',unknown:'Access unknown'})[basis.access] || 'Access unknown';
+        const basisLabel=({fulltext:'Full text available',alternative_fulltext:'Open alternative source',feed_text:'RSS text',feed_excerpt:'RSS excerpt'})[basis.basis] || 'Short excerpt';
         const learningActions = `
           <div class="compact-meta-row">${escapeHtml(accessLabel)} · ${escapeHtml(basisLabel)}</div>
           <div class="card-actions-inline">
-            <button type="button" class="btn-secondary" data-editorial="${itemId}" data-vote="relevant" aria-pressed="${item.editorial?.[scope]?.value==='relevant'}">👍 Interessant</button>
-            <button type="button" class="btn-secondary" data-editorial="${itemId}" data-vote="non_relevant">👎 Ikke for meg</button>
-            <button type="button" class="btn-secondary" data-draft="${itemId}">${item.draft ? 'Vis utkast' : 'Lag utkast'}</button>
-            <button type="button" class="btn-secondary" data-enrich="${itemId}">Fyll på / oppdater beskrivelse</button>
+            <button type="button" class="btn-secondary" data-editorial="${itemId}" data-vote="relevant" aria-pressed="${item.editorial?.[scope]?.value==='relevant'}">👍 Relevant</button>
+            <button type="button" class="btn-secondary" data-editorial="${itemId}" data-vote="non_relevant">👎 Hide</button>
+            <button type="button" class="btn-secondary" data-draft="${itemId}">${item.draft ? 'View draft' : 'Create draft'}</button>
+            <button type="button" class="btn-secondary" data-enrich="${itemId}">Expand description</button>
           </div>
-          ${(basis.alternatives||[]).map(a=>`<a href="${escapeHtml(a.url)}" target="_blank" rel="noopener noreferrer">Åpen kilde: ${escapeHtml(a.title)}</a>`).join('<br>')}
-          ${basis.reason?.includes('Begrenset kildegrunnlag') ? '<p class="muted">Begrenset kildegrunnlag: ingen verifisert åpen alternativkilde funnet.</p>' : ''}
+          ${(basis.alternatives||[]).map(a=>`<a href="${escapeHtml(a.url)}" target="_blank" rel="noopener noreferrer">Open source: ${escapeHtml(a.title)}</a>`).join('<br>')}
+          ${basis.reason?.includes('Begrenset kildegrunnlag') ? '<p class="muted">Limited coverage: no verified open alternative found.</p>' : ''}
         `;
         const relatedHtml = related.length
           ? `
@@ -1871,7 +1961,7 @@
             <span>${escapeHtml(item.published_at || 'Unknown')}</span>
           </div>
           <div class="inline-tags">${inlineTagsHtml || '<span class="inline-tag is-geo">No tags</span>'}</div>
-          <div class="compact-meta-row"><button type="button" class="btn-secondary" data-sources="${itemId}">Kildegrunnlag</button> · <a href="${escapeHtml(item.article_url)}" target="_blank" rel="noopener noreferrer">Open source</a></div>
+          <div class="compact-meta-row"><button type="button" class="btn-secondary" data-sources="${itemId}">Source coverage</button> · <a href="${escapeHtml(item.article_url)}" target="_blank" rel="noopener noreferrer">Open source</a></div>
           ${learningActions}
           ${relatedHtml}
           <div class="selection-row"><label><input type="checkbox" data-collection-item="${itemId}" ${selectedCollectionItems.has(itemId) ? 'checked' : ''} /> Select</label></div>
@@ -1992,13 +2082,13 @@
       }
       if (storyLinks.length) {
         const section = document.createElement("section");
-        section.innerHTML = '<h3>Knyttede oppdateringer</h3>' + storyLinks.map(link =>
-          `<p>${escapeHtml(link.title_a)} ↔ ${escapeHtml(link.title_b)} <span class="muted">(separate hendelser)</span></p>`
+        section.innerHTML = '<h3>Linked updates</h3>' + storyLinks.map(link =>
+          `<p>${escapeHtml(link.title_a)} ↔ ${escapeHtml(link.title_b)} <span class="muted">(separate events)</span></p>`
         ).join('');
         root.appendChild(section);
       }
       if (!matchReviewItems.length) {
-        root.insertAdjacentHTML('beforeend', "<p class=\"muted\">Ingen match-forslag akkurat nå.</p>");
+        root.insertAdjacentHTML('beforeend', "<p class=\"muted\">No suggested matches.</p>");
         return;
       }
       for (const pair of matchReviewItems) {
@@ -2006,14 +2096,14 @@
         div.className = "card";
         const entities = Array.isArray(pair.overlap_entities) ? pair.overlap_entities.join(", ") : "";
         div.innerHTML = `
-          <h3>${escapeHtml(({same_event:"Samme hendelse",update:"Oppdatering i samme sak",uncertain:"Usikkert treff"})[pair.relationship] || "Mulig sammenheng")} (${Math.round((Number(pair.ai_confidence || 0)) * 100)}%)</h3>
+          <h3>${escapeHtml(({same_event:"Same event",update:"Story update",uncertain:"Uncertain match"})[pair.relationship] || "Possible connection")} (${Math.round((Number(pair.ai_confidence || 0)) * 100)}%)</h3>
           <div class="meta">${escapeHtml(pair.reason_short || "No reason")}</div>
           <div class="meta">Entities: ${escapeHtml(entities || "n/a")}</div>
           <div class="meta"><a href="${escapeHtml(/^https?:\/\//i.test(pair.item_a_url || "") ? pair.item_a_url : "#")}" target="_blank" rel="noopener noreferrer">A: ${escapeHtml(pair.item_a_title || "Untitled")}</a></div>
           <div class="meta"><a href="${escapeHtml(/^https?:\/\//i.test(pair.item_b_url || "") ? pair.item_b_url : "#")}" target="_blank" rel="noopener noreferrer">B: ${escapeHtml(pair.item_b_title || "Untitled")}</a></div>
           <div style="display:flex;gap:8px;margin-top:10px;">
-            <button class="btn-secondary" type="button" data-match-accept="${pair.id}" data-relationship="${escapeHtml(pair.relationship || "uncertain")}">${pair.relationship === "update" ? "Knytt som oppdatering" : "Samme sak"}</button>
-            <button class="btn-warning" type="button" data-match-reject="${pair.id}">Ulike saker</button>
+            <button class="btn-secondary" type="button" data-match-accept="${pair.id}" data-relationship="${escapeHtml(pair.relationship || "uncertain")}">${pair.relationship === "update" ? "Link update" : "Same story"}</button>
+            <button class="btn-warning" type="button" data-match-reject="${pair.id}">Different stories</button>
           </div>
         `;
         root.appendChild(div);
@@ -2051,8 +2141,9 @@
     }
 
     async function refreshCollections() {
-      const result = await getJson(`/api/news/collections?limit=120&items_per_collection=8${sourceFilterQuery()}`);
+      const result = await getJson(`/api/news/collections?limit=120&items_per_collection=400${sourceFilterQuery()}`);
       mergedItems = Array.isArray(result.items) ? result.items : [];
+      updateStoryFilters();
       pageState.reading = 1;
       pageState.merged = 1;
       renderReadingPage();
@@ -2163,10 +2254,10 @@
         try {
           const rows=await getJson(`/api/news/item/${btn.dataset.sources}/sources`);
           const body=document.getElementById('editorialHistoryBody');
-          body.innerHTML='<h4>Kildegrunnlag</h4>'+ (rows.length ? rows.map(r=>`<p><a href="${escapeHtml(r.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(r.title)}</a><br>${escapeHtml(r.publisher)} · ${escapeHtml(r.checked_at)}</p>`).join('') : '<p>Foreløpig bare den opprinnelige RSS-kilden. Bruk «Fyll på / oppdater beskrivelse» for å hente og lagre kildegrunnlaget.</p>');
+          body.innerHTML='<h4>Source coverage</h4>'+ (rows.length ? rows.map(r=>`<p><a href="${escapeHtml(r.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(r.title)}</a><br>${escapeHtml(r.publisher)} · ${escapeHtml(r.checked_at)}</p>`).join('') : '<p>Only the original RSS source is available. Use “Expand description” to retrieve additional context.</p>');
           document.getElementById('editorialHistory').hidden=false;
           document.getElementById('editorialHistory').scrollIntoView({behavior:'smooth'});
-        }catch(err){setStatus('Kunne ikke hente kildene: '+err.message,true);}
+        }catch(err){setStatus('Could not load sources: '+err.message,true);}
       }));
       root.querySelectorAll('[data-editorial]').forEach(btn => btn.addEventListener('click', async e => {
         e.stopPropagation(); btn.disabled=true;
@@ -2174,30 +2265,32 @@
         const topic=document.getElementById('interestFilter').value;
         try {
           const saved=await postJson(`/api/news/item/${btn.dataset.editorial}/feedback`, {topic,value:btn.dataset.vote});
-          notice.innerHTML='Lagret. <button type="button" id="undoFeedback">Angre</button>' + (btn.dataset.vote==='non_relevant' ? ' <span>Valgfri årsak:</span> '+[['wrong_topic','Feil tema'],['promotion','Reklame'],['geography','Feil geografi'],['not_now','Ikke aktuelt nå']].map(([v,l])=>`<button type="button" data-reason="${v}">${l}</button>`).join(' ') : '');
+          closeDetailOverlay();
+          notice.innerHTML='Saved. <button type="button" id="undoFeedback">Undo</button>' + (btn.dataset.vote==='non_relevant' ? ' <span>Optional reason:</span> '+[['wrong_topic','Wrong topic'],['promotion','Promotion'],['geography','Wrong geography'],['not_now','Not relevant now']].map(([v,l])=>`<button type="button" data-reason="${v}">${l}</button>`).join(' ') : '');
           document.getElementById('undoFeedback').onclick=async () => {
-            try {await postJson(`/api/news/feedback/${saved.event_id}/undo`,{});notice.textContent='Angret og lagret.';await refreshSignals();}
-            catch(err){notice.textContent='Kunne ikke angre: '+err.message;}
+            try {await postJson(`/api/news/feedback/${saved.event_id}/undo`,{});notice.textContent='Undone and saved.';await refreshSignals();}
+            catch(err){notice.textContent='Could not undo: '+err.message;}
           };
           notice.querySelectorAll('[data-reason]').forEach(b=>b.onclick=async()=>{
-            try {await postJson(`/api/news/feedback/${saved.event_id}/reason`,{reason:b.dataset.reason}); b.textContent='✓ Lagret';}
-            catch(err){setStatus('Årsak ikke lagret: '+err.message,true);}
+            try {await postJson(`/api/news/feedback/${saved.event_id}/reason`,{reason:b.dataset.reason}); b.textContent='✓ Saved';}
+            catch(err){setStatus('Reason not saved: '+err.message,true);}
           });
           await refreshSignals();
-        } catch(err){notice.textContent='Ikke lagret. Prøv igjen: '+err.message;}
+        } catch(err){notice.textContent='Not saved. Try again: '+err.message;}
         finally{btn.disabled=false;}
       }));
       root.querySelectorAll('[data-draft], [data-enrich]').forEach(btn=>btn.addEventListener('click',async e=>{
-        e.stopPropagation();btn.disabled=true;const old=btn.textContent;btn.textContent='Arbeider…';
+        e.stopPropagation();btn.disabled=true;const old=btn.textContent;btn.textContent='Working…';
         try {
           if(btn.dataset.draft){
             const result=await postJson(`/api/news/item/${btn.dataset.draft}/draft`,{});
             document.getElementById('draftBody').value=result.body;
+            closeDetailOverlay();
             document.getElementById('editorialDraft').hidden=false;
             document.getElementById('editorialDraft').scrollIntoView({behavior:'smooth',block:'center'});
-          } else {await postJson(`/api/news/item/${btn.dataset.enrich}/enrich?refresh=true`,{});}
-          await refreshSignals();setStatus('Lagret.');
-        } catch(err){setStatus('Kunne ikke fullføre: '+err.message,true);}
+          } else {await postJson(`/api/news/item/${btn.dataset.enrich}/enrich?refresh=true`,{}); await showItemDetails(Number(btn.dataset.enrich));}
+          await refreshSignals();setStatus('Saved.');
+        } catch(err){setStatus('Could not complete: '+err.message,true);}
         finally{btn.disabled=false;btn.textContent=old;}
       }));
       root.querySelectorAll('[data-relevance-item]').forEach(btn => {
@@ -2304,16 +2397,16 @@
             panel = document.createElement('div'); panel.id = 'sourceHistoryPanel';
             body.closest('table').after(panel);
           }
-          panel.textContent = 'Henter historikk…';
+          panel.textContent = 'Loading history…';
           try {
             const url = source.type === 'rss' ? source.url : (source.homepage || source.url);
             const result = await getJson('/api/news/sources/history?source_url=' + encodeURIComponent(url));
-            panel.innerHTML = `<h3>${escapeHtml(source.name)} – kildehistorikk</h3><p>Siste 100 kontroller og innhentinger. Tidligere feil beholdes etter vellykkede forsøk.</p>` +
+            panel.innerHTML = `<h3>${escapeHtml(source.name)} – source history</h3><p>Last 100 checks and fetches. Earlier failures remain in the history.</p>` +
               (result.items.length ? result.items.map(row => `<div class="source-progress-item ${row.status === 'error' ? 'is-error' : ''}">
-                <strong>${escapeHtml(new Date(row.created_at).toLocaleString())} · ${escapeHtml(row.operation)} · ${row.status === 'error' ? 'Feil' : row.status === 'empty' ? 'Ingen treff' : 'OK'}</strong>
+                <strong>${escapeHtml(new Date(row.created_at).toLocaleString())} · ${escapeHtml(row.operation)} · ${row.status === 'error' ? 'Error' : row.status === 'empty' ? 'No results' : 'OK'}</strong>
                 <div>${escapeHtml(row.category === 'none' ? '' : row.category)} ${row.http_status || ''} ${escapeHtml(row.message)} ${row.items == null ? '' : ' · Treff: ' + row.items}</div>
-                <small>${escapeHtml(row.source_url)}</small></div>`).join('') : '<p>Ingen lagrede forsøk ennå. Kjør kildekontroll eller innhenting.</p>');
-          } catch (err) { panel.textContent = 'Kunne ikke hente historikk: ' + err.message; }
+                <small>${escapeHtml(row.source_url)}</small></div>`).join('') : '<p>No checks recorded yet. Check sources or fetch news.</p>');
+          } catch (err) { panel.textContent = 'Could not load history: ' + err.message; }
         });
       });
 
@@ -2379,7 +2472,7 @@
       pageState.top = 1;
       renderLatestPage();
       renderTopPage();
-      renderReadingPage();
+      await refreshCollections();
       renderMatchReview();
     }
 
@@ -2624,8 +2717,8 @@
       document.getElementById('backfillBtn').addEventListener('click',async()=>{
         const button=document.getElementById('backfillBtn');button.disabled=true;
         try {
-          const result=await startBackendJob('enrich_backfill',{limit:5},{title:'Fyller på eldre saker'});
-          await refreshSignals();setStatus(`Oppdatert ${result.updated.length} saker. Feil: ${result.errors.length}.`);
+          const result=await startBackendJob('enrich_backfill',{limit:5},{title:'Expanding older stories'});
+          await refreshSignals();setStatus(`Updated ${result.updated.length} stories. Errors: ${result.errors.length}.`);
         } catch(err){setStatus(err.message,true);} finally {button.disabled=false;}
       });
       document.getElementById('detailCloseBtn').addEventListener('click', closeDetailOverlay);
@@ -2649,15 +2742,19 @@
       document.getElementById('sourceFilter').addEventListener('change', onGlobalFilterChange);
       document.getElementById('domainFilter').addEventListener('change', onGlobalFilterChange);
       document.getElementById('interestFilter').addEventListener('change', () => refreshSignals());
+      ['geographyFilter', 'companyFilter', 'storySort'].forEach(id => document.getElementById(id).addEventListener('change', () => {
+        pageState.reading = 1;
+        renderReadingPage();
+      }));
       document.getElementById('showDismissed').addEventListener('change', () => refreshSignals());
       document.getElementById('showFeedbackHistory').onclick=async()=>{
         try {
           const rows=await getJson('/api/news/feedback/history');
-          document.getElementById('editorialHistoryBody').innerHTML=rows.length ? rows.map(r=>`<p>${escapeHtml(r.title || ('Artikkel '+r.processed_id))}<br>${escapeHtml(({relevant:'Interessant',non_relevant:'Ikke for meg',unrated:'Nullstilt'})[r.value] || r.value)} · ${escapeHtml(r.topic)} · ${escapeHtml(r.created_at)}${r.undone ? ' · Angret' : ''}</p>`).join('') : '<p>Ingen vurderinger lagret ennå.</p>';
+          document.getElementById('editorialHistoryBody').innerHTML=rows.length ? rows.map(r=>`<p>${escapeHtml(r.title || ('Article '+r.processed_id))}<br>${escapeHtml(({relevant:'Relevant',non_relevant:'Hide',unrated:'Reset'})[r.value] || r.value)} · ${escapeHtml(r.topic)} · ${escapeHtml(r.created_at)}${r.undone ? ' · Undone' : ''}</p>`).join('') : '<p>No feedback saved yet.</p>';
           document.getElementById('editorialHistory').hidden=false;
-        }catch(err){setStatus('Kunne ikke hente historikk: '+err.message,true);}
+        }catch(err){setStatus('Could not load history: '+err.message,true);}
       };
-      document.getElementById('copyDraft').onclick=async()=>{try{await navigator.clipboard.writeText(document.getElementById('draftBody').value);setStatus('Utkast kopiert.');}catch(err){setStatus('Marker og kopier teksten manuelt.',true);}};
+      document.getElementById('copyDraft').onclick=async()=>{try{await navigator.clipboard.writeText(document.getElementById('draftBody').value);setStatus('Draft copied.');}catch(err){setStatus('Select and copy the text manually.',true);}};
 
       document.getElementById('readingPrev').addEventListener('click', () => changePage('reading', -1));
       document.getElementById('readingNext').addEventListener('click', () => changePage('reading', 1));
