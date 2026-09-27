@@ -136,11 +136,12 @@ def test_successful_draft_persists_without_relevance_vote(setup,monkeypatch):
     calls=[]
     def answer(self,*a,**kw):
         calls.append(1)
-        return {'body':'Et nytt kabelprosjekt er annonsert. Hva betyr det for leverandørene?'}
+        assert 'The body must be English' in a[0]
+        return {'body':'A new cable project has been announced. What does it mean for suppliers?'}
     monkeypatch.setattr(content.AIClient,'_post_json_prompt',answer)
     with TestClient(app) as client:
         first=client.post(f'/api/news/item/{item}/draft')
-        assert first.status_code==200 and 'Kilde:' in first.json()['body']
+        assert first.status_code==200 and 'Source:' in first.json()['body']
         count=len(calls)
         assert client.post(f'/api/news/item/{item}/draft').json()==first.json()
         assert len(calls)==count
