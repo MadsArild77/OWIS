@@ -91,7 +91,7 @@ class AIClient:
         except Exception:
             return max(0.0, min(float(fallback), 1.0))
 
-    def _post_json_prompt(self, system_prompt: str, user_text: str, max_tokens: int | None = None) -> dict[str, Any] | None:
+    def _post_json_prompt(self, system_prompt: str, user_text: str, max_tokens: int | None = None, input_max_chars: int | None = None) -> dict[str, Any] | None:
         if not self.enabled:
             self.last_error = "ai_disabled_or_missing_api_key"
             return None
@@ -103,7 +103,7 @@ class AIClient:
             "model": AI_MODEL,
             "messages": [
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_text[:AI_INPUT_MAX_CHARS]},
+                {"role": "user", "content": user_text[:min(input_max_chars, 24000) if input_max_chars else AI_INPUT_MAX_CHARS]},
             ],
             "temperature": 0.1,
             "max_tokens": max_tokens or AI_MAX_TOKENS,
