@@ -59,8 +59,8 @@ class Analysis(BaseModel):
 
 def capabilities():
     missing = []
-    if not os.getenv('BRAVE_SEARCH_API_KEY'):
-        missing.append('Brave Search API key')
+    if not (os.getenv('TAVILY_API_KEY') or os.getenv('BRAVE_SEARCH_API_KEY')):
+        missing.append('Tavily API key (TAVILY_API_KEY) or Brave Search API key')
     if not AIClient().enabled:
         missing.append('AI access')
     return {'available': not missing, 'setup_required': ', '.join(missing)}
@@ -116,6 +116,16 @@ def safe_url(value):
 
 
 def search(query):
+    if os.getenv('TAVILY_API_KEY'):
+        response = httpx.post('https://api.tavily.com/search',
+                              headers={'Authorization': 'Bearer ' + os.environ['TAVILY_API_KEY']},
+                              json={'query': query[:300], 'search_depth': 'basic', 'auto_parameters': False,
+                                    'max_results': 5, 'include_answer': False, 'include_raw_content': False},
+                              timeout=20)
+        response.raise_for_status()
+        return [{'url': row.get('url', ''), 'title': row.get('title', ''),
+                 'description': row.get('content') or ''}
+                for row in response.json().get('results', [])[:5]]
     response = httpx.get('https://api.search.brave.com/res/v1/web/search',
                         params={'q': query[:300], 'count': 5},
                         headers={'X-Subscription-Token': os.environ['BRAVE_SEARCH_API_KEY']}, timeout=15)
@@ -183,7 +193,8 @@ def analyse(item):
     output = analysis.model_dump()
     output['sources'] = [{**s, 'relationship': relations[s['id']]} for s in sources]
     # Persist the bounded evidence used by the model, not just generated source URLs.
-    output.update(query=query, model=AI_MODEL, generated_at=datetime.now(timezone.utc).isoformat(), version=1)
+    output.update(query=query, model=AI_MODEL, search_provider='tavily' if os.getenv('TAVILY_API_KEY') else 'brave',
+                  generated_at=datetime.now(timezone.utc).isoformat(), version=1)
     return output
 
 
