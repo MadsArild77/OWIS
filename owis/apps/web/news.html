@@ -751,7 +751,16 @@
     }
     .info-search:hover { border-color: var(--brand); color: var(--brand); }
     .info-search:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
+    .research-panel { margin: 14px 0; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--ink); }
+    .research-panel h3, .research-panel h4 { margin: 12px 0 6px; }
+    .research-panel p, .research-panel li { line-height: 1.5; }
+    .research-ratings { display: grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap: 12px; }
+    .research-ratings > div { padding: 12px; border: 1px solid var(--line); border-radius: 8px; }
     @media (max-width: 760px) {
+      .detail-head { flex-direction: column; }
+      .detail-controls { align-self: flex-end; order: -1; }
+      #detailTitle { font-size: 1.2rem; overflow-wrap: anywhere; }
+      .research-ratings { grid-template-columns: 1fr; }
       .detail-preview,
       .detail-topline {
         grid-template-columns: 1fr;
@@ -1519,6 +1528,67 @@
       return `<div class="detail-action-row"><a class="info-search" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" aria-label="Find more info (opens Google search in a new tab)">Find more info ↗</a></div>`;
     }
 
+    function mountResearch(itemId) {
+      if (!Number.isFinite(itemId) || itemId <= 0) return;
+      const panel = document.createElement('section');
+      panel.className = 'research-panel';
+      panel.setAttribute('aria-label', 'Story research and LinkedIn potential');
+      panel.innerHTML = '<h3>Story research</h3><p role="status">Loading saved research…</p>';
+      document.getElementById('detailContent').prepend(panel);
+      const endpoint = `/api/news/item/${itemId}/research`;
+      let timer;
+      function render(state) {
+        if (!panel.isConnected) return;
+        const result = state.result;
+        const running = state.status === 'running';
+        panel.innerHTML = `<h3>Story research</h3>
+          <p class="muted">Research this article and assess its fit for your LinkedIn voice. Results are saved.</p>
+          <button type="button" class="btn-secondary" data-research ${running || !state.available ? 'disabled' : ''}>${running ? 'Researching…' : result ? 'Refresh research' : 'Research this story'}</button>
+          <p role="status">${escapeHtml(running ? 'Searching and analysing. You can close this view and return later.' : state.error || '')}</p>
+          ${!state.available ? `<p class="muted">Setup required: ${escapeHtml(state.setup_required)}. Manual web search is still available below.</p>` : ''}
+          <div data-research-result></div>`;
+        if (result) {
+          const sources = new Map(result.sources.map(source => [source.id, source]));
+          const sourceLink = id => {
+            const source = sources.get(id);
+            if (!source || !/^https?:\/\//i.test(source.url || '')) return '';
+            return `<a href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(source.title)}">[${id}]</a>`;
+          };
+          const section = (title, claims, empty='') => `<h4>${title}</h4>${claims.length ? '<ul>'+claims.map(claim => `<li>${escapeHtml(claim.text)} ${claim.source_ids.map(sourceLink).join(' ')}</li>`).join('')+'</ul>' : `<p>${empty}</p>`}`;
+          const rating = (title, value) => `<div><strong>${title}: ${escapeHtml(value.level)}</strong><p>${escapeHtml(value.reason)}</p></div>`;
+          panel.querySelector('[data-research-result]').innerHTML = `
+            <p class="muted">Saved ${escapeHtml(new Date(result.generated_at).toLocaleString('en-GB'))}${running || state.status === 'failed' ? ' · Previous saved result' : ''}</p>
+            ${section('What happened',result.what_happened)}
+            ${section('Key developments',result.key_developments,'No additional developments identified.')}
+            ${section('Why it matters · analysis',result.why_it_matters,'No supported implications identified.')}
+            ${section('What’s new',result.whats_new,'No additional facts found beyond the original article.')}
+            <h3>LinkedIn potential</h3><p class="muted">Qualitative editorial judgement, not a prediction of reach or virality.</p>
+            <div class="research-ratings">${rating('Brand fit',result.brand_fit)}${rating('Conversation potential',result.conversation_potential)}</div>
+            <h4>Why this fits you</h4><p>${escapeHtml(result.why_this_fits_you)}</p>
+            <h4>Possible angles</h4><ul>${result.suggested_angles.map(angle=>`<li>${escapeHtml(angle)}</li>`).join('')}</ul>
+            <h4>What would strengthen it</h4><p>${escapeHtml(result.what_would_strengthen_it)}</p>
+            <h4>Limitations</h4><p>${escapeHtml(result.limitations)}</p>
+            <details><summary>Sources (${result.sources.length})</summary><ul>${result.sources.map(source=>`<li>${sourceLink(source.id)} ${escapeHtml(source.title)} — ${escapeHtml(source.relationship.replaceAll('_',' '))} · ${escapeHtml(source.basis.replaceAll('_',' '))}</li>`).join('')}</ul></details>`;
+        }
+        panel.querySelector('[data-research]').onclick = async event => {
+          event.currentTarget.disabled = true;
+          try { render(await postJson(endpoint + (result ? '?refresh=true' : ''), {})); }
+          catch (error) { render({...state, error:error.message}); }
+        };
+        clearTimeout(timer);
+        if (running) timer = setTimeout(load, 2000);
+      }
+      async function load() {
+        if (!panel.isConnected) return;
+        try { render(await getJson(endpoint)); }
+        catch (error) {
+          panel.innerHTML = `<h3>Story research</h3><p role="status">Could not load research: ${escapeHtml(error.message)}</p><button type="button">Retry</button>`;
+          panel.querySelector('button').onclick = load;
+        }
+      }
+      load();
+    }
+
     function showCollectionDetails(collectionKey) {
       const collection = findCollectionByKey(collectionKey);
       if (!collection) return;
@@ -1578,6 +1648,7 @@
       document.getElementById('detailContent').querySelectorAll('[data-open-story-item]').forEach(button => {
         button.addEventListener('click', () => showItemDetails(Number(button.dataset.openStoryItem)));
       });
+      mountResearch(Number(master.lead_item_id || items[0]?.id));
     }
 
     async function showItemDetails(itemId) {
@@ -1660,6 +1731,7 @@
           </div>
         `;
         bindInlineActions(document.getElementById('detailContent'));
+        mountResearch(itemId);
         document.querySelectorAll('[data-toggle-linkedin]').forEach(btn => {
           btn.addEventListener('click', (evt) => {
             evt.preventDefault();

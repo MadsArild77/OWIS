@@ -21,6 +21,11 @@ def get_conn():
 def init_db() -> None:
     with get_conn() as conn:
         conn.executescript('''
+            CREATE TABLE IF NOT EXISTS news_story_research (
+                processed_id INTEGER PRIMARY KEY, status TEXT NOT NULL,
+                started_at TEXT NOT NULL, completed_at TEXT,
+                result_json TEXT, error TEXT, run_id TEXT NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS news_open_search_attempts (
                 raw_id INTEGER PRIMARY KEY, checked_at TEXT NOT NULL, result_count INTEGER NOT NULL DEFAULT 0
             );

@@ -803,6 +803,25 @@ def enrich_article(item_id: int, refresh: bool = False):
     return item(item_id)
 
 
+@router.get('/item/{item_id}/research')
+def read_story_research(item_id: int):
+    from owis.modules.news.processing import research
+    if not repo.get_item(item_id):
+        raise HTTPException(404, 'Article not found')
+    return research.read(item_id)
+
+
+@router.post('/item/{item_id}/research')
+def start_story_research(item_id: int, refresh: bool = False):
+    from owis.modules.news.processing import research
+    try:
+        return research.start(item_id, refresh=refresh)
+    except LookupError as error:
+        raise HTTPException(404, str(error))
+    except ValueError as error:
+        raise HTTPException(409, str(error))
+
+
 @router.post('/item/{item_id}/draft')
 def editorial_draft(item_id: int):
     found=repo.get_item(item_id)
