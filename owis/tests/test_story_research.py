@@ -133,3 +133,41 @@ def test_no_results_does_not_invent_new_coverage(story, analysis, monkeypatch):
     monkeypatch.setattr(research.AIClient,'_post_json_prompt',lambda *a,**kw:analysis)
     result=research.analyse(NewsRepository().get_item(story))
     assert len(result['sources'])==1 and result['whats_new']==[]
+
+
+def test_tavily_search_normalizes_results_and_limits_cost(monkeypatch):
+    monkeypatch.setenv('TAVILY_API_KEY','test-key')
+    monkeypatch.setenv('BRAVE_SEARCH_API_KEY','unused')
+    monkeypatch.setattr(research.httpx,'get',lambda *a,**k:pytest.fail('Must prefer Tavily'))
+    def post(url,headers,json,timeout):
+        assert url=='https://api.tavily.com/search'
+        assert headers['Authorization']=='Bearer test-key'
+        assert json['search_depth']=='basic' and json['auto_parameters'] is False
+        assert json['max_results']==5 and json['include_answer'] is False
+        assert json['include_raw_content'] is False
+        return research.httpx.Response(200,json={'results':[{'url':'https://example.org/a','title':'Report','content':'Evidence'}]*7},request=research.httpx.Request('POST',url))
+    monkeypatch.setattr(research.httpx,'post',post)
+    rows=research.search('offshore wind')
+    assert len(rows)==5 and rows[0]['description']=='Evidence'
+
+
+def test_tavily_failure_does_not_silently_charge_brave(monkeypatch):
+    monkeypatch.setenv('TAVILY_API_KEY','test-key')
+    monkeypatch.setenv('BRAVE_SEARCH_API_KEY','unused')
+    monkeypatch.setattr(research.httpx,'get',lambda *a,**k:pytest.fail('No automatic fallback'))
+    monkeypatch.setattr(research.httpx,'post',lambda url,**k:research.httpx.Response(401,request=research.httpx.Request('POST',url)))
+    with pytest.raises(research.httpx.HTTPStatusError):research.search('test')
+
+
+def test_brave_still_available_without_tavily(monkeypatch):
+    monkeypatch.delenv('TAVILY_API_KEY',raising=False)
+    monkeypatch.setenv('BRAVE_SEARCH_API_KEY','test-key')
+    monkeypatch.setattr(research.httpx,'get',lambda url,**k:research.httpx.Response(200,json={'web':{'results':[{'url':'https://example.org','description':'Text'}]}},request=research.httpx.Request('GET',url)))
+    assert research.search('test')[0]['description']=='Text'
+
+
+def test_tavily_key_satisfies_search_configuration(monkeypatch):
+    monkeypatch.setenv('TAVILY_API_KEY','test-key')
+    monkeypatch.delenv('BRAVE_SEARCH_API_KEY',raising=False)
+    monkeypatch.setattr(research,'AIClient',lambda:type('Client',(),{'enabled':True})())
+    assert research.capabilities()['available'] is True
