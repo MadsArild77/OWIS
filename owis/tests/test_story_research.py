@@ -71,14 +71,13 @@ def test_duplicate_click_and_refresh_cooldown(story, monkeypatch):
         research.start(story, refresh=True)
 
 
-@pytest.mark.parametrize('invalid', ['unknown_reference','unrelated_reference','unsupported_new','missing_classification','invalid_rating'])
+@pytest.mark.parametrize('invalid', ['unknown_reference','unrelated_reference','unsupported_new','invalid_rating'])
 def test_invalid_ai_results_are_not_saved(story, analysis, monkeypatch, invalid):
     if invalid=='unknown_reference': analysis['what_happened'][0]['source_ids']=[99]
     if invalid=='unrelated_reference':
         analysis['sources'][1]['relationship']='unrelated'
         analysis['what_happened'][0]['source_ids']=[2]
     if invalid=='unsupported_new': analysis['whats_new']=[{'text':'New claim','source_ids':[1]}]
-    if invalid=='missing_classification': analysis['sources'].pop()
     if invalid=='invalid_rating': analysis['brand_fit']['level']='95'
     mock_analysis(monkeypatch, analysis)
     monkeypatch.setattr(research._EXECUTOR,'submit',lambda fn,*args:fn(*args))
@@ -171,3 +170,27 @@ def test_tavily_key_satisfies_search_configuration(monkeypatch):
     monkeypatch.delenv('BRAVE_SEARCH_API_KEY',raising=False)
     monkeypatch.setattr(research,'AIClient',lambda:type('Client',(),{'enabled':True})())
     assert research.capabilities()['available'] is True
+
+
+def test_unused_omitted_sources_are_preserved_as_unassessed(story, analysis, monkeypatch):
+    analysis['sources'].pop()
+    mock_analysis(monkeypatch, analysis)
+    result = research.analyse(NewsRepository().get_item(story))
+    assert result['sources'][1]['relationship'] == 'unassessed'
+    assert 'not assessed' in result['limitations']
+
+
+def test_claim_cannot_cite_omitted_source(story, analysis, monkeypatch):
+    analysis['sources'].pop()
+    analysis['what_happened'][0]['source_ids'] = [2]
+    mock_analysis(monkeypatch, analysis)
+    with pytest.raises(ValueError, match='unsupported source references'):
+        research.analyse(NewsRepository().get_item(story))
+
+
+@pytest.mark.parametrize('entry', [{'source_id':1,'relationship':'original'}, {'source_id':99,'relationship':'background'}])
+def test_duplicate_or_unknown_classifications_are_rejected(story, analysis, monkeypatch, entry):
+    analysis['sources'].append(entry)
+    mock_analysis(monkeypatch, analysis)
+    with pytest.raises(ValueError, match='invalid source classifications'):
+        research.analyse(NewsRepository().get_item(story))
