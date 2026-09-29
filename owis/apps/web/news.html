@@ -1528,6 +1528,30 @@
       return `<div class="detail-action-row"><a class="info-search" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" aria-label="Find more info (opens Google search in a new tab)">Find more info ↗</a></div>`;
     }
 
+    function researchCopyText(result, title) {
+      const lines = [title || result.query || 'Story research', `Research saved: ${result.generated_at}`, ''];
+      for (const [heading, key] of [['What happened','what_happened'], ['Key developments','key_developments'], ['Why it matters (analysis)','why_it_matters'], ["What's new",'whats_new']]) {
+        lines.push(heading);
+        for (const claim of result[key] || []) {
+          lines.push(`- ${claim.text} ${(claim.source_ids || []).map(id => `[${id}]`).join(' ')}`.trim());
+        }
+        if (!result[key]?.length) lines.push('No additional findings.');
+        lines.push('');
+      }
+      lines.push('LinkedIn potential', 'Editorial judgement, not a prediction of reach or virality.');
+      for (const [heading, key] of [['Brand fit','brand_fit'], ['Conversation potential','conversation_potential']]) {
+        lines.push(`${heading}: ${result[key].level}`, result[key].reason, '');
+      }
+      lines.push('Why this fits you', result.why_this_fits_you, '', 'Possible angles',
+        ...result.suggested_angles.map(angle => `- ${angle}`), '',
+        'What would strengthen it', result.what_would_strengthen_it, '', 'Limitations', result.limitations, '', 'Sources');
+      for (const source of result.sources) {
+        lines.push(`[${source.id}] ${source.title} (${source.relationship.replaceAll('_',' ')}; ${source.basis.replaceAll('_',' ')})`);
+        if (/^https?:\/\//i.test(source.url || '')) lines.push(source.url);
+      }
+      return lines.join('\n');
+    }
+
     function mountResearch(itemId) {
       if (!Number.isFinite(itemId) || itemId <= 0) return;
       const panel = document.createElement('section');
@@ -1544,10 +1568,32 @@
         panel.innerHTML = `<h3>Story research</h3>
           <p class="muted">Research this article and assess its fit for your LinkedIn voice. Results are saved.</p>
           <button type="button" class="btn-secondary" data-research ${running || !state.available ? 'disabled' : ''}>${running ? 'Researching…' : result ? 'Refresh research' : 'Research this story'}</button>
+          ${result ? '<button type="button" class="btn-secondary" data-copy-research>Copy research</button><span data-copy-status role="status" aria-live="polite"></span>' : ''}
           <p role="status">${escapeHtml(running ? 'Searching and analysing. You can close this view and return later.' : state.error || '')}</p>
           ${!state.available ? `<p class="muted">Setup required: ${escapeHtml(state.setup_required)}. Manual web search is still available below.</p>` : ''}
           <div data-research-result></div>`;
         if (result) {
+          panel.querySelector('[data-copy-research]').onclick = async () => {
+            const text = researchCopyText(result, result.query || document.getElementById('detailTitle').textContent);
+            const status = panel.querySelector('[data-copy-status]');
+            panel.querySelector('[data-copy-fallback]')?.remove();
+            try {
+              await navigator.clipboard.writeText(text);
+              status.textContent = ' Research copied.';
+            } catch (error) {
+              status.textContent = ' Select and copy the text below.';
+              const fallback = document.createElement('textarea');
+              fallback.dataset.copyFallback = '';
+              fallback.readOnly = true;
+              fallback.rows = 10;
+              fallback.style.width = '100%';
+              fallback.setAttribute('aria-label', 'Research text to copy');
+              fallback.value = text;
+              status.after(fallback);
+              fallback.focus();
+              fallback.select();
+            }
+          };
           const sources = new Map(result.sources.map(source => [source.id, source]));
           const sourceLink = id => {
             const source = sources.get(id);
