@@ -803,6 +803,33 @@ def enrich_article(item_id: int, refresh: bool = False):
     return item(item_id)
 
 
+@router.get('/morning-report/history')
+def morning_report_history():
+    from owis.modules.news.processing import morning
+    return morning.history()
+
+
+@router.get('/morning-report')
+def morning_report(report_date: str | None = None):
+    from owis.modules.news.processing import morning
+    if report_date:
+        from datetime import date
+        try:
+            report_date = date.fromisoformat(report_date).isoformat()
+        except ValueError:
+            raise HTTPException(400, 'Use YYYY-MM-DD for report_date')
+    return morning.read(report_date)
+
+
+@router.post('/morning-report')
+def generate_morning_report(refresh: bool = False):
+    from owis.modules.news.processing import morning
+    try:
+        return morning.start(refresh=refresh)
+    except ValueError as ex:
+        raise HTTPException(409, str(ex))
+
+
 @router.get('/researched')
 def researched_stories():
     """User's research history, independent of feed filters and retention windows."""

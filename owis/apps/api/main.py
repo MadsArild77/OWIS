@@ -32,6 +32,15 @@ def on_startup() -> None:
         destination=database.parent/'backups'/f"startup-{datetime.now(timezone.utc):%Y-%m-%d}.db"
         if not destination.exists():backup(destination)
     init_db()
+    from owis.modules.news.processing.morning import start_scheduler
+    app.state.morning_stop = start_scheduler()
+
+
+@app.on_event('shutdown')
+def on_shutdown():
+    stop = getattr(app.state, 'morning_stop', None)
+    if stop:
+        stop.set()
 
 
 @app.get("/", include_in_schema=False)

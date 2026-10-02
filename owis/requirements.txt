@@ -5,4 +5,5 @@ httpx==0.28.1
 beautifulsoup4==4.13.4
 pydantic==2.11.7
 PyYAML==6.0.2
+tzdata==2025.2
 pytest==8.4.1

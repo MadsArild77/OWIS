@@ -23,8 +23,13 @@ This opens `http://127.0.0.1:8000/news` and starts the API with reload.
 
 ## Jobs
 
+Morning report and policy outlook: see [MORNING_REPORT.md](../MORNING_REPORT.md).
+Automatic 06:00 Europe/Oslo runs are enabled with `OWI_MORNING_REPORT_ENABLED=true`.
+The server must be running. Manual generation is available in the News page.
+
 - Fetch news sources: `python -m owis.jobs.run_news_fetch`
 - Process news raw items: `python -m owis.jobs.run_news_processing`
+- Generate today's morning report: `python -m owis.jobs.run_morning_report`
 - Fetch opportunities (DealEngine-style sources): `python -m owis.jobs.run_opportunities_fetch`
 - Process opportunity raw items: `python -m owis.jobs.run_opportunities_processing`
 - Export opportunities to Notion: `python -m owis.jobs.run_opportunities_notion_export`
