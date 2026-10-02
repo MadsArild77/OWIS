@@ -925,6 +925,7 @@
     <section class="card">
       <div class="tab-bar">
         <button class="tab-btn active" data-tab="reading" type="button">News</button>
+        <button class="tab-btn" data-tab="researched" type="button">Researched stories</button>
         <button class="tab-btn" data-tab="review" type="button">Review</button>
       </div>
 
@@ -945,6 +946,12 @@
         </div>
       </div>
 
+      <div id="tab-researched" class="tab-panel">
+        <h2>Researched stories</h2>
+        <p class="muted">All stories you have researched, including running and failed attempts. Independent of news filters.</p>
+        <button type="button" class="btn-secondary" onclick="loadResearchedStories()">Refresh</button>
+        <div id="researchedStories" aria-live="polite"></div>
+      </div>
       <div id="tab-review" class="tab-panel">
         <h2>Review</h2>
         <p class="muted">Merge related articles, accept/reject AI matches and train grouping decisions.</p>
@@ -1552,13 +1559,63 @@
       return lines.join('\n');
     }
 
+    async function loadResearchedStories() {
+      const root = document.getElementById('researchedStories');
+      root.textContent = 'Loading…';
+      try {
+        const rows = await getJson('/api/news/researched');
+        root.innerHTML = rows.length ? rows.map(item => `<article class="research-panel">
+          <h3>${escapeHtml(item.title)}</h3>
+          <p class="muted">${escapeHtml(item.source_name)} · ${escapeHtml(item.research_status)} · ${escapeHtml(new Date(item.started_at).toLocaleString('en-GB'))}${item.has_result ? ' · Saved result available' : ''}</p>
+          ${item.research_error ? `<p>${escapeHtml(item.research_error)}</p>` : ''}
+          <button type="button" data-open-researched="${item.id}">Open story</button></article>`).join('') : '<p>No researched stories yet. Open a story and choose Research this story.</p>';
+        root.querySelectorAll('[data-open-researched]').forEach(button => button.onclick = () => showItemDetails(Number(button.dataset.openResearched)));
+      } catch (error) { root.textContent = `Could not load researched stories: ${error.message}. Use Refresh to retry.`; }
+    }
+
+    function storyCopyText(item, result) {
+      const lines = ['Use the evidence below to draft a professional LinkedIn post. Separate facts from analysis, preserve source references, and do not invent facts or personal experiences.',
+        '', item.title || 'Story', `Source: ${item.source_name || ''}`, item.article_url || '',
+        `Published: ${item.published_at || 'Unknown'}`, '', 'Article summary', item.summary || '',
+        '', 'Why it matters (analysis)', item.why_it_matters || ''];
+      if (item.cleaned_text) lines.push('', 'Available article text (may be an excerpt)', item.cleaned_text);
+      if (result) lines.push('', researchCopyText(result, item.title));
+      else lines.push('', 'No saved research available. Use only the article material above.');
+      return lines.join('\n');
+    }
+
+    function mountStoryCopy(item) {
+      const bar = document.createElement('div');
+      bar.className = 'detail-action-row';
+      bar.innerHTML = '<button type="button" class="btn-secondary">Copy info</button><span role="status" aria-live="polite"></span>';
+      document.getElementById('detailContent').prepend(bar);
+      bar.querySelector('button').onclick = async () => {
+        const status = bar.querySelector('[role="status"]');
+        status.textContent = ' Preparing…';
+        try {
+          const state = await getJson(`/api/news/item/${item.id}/research`);
+          if (!bar.isConnected) return;
+          const text = storyCopyText(item, state.result);
+          bar.querySelector('textarea')?.remove();
+          try { await navigator.clipboard.writeText(text); status.textContent = ' Info copied.'; }
+          catch (_) {
+            status.textContent = ' Select and copy below.';
+            const field = document.createElement('textarea');
+            field.readOnly = true; field.rows = 10; field.style.width = '100%';
+            field.setAttribute('aria-label', 'Story information to copy'); field.value = text;
+            bar.append(field); field.focus(); field.select();
+          }
+        } catch (error) { status.textContent = ` Could not prepare info: ${error.message}. Try again.`; }
+      };
+    }
+
     function mountResearch(itemId) {
       if (!Number.isFinite(itemId) || itemId <= 0) return;
       const panel = document.createElement('section');
       panel.className = 'research-panel';
       panel.setAttribute('aria-label', 'Story research and LinkedIn potential');
       panel.innerHTML = '<h3>Story research</h3><p role="status">Loading saved research…</p>';
-      document.getElementById('detailContent').prepend(panel);
+      document.getElementById('detailContent').append(panel);
       const endpoint = `/api/news/item/${itemId}/research`;
       let timer;
       function render(state) {
@@ -1568,32 +1625,10 @@
         panel.innerHTML = `<h3>Story research</h3>
           <p class="muted">Research this article and assess its fit for your LinkedIn voice. Results are saved.</p>
           <button type="button" class="btn-secondary" data-research ${running || !state.available ? 'disabled' : ''}>${running ? 'Researching…' : result ? 'Refresh research' : 'Research this story'}</button>
-          ${result ? '<button type="button" class="btn-secondary" data-copy-research>Copy research</button><span data-copy-status role="status" aria-live="polite"></span>' : ''}
           <p role="status">${escapeHtml(running ? 'Searching and analysing. You can close this view and return later.' : state.error || '')}</p>
-          ${!state.available ? `<p class="muted">Setup required: ${escapeHtml(state.setup_required)}. Manual web search is still available below.</p>` : ''}
+          ${!state.available ? `<p class="muted">Setup required: ${escapeHtml(state.setup_required)}. You can still use Find more info.</p>` : ''}
           <div data-research-result></div>`;
         if (result) {
-          panel.querySelector('[data-copy-research]').onclick = async () => {
-            const text = researchCopyText(result, result.query || document.getElementById('detailTitle').textContent);
-            const status = panel.querySelector('[data-copy-status]');
-            panel.querySelector('[data-copy-fallback]')?.remove();
-            try {
-              await navigator.clipboard.writeText(text);
-              status.textContent = ' Research copied.';
-            } catch (error) {
-              status.textContent = ' Select and copy the text below.';
-              const fallback = document.createElement('textarea');
-              fallback.dataset.copyFallback = '';
-              fallback.readOnly = true;
-              fallback.rows = 10;
-              fallback.style.width = '100%';
-              fallback.setAttribute('aria-label', 'Research text to copy');
-              fallback.value = text;
-              status.after(fallback);
-              fallback.focus();
-              fallback.select();
-            }
-          };
           const sources = new Map(result.sources.map(source => [source.id, source]));
           const sourceLink = id => {
             const source = sources.get(id);
@@ -1608,12 +1643,12 @@
             ${section('Key developments',result.key_developments,'No additional developments identified.')}
             ${section('Why it matters · analysis',result.why_it_matters,'No supported implications identified.')}
             ${section('What’s new',result.whats_new,'No additional facts found beyond the original article.')}
-            <h3>LinkedIn potential</h3><p class="muted">Qualitative editorial judgement, not a prediction of reach or virality.</p>
+            <details><summary>Post angles and editorial fit</summary><p class="muted">Qualitative editorial judgement, not a prediction of reach or virality.</p>
             <div class="research-ratings">${rating('Brand fit',result.brand_fit)}${rating('Conversation potential',result.conversation_potential)}</div>
             <h4>Why this fits you</h4><p>${escapeHtml(result.why_this_fits_you)}</p>
             <h4>Possible angles</h4><ul>${result.suggested_angles.map(angle=>`<li>${escapeHtml(angle)}</li>`).join('')}</ul>
             <h4>What would strengthen it</h4><p>${escapeHtml(result.what_would_strengthen_it)}</p>
-            <h4>Limitations</h4><p>${escapeHtml(result.limitations)}</p>
+            </details><h4>Limitations</h4><p>${escapeHtml(result.limitations)}</p>
             <details><summary>Sources (${result.sources.length})</summary><ul>${result.sources.map(source=>`<li>${sourceLink(source.id)} ${escapeHtml(source.title)} — ${escapeHtml(source.relationship.replaceAll('_',' '))} · ${escapeHtml(source.basis.replaceAll('_',' '))}</li>`).join('')}</ul></details>`;
         }
         panel.querySelector('[data-research]').onclick = async event => {
@@ -1680,12 +1715,12 @@
           <strong>Why it matters</strong>
           <div>${textBlockHtml(master.why_it_matters || 'n/a')}</div>
         </div>
-        <div class="detail-meta-strip">
+        <details><summary>Article details</summary><div class="detail-meta-strip">
           ${detailMetaChip('Themes', (master.themes || []).join(', ') || 'n/a')}
           ${detailMetaChip('Geography', (master.geographies || []).join(', ') || 'n/a')}
           ${detailMetaChip('Actors', (master.actors || []).join(', ') || 'n/a')}
           ${detailMetaChip('Sources', (master.sources || []).join(', ') || 'n/a')}
-        </div>
+        </div></details>
         <div class="detail-why">
           <strong>Source articles in this merged story</strong>
           <div>${sourceRows}</div>
@@ -1694,7 +1729,9 @@
       document.getElementById('detailContent').querySelectorAll('[data-open-story-item]').forEach(button => {
         button.addEventListener('click', () => showItemDetails(Number(button.dataset.openStoryItem)));
       });
-      mountResearch(Number(master.lead_item_id || items[0]?.id));
+      const leadId = Number(master.lead_item_id || items[0]?.id);
+      mountResearch(leadId);
+      mountStoryCopy({...master, id: leadId, source_name: (master.sources || []).join(', '), article_url: items.map(item => item.article_url).filter(Boolean).join('\n')});
     }
 
     async function showItemDetails(itemId) {
@@ -1728,7 +1765,6 @@
           item.cleaned_text,
           preview.source_context,
         );
-        const hasLinkedInSuggestion = Boolean(item.linkedin_angle);
         const detailImageUrl = preview.image_url || item.image_url || '';
         const imageHtml = detailImageUrl
           ? `<img class="detail-preview-image" src="${escapeHtml(detailImageUrl)}" alt="${escapeHtml(item.title || 'Article image')}" onerror="this.remove()" />`
@@ -1751,43 +1787,24 @@
             <strong>Why it matters</strong>
             <div>${escapeHtml(item.why_it_matters || 'n/a')}</div>
           </div>
-          ${hasLinkedInSuggestion ? `
-            <div class="detail-action-row">
-              <button class="btn-secondary" type="button" data-toggle-linkedin="${itemId}">Show LinkedIn suggestion</button>
-            </div>
-            <div id="linkedinSuggestion-${itemId}" class="detail-linkedin-suggestion">
-              <strong>Suggested LinkedIn post</strong>
-              <div class="detail-linkedin-text">${escapeHtml(item.linkedin_angle)}</div>
-            </div>
-          ` : ''}
-          <div class="detail-meta-strip">
+          <details><summary>Article details</summary><div class="detail-meta-strip">
             ${detailMetaChip('Themes', formatCsv(item.theme_tags))}
             ${detailMetaChip('Geography', formatCsv(item.geography_tags))}
             ${detailMetaChip('Actors', formatCsv(item.actors))}
             ${preview.author ? detailMetaChip('Author', preview.author) : ''}
             ${detailMetaChip('Score', String(item.signal_score ?? 'n/a'))}
             ${detailMetaChip('Confidence', String(item.confidence ?? 'n/a'))}
-          </div>
+          </div></details>
           <div class="detail-source-link"><a href="${escapeHtml(item.article_url || '#')}" target="_blank" rel="noopener noreferrer">Open original source</a></div>
           <div class="card-actions-inline">
             <button type="button" class="btn-secondary" data-editorial="${itemId}" data-vote="relevant">👍 Relevant</button>
             <button type="button" class="btn-secondary" data-editorial="${itemId}" data-vote="non_relevant">👎 Hide</button>
-            <button type="button" class="btn-secondary" data-draft="${itemId}">View / create draft</button>
             <button type="button" class="btn-secondary" data-enrich="${itemId}">Expand description</button>
           </div>
         `;
         bindInlineActions(document.getElementById('detailContent'));
         mountResearch(itemId);
-        document.querySelectorAll('[data-toggle-linkedin]').forEach(btn => {
-          btn.addEventListener('click', (evt) => {
-            evt.preventDefault();
-            const targetId = btn.getAttribute('data-toggle-linkedin');
-            const panel = document.getElementById(`linkedinSuggestion-${targetId}`);
-            if (!panel) return;
-            const isOpen = panel.classList.toggle('open');
-            btn.textContent = isOpen ? 'Hide LinkedIn suggestion' : 'Show LinkedIn suggestion';
-          });
-        });
+        mountStoryCopy(item);
       } catch (error) {
         if (activeDetailItemId !== itemId) return;
         document.getElementById('detailContent').innerHTML = '<p class="muted">Failed to load detail for this item.</p>';
@@ -1847,7 +1864,8 @@
       }
     }
     function setActiveTab(tabName) {
-      const normalized = tabName === 'review' ? 'review' : 'reading';
+      const normalized = ['review', 'researched'].includes(tabName) ? tabName : 'reading';
+      if (normalized === 'researched') loadResearchedStories();
       setViewMode(normalized);
       document.querySelectorAll('.tab-btn').forEach(btn => {
         const isActive = btn.getAttribute('data-tab') === normalized;
