@@ -163,7 +163,7 @@ def _source_progress_from_registry(detail: str) -> list[dict[str, Any]]:
     registry = load_source_registry()
     sources = registry.get("sources", []) if isinstance(registry, dict) else registry
     for source in sources:
-        if source.get("enabled") is False:
+        if source.get("enabled") is False or not source.get('_collection_enabled', True):
             continue
         rows.append(
             {

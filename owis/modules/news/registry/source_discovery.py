@@ -61,6 +61,9 @@ def _save_source_registry_to_yaml(sources: list[dict[str, Any]], strict: bool) -
 
 def _load_source_registry_from_db() -> list[dict[str, Any]]:
     with get_conn() as conn:
+        from owis.core.sources.registry import initialized, legacy_view
+        if initialized(conn):
+            return legacy_view(conn)
         rows = conn.execute(
             """
             SELECT source_json
@@ -84,6 +87,11 @@ def _save_source_registry_to_db(sources: list[dict[str, Any]]) -> None:
     init_db()
     now_iso = datetime.now(timezone.utc).isoformat()
     with get_conn() as conn:
+        conn.execute('BEGIN IMMEDIATE')
+        from owis.core.sources.registry import initialized, save_legacy
+        if initialized(conn):
+            save_legacy(conn, sources)
+            return
         conn.execute("DELETE FROM news_source_registry")
         conn.execute("INSERT OR REPLACE INTO news_registry_meta VALUES('initialized','true')")
         for pos, source in enumerate(sources):
@@ -439,7 +447,7 @@ def source_health_report(only_enabled: bool = True) -> list[dict[str, Any]]:
     sources = load_source_registry()
 
     for source in sources:
-        if only_enabled and not source.get("enabled"):
+        if only_enabled and (not source.get("enabled") or not source.get('_collection_enabled', True)):
             continue
 
         src_name = source.get("name", "unknown")
@@ -642,7 +650,8 @@ def dedupe_sources() -> dict[str, Any]:
     kept_by_key: dict[str, dict[str, Any]] = {}
 
     for src in sources:
-        key = _source_key(src)
+        # Configured sources may intentionally share a host or URL across scopes.
+        key = 'configured:' + src['_config_id'] if src.get('_config_id') else _source_key(src)
         if not key:
             key = f"unknown-{id(src)}"
         if key not in kept_by_key:
