@@ -4,7 +4,7 @@ Avtalt 3. oktober 2026. Vi gjennomfører fire PR-er i rekkefølge, én om gangen
 Hvert trinn implementeres, testes og kontrolleres i appen før neste trinn starter.
 Hver PR skal fungere selvstendig og bevare eksisterende nyhetsflyt.
 
-**Status:** Punkt 1 er implementert og validert; klargjøres som egen PR.
+**Status:** Punkt 1 er implementert og validert i [utkast-PR #8](https://github.com/MadsArild77/OWIS/pull/8). Punkt 2–4 er ikke startet.
 **Neste oppgave:** Gjennomgå PR 1, deretter punkt 2 – felles innhentingsmotor.
 
 Oppdater denne filen etter hvert trinn med PR-lenke, validering, gjenstående
@@ -33,7 +33,7 @@ er et utgangspunkt; de betyr ikke at arbeidet nedenfor er ferdig.
 Ferdig når brukeren kan opprette Norge → Stortinget → Energi- og miljøkomiteen
 → kilde, teste støttet uttrekk og lagre oppsettet.
 
-PR: opprettes på `codex/source-configuration`.
+PR: [#8 – datamodell og konfigurasjon](https://github.com/MadsArild77/OWIS/pull/8), utkast på `codex/source-configuration`.
 
 Validering: 166 tester består (23 nye konfigurasjonstester), JavaScript-syntaks
 og diff kontrollert. Nettlesertest med isolert database: opprettelse av
