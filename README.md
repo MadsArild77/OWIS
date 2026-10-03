@@ -1,5 +1,8 @@
 # OWIS
 
+Active implementation plan: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
+Follow the four PRs in order, one at a time. Step 1 is implemented: [source configuration](SOURCE_CONFIGURATION.md). Next after review: the shared ingestion engine.
+
 Dedicated development copy of https://github.com/MadsArild77/OWIS.
 
 This workspace preserves the tracked local work found in `C:\Users\madsa\OneDrive\OpenAI` on 2026-09-23, based on commit `7069c638bdf17fb95d03fef3cfccdfdcfa6ba403`. The original workspace remains intact. Work continues on branch `work/resume-owis`.

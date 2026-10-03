@@ -66,7 +66,7 @@ def _entry_image_url(entry: dict[str, Any]) -> str:
 
 
 def load_sources() -> list[dict[str, Any]]:
-    return [s for s in load_source_registry() if s.get("enabled")]
+    return [s for s in load_source_registry() if s.get("enabled") and s.get('_collection_enabled', True)]
 
 
 def _parse_feed(url: str):

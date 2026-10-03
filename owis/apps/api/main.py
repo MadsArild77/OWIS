@@ -6,10 +6,12 @@ from fastapi.staticfiles import StaticFiles
 
 from owis.core.storage.db import init_db
 from owis.modules.news.presentation.api import router as news_router
+from owis.core.sources.api import router as source_config_router
 from owis.modules.opportunities.presentation.api import router as opportunities_router
 
 app = FastAPI(title="Offshore Wind Intelligence API", version="0.1.0")
 app.include_router(news_router)
+app.include_router(source_config_router)
 app.include_router(opportunities_router)
 
 web_dir = Path("owis/apps/web")

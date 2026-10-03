@@ -373,7 +373,7 @@ def fetch_scrape_items_with_report(limit_per_source: int = 20) -> tuple[list[dic
     now = datetime.now(timezone.utc).isoformat()
 
     for source in load_source_registry():
-        if not source.get("enabled") or source.get("type") != "scrape":
+        if not source.get("enabled") or not source.get('_collection_enabled', True) or source.get("type") != "scrape":
             continue
 
         src_name = source.get("name", "unknown")

@@ -21,6 +21,13 @@ def get_conn():
 def init_db() -> None:
     with get_conn() as conn:
         conn.executescript('''
+            CREATE TABLE IF NOT EXISTS source_config_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS source_jurisdictions (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS source_organisations (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS configured_sources (
+                id TEXT PRIMARY KEY, payload TEXT NOT NULL, legacy_json TEXT NOT NULL DEFAULT '{}',
+                legacy_visible INTEGER NOT NULL DEFAULT 1, last_test_json TEXT
+            );
             CREATE TABLE IF NOT EXISTS news_morning_reports (
                 report_date TEXT PRIMARY KEY, status TEXT NOT NULL,
                 started_at TEXT NOT NULL, completed_at TEXT, run_id TEXT NOT NULL,

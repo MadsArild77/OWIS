@@ -797,6 +797,28 @@
 <nav class="tab-bar" aria-label="View"><button id="showNewsView" type="button" aria-pressed="true">News</button><button id="showSettingsView" type="button" aria-pressed="false">Settings</button></nav>
     <section id="settingsView" class="card" hidden>
       <h2>Settings</h2>
+      <div id="sourceConfig">
+        <h3>Jurisdictions, organisations and sources</h3>
+        <p class="muted">Configure news, policy and calendar sources. Pausing preserves sources and their history.</p>
+        <div class="card-actions-inline" style="flex-wrap:wrap">
+          <button type="button" id="cfgReload">Reload configuration</button>
+          <button type="button" id="cfgAddJurisdiction">+ Jurisdiction</button>
+          <button type="button" id="cfgExport">Export configuration</button>
+          <button type="button" id="cfgImportToggle">Import configuration</button>
+        </div>
+        <p id="cfgStatus" role="status" aria-live="polite"></p>
+        <div id="cfgImportPanel" hidden>
+          <p>Import merges records by their stable IDs. Existing records with matching IDs are updated; other records and history remain. Credentials are not included in exports.</p>
+          <label>Configuration file <input id="cfgImportFile" type="file" accept=".json,application/json"></label>
+          <button type="button" id="cfgImportApply" disabled>Validate and import</button>
+          <p id="cfgImportSummary"></p>
+        </div>
+        <label>Jurisdiction <select id="cfgJurisdiction"><option value="">Loading…</option></select></label>
+        <div id="cfgJurisdictionActions" class="card-actions-inline" style="flex-wrap:wrap"></div>
+        <div id="cfgEditor" class="research-panel" hidden></div>
+        <div id="cfgTree"></div>
+      </div>
+      <details style="margin-top:24px"><summary>Existing news tools and pipeline</summary>
         <div class="settings-body">
 
           <p class="muted">Expand relevant stories with additional reporting when available.</p><h3>Monitored sources</h3><p class="muted">Manage RSS feeds, news sites and press rooms. Source settings are saved for future fetches.</p>
@@ -906,6 +928,7 @@
         </thead>
         <tbody id="sourcesBody"></tbody>
       </table>
+      </details>
     </section>
 
     <div id="articlesView">
@@ -2686,9 +2709,9 @@
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${s.index}</td>
-          <td>${s.name || ''}</td>
-          <td>${s.type || ''}</td>
-          <td>${s.url || ''}</td>
+          <td>${escapeHtml(s.name || '')}</td>
+          <td>${escapeHtml(s.type || '')}</td>
+          <td>${escapeHtml(s.url || '')}</td>
           <td title="${String(countTooltip).replace(/"/g, '&quot;')}"><span class="${countBadgeClass}">${lastItems}</span></td>
           <td title="${tooltip.replace(/"/g, '&quot;')}"><span class="${healthDotClass(color)}"></span>${color}</td>
           <td><input type="checkbox" ${s.enabled ? 'checked' : ''} data-toggle-index="${s.index}" /></td>
@@ -3027,6 +3050,7 @@
       }
       document.getElementById('showNewsView').addEventListener('click',()=>showView(false));
       document.getElementById('showSettingsView').addEventListener('click',()=>showView(true));
+      window.addEventListener('owis-source-config-saved', () => refreshSources().catch(error => setStatus(error.message, true)));
       document.getElementById('backfillBtn').addEventListener('click',async()=>{
         const button=document.getElementById('backfillBtn');button.disabled=true;
         try {
@@ -3089,6 +3113,7 @@
 
     boot();
   </script>
+  <script src="/static/source-config.js" defer></script>
 </body>
 </html>
 
