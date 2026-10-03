@@ -803,6 +803,54 @@ def enrich_article(item_id: int, refresh: bool = False):
     return item(item_id)
 
 
+@router.get('/morning-report/history')
+def morning_report_history():
+    from owis.modules.news.processing import morning
+    return morning.history()
+
+
+@router.get('/morning-report')
+def morning_report(report_date: str | None = None):
+    from owis.modules.news.processing import morning
+    if report_date:
+        from datetime import date
+        try:
+            report_date = date.fromisoformat(report_date).isoformat()
+        except ValueError:
+            raise HTTPException(400, 'Use YYYY-MM-DD for report_date')
+    return morning.read(report_date)
+
+
+@router.post('/morning-report')
+def generate_morning_report(refresh: bool = False):
+    from owis.modules.news.processing import morning
+    try:
+        return morning.start(refresh=refresh)
+    except ValueError as ex:
+        raise HTTPException(409, str(ex))
+
+
+@router.get('/researched')
+def researched_stories():
+    """User's research history, independent of feed filters and retention windows."""
+    with get_conn() as conn:
+        rows = conn.execute('''
+            SELECT p.id, p.title, r.source_name, s.status AS research_status,
+                   s.started_at, s.completed_at, s.error AS research_error,
+                   (s.result_json IS NOT NULL) AS has_result
+            FROM news_story_research s
+            JOIN news_processed_items p ON p.id = s.processed_id
+            JOIN news_raw_items r ON r.id = p.raw_item_id
+            ORDER BY s.started_at DESC, p.id DESC
+        ''').fetchall()
+    items = [dict(row) for row in rows]
+    cutoff = datetime.now(timezone.utc) - timedelta(minutes=15)
+    for item in items:
+        if item['research_status'] == 'running' and datetime.fromisoformat(item['started_at']) < cutoff:
+            item.update(research_status='failed', research_error='Research was interrupted. Please try again.')
+    return items
+
+
 @router.get('/item/{item_id}/research')
 def read_story_research(item_id: int):
     from owis.modules.news.processing import research

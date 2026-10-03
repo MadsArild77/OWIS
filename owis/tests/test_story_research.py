@@ -194,3 +194,26 @@ def test_duplicate_or_unknown_classifications_are_rejected(story, analysis, monk
     mock_analysis(monkeypatch, analysis)
     with pytest.raises(ValueError, match='invalid source classifications'):
         research.analyse(NewsRepository().get_item(story))
+
+
+@pytest.mark.parametrize("status", ["running", "completed", "failed"])
+def test_research_history_includes_every_attempt(story, status):
+    from owis.apps.api.main import app
+    with TestClient(app) as client:
+        assert client.get('/api/news/researched').json() == []
+        with db.get_conn() as conn:
+            conn.execute("INSERT INTO news_story_research(processed_id,status,started_at,run_id) VALUES(?,?,?,?)",
+                         (story, status, datetime.now(timezone.utc).isoformat(), 'history'))
+        rows = client.get('/api/news/researched').json()
+        assert len(rows) == 1
+        assert rows[0]['id'] == story
+        assert rows[0]['research_status'] == status
+        assert rows[0]['title'] == 'New offshore wind contract'
+
+
+def test_research_history_marks_interrupted_attempt(story):
+    from owis.modules.news.presentation.api import researched_stories
+    with db.get_conn() as conn:
+        conn.execute("INSERT INTO news_story_research(processed_id,status,started_at,run_id) VALUES(?,'running',?,'old')",
+                     (story, (datetime.now(timezone.utc)-timedelta(minutes=20)).isoformat()))
+    assert researched_stories()[0]['research_status'] == 'failed'

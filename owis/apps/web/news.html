@@ -535,7 +535,7 @@
       display: none;
     }
     .selection-row { margin-top:8px; font-size:0.84rem; color:var(--muted); }
-    .tab-bar { display:flex; gap:8px; margin-bottom:14px; }
+    .tab-bar { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
     .tab-btn { background:rgba(255,255,255,0.07); color:var(--muted); border:1px solid var(--line); margin-top:0; }
     .tab-btn.active { background:linear-gradient(135deg, rgba(56,189,248,0.22), rgba(45,212,191,0.14)); color:#ffffff; border-color:rgba(125,211,252,0.38); }
     .tab-panel { display:none; }
@@ -909,7 +909,7 @@
     </section>
 
     <div id="articlesView">
-<section class="card">      <div class="overview-filters">
+<section class="card" id="newsFilters">      <div class="overview-filters">
         <label>Topic <select id="interestFilter"><option value="all">All topics</option><option value="energy">Offshore wind & energy</option><option value="maritime">Maritime & ports</option><option value="grid">Grid & electrification</option></select></label>
         <label>Geography <select id="geographyFilter"><option value="">All geographies</option></select></label>
         <label>Company <select id="companyFilter"><option value="">All companies</option></select></label>
@@ -924,11 +924,34 @@
 </section>
     <section class="card">
       <div class="tab-bar">
+        <button class="tab-btn" data-tab="morning" type="button">Morning report</button>
+        <button class="tab-btn" data-tab="governance" type="button">Policy & regulation</button>
         <button class="tab-btn active" data-tab="reading" type="button">News</button>
+        <button class="tab-btn" data-tab="researched" type="button">Researched stories</button>
         <button class="tab-btn" data-tab="review" type="button">Review</button>
       </div>
 
 
+      <div id="tab-morning" class="tab-panel">
+        <h2>Morning report</h2>
+        <p class="muted">Last 24 hours · Today · Next 90 days. Energy, offshore wind, maritime and electrification.</p>
+        <div class="card-actions-inline" style="flex-wrap:wrap">
+          <button type="button" data-generate-morning>Generate / refresh report</button>
+          <button type="button" data-copy-morning disabled>Copy report</button>
+          <label>Saved report <select id="morningHistory"><option value="">Latest</option></select></label>
+        </div>
+        <p id="morningSchedule" class="muted"></p>
+        <p id="morningStatus" role="status" aria-live="polite"></p>
+        <div id="morningBody"></div>
+      </div>
+      <div id="tab-governance" class="tab-panel">
+        <h2>Policy & regulation</h2>
+        <p class="muted">Norway and EU first, followed by the Nordics and other European countries. Based on the latest saved morning report.</p>
+        <label>Jurisdiction <select id="policyRegion"><option value="">All regions</option><option>Norway</option><option>EU</option><option>Nordics</option><option>Europe</option></select></label>
+        <button type="button" data-generate-morning>Update report and policy outlook</button>
+        <p id="policyStatus" role="status" aria-live="polite"></p>
+        <div id="policyBody"></div>
+      </div>
       <div id="tab-reading" class="tab-panel active">
         <div class="view-toolbar">
           <strong>Headlines</strong>
@@ -945,6 +968,12 @@
         </div>
       </div>
 
+      <div id="tab-researched" class="tab-panel">
+        <h2>Researched stories</h2>
+        <p class="muted">All stories you have researched, including running and failed attempts. Independent of news filters.</p>
+        <button type="button" class="btn-secondary" onclick="loadResearchedStories()">Refresh</button>
+        <div id="researchedStories" aria-live="polite"></div>
+      </div>
       <div id="tab-review" class="tab-panel">
         <h2>Review</h2>
         <p class="muted">Merge related articles, accept/reject AI matches and train grouping decisions.</p>
@@ -1528,13 +1557,214 @@
       return `<div class="detail-action-row"><a class="info-search" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" aria-label="Find more info (opens Google search in a new tab)">Find more info ↗</a></div>`;
     }
 
+    function researchCopyText(result, title) {
+      const lines = [title || result.query || 'Story research', `Research saved: ${result.generated_at}`, ''];
+      for (const [heading, key] of [['What happened','what_happened'], ['Key developments','key_developments'], ['Why it matters (analysis)','why_it_matters'], ["What's new",'whats_new']]) {
+        lines.push(heading);
+        for (const claim of result[key] || []) {
+          lines.push(`- ${claim.text} ${(claim.source_ids || []).map(id => `[${id}]`).join(' ')}`.trim());
+        }
+        if (!result[key]?.length) lines.push('No additional findings.');
+        lines.push('');
+      }
+      lines.push('LinkedIn potential', 'Editorial judgement, not a prediction of reach or virality.');
+      for (const [heading, key] of [['Brand fit','brand_fit'], ['Conversation potential','conversation_potential']]) {
+        lines.push(`${heading}: ${result[key].level}`, result[key].reason, '');
+      }
+      lines.push('Why this fits you', result.why_this_fits_you, '', 'Possible angles',
+        ...result.suggested_angles.map(angle => `- ${angle}`), '',
+        'What would strengthen it', result.what_would_strengthen_it, '', 'Limitations', result.limitations, '', 'Sources');
+      for (const source of result.sources) {
+        lines.push(`[${source.id}] ${source.title} (${source.relationship.replaceAll('_',' ')}; ${source.basis.replaceAll('_',' ')})`);
+        if (/^https?:\/\//i.test(source.url || '')) lines.push(source.url);
+      }
+      return lines.join('\n');
+    }
+
+    let displayedMorningReport = null;
+    let latestPolicyReport = null;
+    let morningPollTimer = null;
+    let morningLoadVersion = 0;
+
+    function reportSourceLink(url, label) {
+      return /^https?:\/\//i.test(url || '') ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>` : escapeHtml(label);
+    }
+
+    function policySection(title, events, region = '') {
+      const rows = events.filter(event => !region || event.region === region);
+      return `<h3>${title}</h3>${rows.length ? rows.map(event => `<article class="research-panel">
+        <p class="muted">${escapeHtml(event.jurisdiction)} · ${escapeHtml(event.region)} · ${escapeHtml(event.event_date || 'Date not confirmed')} · ${escapeHtml(event.kind.replaceAll('_',' '))}</p>
+        <h4>${escapeHtml(event.title)}</h4>
+        <p><strong>Status: ${escapeHtml(event.legal_status.replaceAll('_',' '))}</strong> · AI-extracted</p>
+        <p>${escapeHtml(event.summary)}</p>
+        <p><strong>Why it matters · analysis:</strong> ${escapeHtml(event.implications)}</p>
+        <p>${reportSourceLink(event.source.url, event.source.title || 'Official source')} · ${event.source.basis === 'fulltext' ? 'Official page text' : 'Search excerpt only'}</p>
+        <details><summary>Supporting evidence</summary><blockquote>${escapeHtml(event.evidence_quote)}</blockquote>
+          ${event.date_quote ? `<p>Date evidence: ${escapeHtml(event.date_quote)}</p>` : ''}
+          ${event.proposed_date ? `<p>Unconfirmed date candidate: ${escapeHtml(event.proposed_date)}. Verify in the original source.</p>` : ''}
+        </details>
+      </article>`).join('') : '<p class="muted">No findings in this saved report. This does not establish that nothing is scheduled.</p>'}`;
+    }
+
+    function coverageHtml(report) {
+      return `<p class="muted">${escapeHtml(report.coverage_note)}</p>
+        ${report.warnings.length ? `<div class="research-panel"><strong>Coverage limitations</strong><ul>${report.warnings.map(text => `<li>${escapeHtml(text)}</li>`).join('')}</ul></div>` : ''}
+        <details><summary>Sources checked</summary>
+          <h4>Policy sources</h4><ul>${report.policy_coverage.map(row => `<li>${escapeHtml(row.region)} — ${escapeHtml(row.domains.join(', '))}: ${escapeHtml(row.status)} (${row.sources_read} sources, ${row.fulltext_sources || 0} full texts)</li>`).join('')}</ul>
+          <h4>News sources</h4><ul>${report.news_coverage.map(row => `<li>${escapeHtml(row.source || 'Source')}: ${escapeHtml(row.error ? 'Failed' : `${row.items || 0} items`)}</li>`).join('')}</ul>
+        </details>`;
+    }
+
+    function renderPolicy(report) {
+      const root = document.getElementById('policyBody');
+      if (!report) { root.innerHTML = '<p>No saved policy outlook. Generate a morning report to start.</p>'; return; }
+      const region = document.getElementById('policyRegion').value;
+      root.innerHTML = `<p class="muted">Report ${escapeHtml(report.report_date)} · Saved ${escapeHtml(new Date(report.generated_at).toLocaleString('en-GB', {timeZone:'Europe/Oslo'}))} (Oslo). Sections are relative to this report date.</p>`
+        + policySection('Today', report.today, region) + policySection('Next 90 days', report.upcoming, region)
+        + policySection('On the radar · date not confirmed', report.watchlist, region) + coverageHtml(report);
+    }
+
+    function renderMorning(state) {
+      displayedMorningReport = state.result;
+      const status = state.status === 'running' ? 'Collecting news and checking official policy sources. You can return later.' : state.error || (state.result ? 'Saved report ready.' : 'No morning report yet.');
+      document.getElementById('morningStatus').textContent = status;
+      document.getElementById('morningSchedule').textContent = state.schedule.enabled
+        ? 'Automatic run: 06:00 Europe/Oslo. OWIS must be running; a later startup catches up for today.'
+        : 'Automatic 06:00 run is not enabled on this server. Reports can be generated here.';
+      document.querySelector('[data-copy-morning]').disabled = !state.result;
+      const report = state.result;
+      const root = document.getElementById('morningBody');
+      if (!report) { root.innerHTML = ''; return; }
+      root.innerHTML = `<p class="muted">${escapeHtml(report.report_date)} · Window ${escapeHtml(new Date(report.window_start).toLocaleString('en-GB', {timeZone:'Europe/Oslo'}))} – ${escapeHtml(new Date(report.window_end).toLocaleString('en-GB', {timeZone:'Europe/Oslo'}))} (Oslo).</p>
+        ${state.status !== 'completed' ? '<p>Showing the previous saved result while the new attempt is running or failed.</p>' : ''}
+        <h3>Last 24 hours</h3><p class="muted">${report.news_total} stories in the publication-time window. Showing up to 30, ranked by relevance; manually merged stories are grouped.</p>
+        ${report.news.length ? report.news.map(item => `<article class="research-panel"><h4>${escapeHtml(item.title)}</h4><p>${escapeHtml(item.summary)}</p><p><strong>Why it matters · analysis:</strong> ${escapeHtml(item.why_it_matters)}</p><p>${item.sources.map(source => reportSourceLink(source.article_url, source.source_name)).join(' · ')}</p></article>`).join('') : '<p>No collected stories with a confirmed publication timestamp in this window.</p>'}`
+        + policySection('Today · policy & regulation', report.today)
+        + policySection('Next 90 days · policy & regulation', report.upcoming)
+        + policySection('On the radar · date not confirmed', report.watchlist) + coverageHtml(report);
+    }
+
+    async function loadMorningReport() {
+      const version = ++morningLoadVersion;
+      clearTimeout(morningPollTimer);
+      const date = document.getElementById('morningHistory').value;
+      try {
+        const [latest, history, selected] = await Promise.all([
+          getJson('/api/news/morning-report'), getJson('/api/news/morning-report/history'),
+          date ? getJson('/api/news/morning-report?report_date=' + encodeURIComponent(date)) : Promise.resolve(null)
+        ]);
+        if (version !== morningLoadVersion) return;
+        const select = document.getElementById('morningHistory');
+        select.innerHTML = '<option value="">Latest</option>' + history.map(row => `<option value="${escapeHtml(row.report_date)}">${escapeHtml(row.report_date)} · ${escapeHtml(row.status)}</option>`).join('');
+        select.value = date;
+        renderMorning(selected || latest);
+        latestPolicyReport = latest.result;
+        renderPolicy(latestPolicyReport);
+        document.getElementById('policyStatus').textContent = latest.status === 'running' ? 'Updating the report and policy outlook…' : latest.error || '';
+        document.querySelectorAll('[data-generate-morning]').forEach(button => button.disabled = latest.status === 'running');
+        if (latest.status === 'running' && ['tab-morning','tab-governance'].some(id => document.getElementById(id).classList.contains('active'))) morningPollTimer = setTimeout(loadMorningReport, 3000);
+      } catch (error) {
+        if (version !== morningLoadVersion) return;
+        for (const id of ['morningStatus','policyStatus']) document.getElementById(id).textContent = `Could not load report: ${error.message}. Reopen this tab to retry.`;
+      }
+    }
+
+    async function generateMorningReport() {
+      document.querySelectorAll('[data-generate-morning]').forEach(button => button.disabled = true);
+      try {
+        await postJson('/api/news/morning-report?refresh=true', {});
+        document.getElementById('morningHistory').value = '';
+        await loadMorningReport();
+      } catch (error) {
+        for (const id of ['morningStatus','policyStatus']) document.getElementById(id).textContent = error.message;
+        document.querySelectorAll('[data-generate-morning]').forEach(button => button.disabled = false);
+      }
+    }
+
+    function morningCopyText(report) {
+      const lines = [`OWIS morning report · ${report.report_date}`, `Window: ${report.window_start} to ${report.window_end}`, '', 'LAST 24 HOURS'];
+      for (const item of report.news) lines.push('', item.title, item.summary, `Analysis: ${item.why_it_matters}`, ...item.sources.map(source => `${source.source_name}: ${source.article_url}`));
+      for (const [title, key] of [['TODAY','today'],['NEXT 90 DAYS','upcoming'],['ON THE RADAR — DATE NOT CONFIRMED','watchlist']]) {
+        lines.push('', title);
+        if (!report[key].length) lines.push('No findings in this report; coverage is not exhaustive.');
+        for (const event of report[key]) lines.push('', `${event.event_date || 'Date unconfirmed'} · ${event.jurisdiction} · ${event.title}`, `Legal status (AI-extracted): ${event.legal_status}`, event.summary, `Analysis: ${event.implications}`, `Evidence: ${event.evidence_quote}`, event.date_quote ? `Date evidence: ${event.date_quote}` : '', `${event.source.url} (${event.source.basis})`);
+      }
+      lines.push('', 'COVERAGE', report.coverage_note, ...report.warnings);
+      return lines.join('\n');
+    }
+
+    async function copyMorningReport() {
+      if (!displayedMorningReport) return;
+      const text = morningCopyText(displayedMorningReport);
+      const status = document.getElementById('morningStatus');
+      document.getElementById('morningCopyFallback')?.remove();
+      try { await navigator.clipboard.writeText(text); status.textContent = 'Report copied.'; }
+      catch (_) {
+        status.textContent = 'Select and copy the report below.';
+        const field = document.createElement('textarea');
+        field.id = 'morningCopyFallback'; field.readOnly = true; field.rows = 12; field.style.width = '100%';
+        field.setAttribute('aria-label','Morning report to copy'); field.value = text;
+        status.after(field); field.focus(); field.select();
+      }
+    }
+
+    async function loadResearchedStories() {
+      const root = document.getElementById('researchedStories');
+      root.textContent = 'Loading…';
+      try {
+        const rows = await getJson('/api/news/researched');
+        root.innerHTML = rows.length ? rows.map(item => `<article class="research-panel">
+          <h3>${escapeHtml(item.title)}</h3>
+          <p class="muted">${escapeHtml(item.source_name)} · ${escapeHtml(item.research_status)} · ${escapeHtml(new Date(item.started_at).toLocaleString('en-GB'))}${item.has_result ? ' · Saved result available' : ''}</p>
+          ${item.research_error ? `<p>${escapeHtml(item.research_error)}</p>` : ''}
+          <button type="button" data-open-researched="${item.id}">Open story</button></article>`).join('') : '<p>No researched stories yet. Open a story and choose Research this story.</p>';
+        root.querySelectorAll('[data-open-researched]').forEach(button => button.onclick = () => showItemDetails(Number(button.dataset.openResearched)));
+      } catch (error) { root.textContent = `Could not load researched stories: ${error.message}. Use Refresh to retry.`; }
+    }
+
+    function storyCopyText(item, result) {
+      const lines = ['Use the evidence below to draft a professional LinkedIn post. Separate facts from analysis, preserve source references, and do not invent facts or personal experiences.',
+        '', item.title || 'Story', `Source: ${item.source_name || ''}`, item.article_url || '',
+        `Published: ${item.published_at || 'Unknown'}`, '', 'Article summary', item.summary || '',
+        '', 'Why it matters (analysis)', item.why_it_matters || ''];
+      if (item.cleaned_text) lines.push('', 'Available article text (may be an excerpt)', item.cleaned_text);
+      if (result) lines.push('', researchCopyText(result, item.title));
+      else lines.push('', 'No saved research available. Use only the article material above.');
+      return lines.join('\n');
+    }
+
+    function mountStoryCopy(item) {
+      const bar = document.createElement('div');
+      bar.className = 'detail-action-row';
+      bar.innerHTML = '<button type="button" class="btn-secondary">Copy info</button><span role="status" aria-live="polite"></span>';
+      document.getElementById('detailContent').prepend(bar);
+      bar.querySelector('button').onclick = async () => {
+        const status = bar.querySelector('[role="status"]');
+        status.textContent = ' Preparing…';
+        try {
+          const state = await getJson(`/api/news/item/${item.id}/research`);
+          if (!bar.isConnected) return;
+          const text = storyCopyText(item, state.result);
+          bar.querySelector('textarea')?.remove();
+          try { await navigator.clipboard.writeText(text); status.textContent = ' Info copied.'; }
+          catch (_) {
+            status.textContent = ' Select and copy below.';
+            const field = document.createElement('textarea');
+            field.readOnly = true; field.rows = 10; field.style.width = '100%';
+            field.setAttribute('aria-label', 'Story information to copy'); field.value = text;
+            bar.append(field); field.focus(); field.select();
+          }
+        } catch (error) { status.textContent = ` Could not prepare info: ${error.message}. Try again.`; }
+      };
+    }
+
     function mountResearch(itemId) {
       if (!Number.isFinite(itemId) || itemId <= 0) return;
       const panel = document.createElement('section');
       panel.className = 'research-panel';
       panel.setAttribute('aria-label', 'Story research and LinkedIn potential');
       panel.innerHTML = '<h3>Story research</h3><p role="status">Loading saved research…</p>';
-      document.getElementById('detailContent').prepend(panel);
+      document.getElementById('detailContent').append(panel);
       const endpoint = `/api/news/item/${itemId}/research`;
       let timer;
       function render(state) {
@@ -1545,7 +1775,7 @@
           <p class="muted">Research this article and assess its fit for your LinkedIn voice. Results are saved.</p>
           <button type="button" class="btn-secondary" data-research ${running || !state.available ? 'disabled' : ''}>${running ? 'Researching…' : result ? 'Refresh research' : 'Research this story'}</button>
           <p role="status">${escapeHtml(running ? 'Searching and analysing. You can close this view and return later.' : state.error || '')}</p>
-          ${!state.available ? `<p class="muted">Setup required: ${escapeHtml(state.setup_required)}. Manual web search is still available below.</p>` : ''}
+          ${!state.available ? `<p class="muted">Setup required: ${escapeHtml(state.setup_required)}. You can still use Find more info.</p>` : ''}
           <div data-research-result></div>`;
         if (result) {
           const sources = new Map(result.sources.map(source => [source.id, source]));
@@ -1562,12 +1792,12 @@
             ${section('Key developments',result.key_developments,'No additional developments identified.')}
             ${section('Why it matters · analysis',result.why_it_matters,'No supported implications identified.')}
             ${section('What’s new',result.whats_new,'No additional facts found beyond the original article.')}
-            <h3>LinkedIn potential</h3><p class="muted">Qualitative editorial judgement, not a prediction of reach or virality.</p>
+            <details><summary>Post angles and editorial fit</summary><p class="muted">Qualitative editorial judgement, not a prediction of reach or virality.</p>
             <div class="research-ratings">${rating('Brand fit',result.brand_fit)}${rating('Conversation potential',result.conversation_potential)}</div>
             <h4>Why this fits you</h4><p>${escapeHtml(result.why_this_fits_you)}</p>
             <h4>Possible angles</h4><ul>${result.suggested_angles.map(angle=>`<li>${escapeHtml(angle)}</li>`).join('')}</ul>
             <h4>What would strengthen it</h4><p>${escapeHtml(result.what_would_strengthen_it)}</p>
-            <h4>Limitations</h4><p>${escapeHtml(result.limitations)}</p>
+            </details><h4>Limitations</h4><p>${escapeHtml(result.limitations)}</p>
             <details><summary>Sources (${result.sources.length})</summary><ul>${result.sources.map(source=>`<li>${sourceLink(source.id)} ${escapeHtml(source.title)} — ${escapeHtml(source.relationship.replaceAll('_',' '))} · ${escapeHtml(source.basis.replaceAll('_',' '))}</li>`).join('')}</ul></details>`;
         }
         panel.querySelector('[data-research]').onclick = async event => {
@@ -1634,12 +1864,12 @@
           <strong>Why it matters</strong>
           <div>${textBlockHtml(master.why_it_matters || 'n/a')}</div>
         </div>
-        <div class="detail-meta-strip">
+        <details><summary>Article details</summary><div class="detail-meta-strip">
           ${detailMetaChip('Themes', (master.themes || []).join(', ') || 'n/a')}
           ${detailMetaChip('Geography', (master.geographies || []).join(', ') || 'n/a')}
           ${detailMetaChip('Actors', (master.actors || []).join(', ') || 'n/a')}
           ${detailMetaChip('Sources', (master.sources || []).join(', ') || 'n/a')}
-        </div>
+        </div></details>
         <div class="detail-why">
           <strong>Source articles in this merged story</strong>
           <div>${sourceRows}</div>
@@ -1648,7 +1878,9 @@
       document.getElementById('detailContent').querySelectorAll('[data-open-story-item]').forEach(button => {
         button.addEventListener('click', () => showItemDetails(Number(button.dataset.openStoryItem)));
       });
-      mountResearch(Number(master.lead_item_id || items[0]?.id));
+      const leadId = Number(master.lead_item_id || items[0]?.id);
+      mountResearch(leadId);
+      mountStoryCopy({...master, id: leadId, source_name: (master.sources || []).join(', '), article_url: items.map(item => item.article_url).filter(Boolean).join('\n')});
     }
 
     async function showItemDetails(itemId) {
@@ -1682,7 +1914,6 @@
           item.cleaned_text,
           preview.source_context,
         );
-        const hasLinkedInSuggestion = Boolean(item.linkedin_angle);
         const detailImageUrl = preview.image_url || item.image_url || '';
         const imageHtml = detailImageUrl
           ? `<img class="detail-preview-image" src="${escapeHtml(detailImageUrl)}" alt="${escapeHtml(item.title || 'Article image')}" onerror="this.remove()" />`
@@ -1705,43 +1936,24 @@
             <strong>Why it matters</strong>
             <div>${escapeHtml(item.why_it_matters || 'n/a')}</div>
           </div>
-          ${hasLinkedInSuggestion ? `
-            <div class="detail-action-row">
-              <button class="btn-secondary" type="button" data-toggle-linkedin="${itemId}">Show LinkedIn suggestion</button>
-            </div>
-            <div id="linkedinSuggestion-${itemId}" class="detail-linkedin-suggestion">
-              <strong>Suggested LinkedIn post</strong>
-              <div class="detail-linkedin-text">${escapeHtml(item.linkedin_angle)}</div>
-            </div>
-          ` : ''}
-          <div class="detail-meta-strip">
+          <details><summary>Article details</summary><div class="detail-meta-strip">
             ${detailMetaChip('Themes', formatCsv(item.theme_tags))}
             ${detailMetaChip('Geography', formatCsv(item.geography_tags))}
             ${detailMetaChip('Actors', formatCsv(item.actors))}
             ${preview.author ? detailMetaChip('Author', preview.author) : ''}
             ${detailMetaChip('Score', String(item.signal_score ?? 'n/a'))}
             ${detailMetaChip('Confidence', String(item.confidence ?? 'n/a'))}
-          </div>
+          </div></details>
           <div class="detail-source-link"><a href="${escapeHtml(item.article_url || '#')}" target="_blank" rel="noopener noreferrer">Open original source</a></div>
           <div class="card-actions-inline">
             <button type="button" class="btn-secondary" data-editorial="${itemId}" data-vote="relevant">👍 Relevant</button>
             <button type="button" class="btn-secondary" data-editorial="${itemId}" data-vote="non_relevant">👎 Hide</button>
-            <button type="button" class="btn-secondary" data-draft="${itemId}">View / create draft</button>
             <button type="button" class="btn-secondary" data-enrich="${itemId}">Expand description</button>
           </div>
         `;
         bindInlineActions(document.getElementById('detailContent'));
         mountResearch(itemId);
-        document.querySelectorAll('[data-toggle-linkedin]').forEach(btn => {
-          btn.addEventListener('click', (evt) => {
-            evt.preventDefault();
-            const targetId = btn.getAttribute('data-toggle-linkedin');
-            const panel = document.getElementById(`linkedinSuggestion-${targetId}`);
-            if (!panel) return;
-            const isOpen = panel.classList.toggle('open');
-            btn.textContent = isOpen ? 'Hide LinkedIn suggestion' : 'Show LinkedIn suggestion';
-          });
-        });
+        mountStoryCopy(item);
       } catch (error) {
         if (activeDetailItemId !== itemId) return;
         document.getElementById('detailContent').innerHTML = '<p class="muted">Failed to load detail for this item.</p>';
@@ -1801,7 +2013,10 @@
       }
     }
     function setActiveTab(tabName) {
-      const normalized = tabName === 'review' ? 'review' : 'reading';
+      const normalized = ['review', 'researched', 'morning', 'governance'].includes(tabName) ? tabName : 'reading';
+      if (normalized === 'researched') loadResearchedStories();
+      document.getElementById('newsFilters').hidden = !['reading', 'review'].includes(normalized);
+      if (['morning', 'governance'].includes(normalized)) loadMorningReport();
       setViewMode(normalized);
       document.querySelectorAll('.tab-btn').forEach(btn => {
         const isActive = btn.getAttribute('data-tab') === normalized;
@@ -1813,6 +2028,11 @@
     }
 
     function setupTabs() {
+      document.querySelectorAll('[data-generate-morning]').forEach(button => button.onclick = generateMorningReport);
+      document.querySelector('[data-copy-morning]').onclick = copyMorningReport;
+      document.getElementById('morningHistory').onchange = () => loadMorningReport();
+      document.getElementById('policyRegion').onchange = () => renderPolicy(latestPolicyReport);
+
       document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
         btn.addEventListener('click', () => {
           const tab = btn.getAttribute('data-tab') || 'reading';
