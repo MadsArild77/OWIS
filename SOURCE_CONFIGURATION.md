@@ -1,5 +1,7 @@
 # Source configuration
 
+[Til dokumentasjonsoversikten](DOCUMENTATION.md)
+
 Settings → Regulatory → Jurisdictions, organisations and sources manages a shared registry.
 Settings → News contains the existing news source tools and fetch/processing controls.
 EU is a separate jurisdiction from each of its 27 member countries. Norway,

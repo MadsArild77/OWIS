@@ -1,11 +1,14 @@
 # OWIS
 
-Active implementation plan: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
-Follow the four PRs in order, one at a time. Step 1 is implemented: [source configuration](SOURCE_CONFIGURATION.md). Next after review: the shared ingestion engine.
+**[Dokumentasjon og beslutninger – start her](DOCUMENTATION.md)**
 
-Dedicated development copy of https://github.com/MadsArild77/OWIS.
+[Prosjektstatus](PROJECT_STATUS.md) · [Beslutningslogg](DECISIONS.md) · [Implementeringsplan](IMPLEMENTATION_PLAN.md)
 
-This workspace preserves the tracked local work found in `C:\Users\madsa\OneDrive\OpenAI` on 2026-09-23, based on commit `7069c638bdf17fb95d03fef3cfccdfdcfa6ba403`. The original workspace remains intact. Work continues on branch `work/resume-owis`.
+OWIS samler nyheter, research og politikk-/regelverksinformasjon.
+Repo: https://github.com/MadsArild77/OWIS.
+
+Trinn 1 (kildekonfigurasjon) og separate News-/Regulatory-faner er på `main`.
+Neste planlagte trinn er felles innhentingsmotor. Se status og plan for begrensninger.
 
 ## Start locally (PowerShell)
 
@@ -25,7 +28,7 @@ Run existing tests:
 .\.venv\Scripts\python.exe -m pytest owis/tests -q
 ```
 
-See `PROJECT_STATUS.md` for the verified baseline and next steps, `owis/README.md` for configuration, and the two root specification documents for product scope.
+See [DOCUMENTATION.md](DOCUMENTATION.md) for all documentation, decisions and specifications.
 
 The app reads environment variables; it does not automatically load `.env`. AI and Notion export default to disabled. Database copies are ignored by Git.
 

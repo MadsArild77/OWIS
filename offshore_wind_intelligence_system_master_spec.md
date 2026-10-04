@@ -1,5 +1,7 @@
 # Offshore Wind Intelligence System – Master Structure & Build Specification
 
+[Til dokumentasjonsoversikten](DOCUMENTATION.md)
+
 ## 1. Formål
 
 Dette systemet skal bygges som en **modulær, portabel og kostnadsbevisst intelligence-plattform** for offshore vind og relaterte markeder. Arkitekturen skal fungere både som:

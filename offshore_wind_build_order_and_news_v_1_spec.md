@@ -1,5 +1,7 @@
 # Offshore Wind Intelligence System – Build Order, File Structure & News Module v1
 
+[Til dokumentasjonsoversikten](DOCUMENTATION.md)
+
 ## 1. Formål
 
 Dette dokumentet bryter ned masterstrukturen til en **praktisk byggeplan** som kan brukes direkte til utvikling modul for modul.

@@ -1,5 +1,7 @@
 # Morgenrapport og politikk/regelverk
 
+[Til dokumentasjonsoversikten](DOCUMENTATION.md)
+
 ## Visning
 
 `/news` har fanene **Morning report** og **Policy & regulation**. Rapporten kan

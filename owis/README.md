@@ -1,5 +1,7 @@
 # Offshore Wind Intelligence Platform (MVP)
 
+[Til dokumentasjonsoversikten](../DOCUMENTATION.md)
+
 MVP implementing Foundation + News module v1, and a DealEngine-bridged Opportunities starter module.
 
 ## Quick start

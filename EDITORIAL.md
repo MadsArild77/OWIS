@@ -1,5 +1,7 @@
 # Editorial news workflow
 
+[Til dokumentasjonsoversikten](DOCUMENTATION.md)
+
 The reading view now presents articles with one-click relevant/not-for-me feedback, optional reasons, undo, interest filters and saved LinkedIn drafts. Review retains manual grouping and same-event/update decisions. Relevance and draft selection are separate signals. Current preference examples are selected by matching title terms within the chosen topic (or all topics); this is retrieval of examples, not fine-tuning. Negative examples cannot by themselves exclude a new article. Historical legacy ratings are not silently converted into new topic preferences.
 
 RSS and scraped index pages discover links first. Known URLs are deduplicated before processing. Relevance rules screen obvious unrelated content; uncertain cases and relevant preference examples can use the configured low-cost model. Relevant/uncertain short feeds then attempt public article extraction. Full feed text is retained without an extra request. Cached outcomes are reused; the explicit Read more/check access action permits retry. Failed extraction preserves feed evidence. Metadata distinguishes open, restricted, blocked and unknown; openness is a retrieval result, not a licensing statement. Extraction is conservative and requires enough text within an article/main page.
@@ -10,7 +12,7 @@ Case summaries request Norwegian, concrete facts, explicit uncertainty and sourc
 
 ## Saved scan URLs and preferences
 
-The news_source_registry table is the authoritative scan list in the standard configuration. Source name, scan URL, RSS/scrape type, topic, enabled state and existing options persist. Packaged YAML seeds the first run only; deleting all registered sources no longer resurrects defaults. Alternate configured YAML paths retain the existing file-backed behavior. Topic preferences, undo state, drafts and source evidence are SQLite records. Retention preserves records with editorial feedback or drafts.
+After shared configuration is initialized, configured_sources is the authoritative registry and news tools use its compatible projection. Before migration, news_source_registry holds the scan list. See [SOURCE_CONFIGURATION.md](SOURCE_CONFIGURATION.md) for migration and compatibility. Source name, scan URL, RSS/scrape type, topic, enabled state and existing options persist. Packaged YAML seeds the first run only; deleting all registered sources no longer resurrects defaults. Alternate configured YAML paths retain the existing file-backed behavior. Topic preferences, undo state, drafts and source evidence are SQLite records. Retention preserves records with editorial feedback or drafts.
 
 Startup creates one integrity-checked database backup per UTC day before migrations. This is a startup backup, not a continuously scheduled off-site backup. Manual backup: `python -m owis.scripts.backup_database --output path/to/backup.db`. Restoring a backup requires stopping the service and replacing its SQLite file. Secure and copy backup files off the volume separately for disaster recovery.
 

@@ -1,5 +1,7 @@
 # NorthernBlue Portal
 
+[Til dokumentasjonsoversikten](../DOCUMENTATION.md)
+
 Simple standalone landing page for app links such as MarketingHub, OWIS, Opportunities, and Umamu.
 
 ## Local run

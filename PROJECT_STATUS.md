@@ -1,4 +1,51 @@
-# OWIS – status 23. september 2026
+# OWIS – utviklingsstatus
+
+Oppdatert 4. oktober 2026. [Dokumentasjon](DOCUMENTATION.md) · [Beslutninger](DECISIONS.md) · [Plan](IMPLEMENTATION_PLAN.md)
+
+## Gjeldende status
+
+Sist kontrollerte kodegrunnlag er `main`, inkludert PR #8 (`4258468`) og
+Settings-fanene (`600619b`). Dette er utviklingsstatus, ikke en bekreftelse på
+hvilken versjon eller konfigurasjon som kjører i produksjon.
+
+| Område | Status | Detaljer |
+|---|---|---|
+| Nyheter og redaksjonell flyt | Implementert med kjente begrensninger | RSS/nettsider, relevans, tilbakemeldinger, research, Copy info og researchede saker; se [EDITORIAL.md](EDITORIAL.md) |
+| Artikkelmatching | Implementert; kvalitet må fortsatt vurderes på virkelige data | [MATCHING.md](MATCHING.md) |
+| Morgenrapport og politikk | Grunnversjon implementert | Siste døgn, kommende milepæler, radar og valgfri 06-kjøring; [MORNING_REPORT.md](MORNING_REPORT.md) |
+| Jurisdiksjoner og kilder (trinn 1) | Ferdig og flettet til main | Felles register, organisasjoner, test og import/eksport; [SOURCE_CONFIGURATION.md](SOURCE_CONFIGURATION.md) |
+| Settings | Ferdig på main | Separate News- og Regulatory-faner; News er standard |
+| Felles innhentingsmotor (trinn 2) | Ikke startet | Betinget henting, endringskontroll og versjoner |
+| Norge-adaptere (trinn 3) | Ikke startet | Regjeringens kalender/høringer og Stortingets komiteer, med prioritering |
+| Morgenrapport og drift (trinn 4) | Videre integrasjon gjenstår | Koble ny motor og adaptere til rapporten, kontrollere dekning og drift |
+| Opportunities | Eksisterende startmodul | Ikke nyvalidert i denne dokumentasjonsoppdateringen; se [teknisk README](owis/README.md) |
+| Lyd/NotebookLM | Åpent forslag | Ingen automatisk integrasjon implementert |
+
+## Sist gjennomførte validering
+
+3. oktober: 166 tester bestod lokalt for trinn 1, og GitHub-testene for PR #8
+bestod. Nettlesertest med isolert database kontrollerte organisasjonshierarki,
+faktisk HTML-forhåndsvisning, lagring/omlasting og pause/gjenopptak.
+Settings-fanene ble deretter kontrollert med mus og tastatur, samt JavaScript-syntaks.
+Ingen nye apptester er kjørt for dokumentasjonsoppdateringen 4. oktober.
+
+## Neste arbeid og begrensninger
+
+Neste utviklingstrinn er **trinn 2: felles innhentingsmotor**, etter den lagrede
+[planen](IMPLEMENTATION_PLAN.md). Konfigurerbare intervaller, tema-/personregler
+og kalenderkilder betyr foreløpig ikke at disse brukes av innhentingen.
+Morgenrapportens eksisterende politikkoppslag bruker fortsatt egne kildegrupper.
+
+Aktiv produksjonsversjon, miljøvariabler, kildehelse og automatisk kjøring er ikke
+kontrollert på nytt her. Historiske testmiljøopplysninger nedenfor er ikke en
+bekreftelse på dagens drift.
+
+## Historikk – bevart fra tidligere utviklingsarbeid
+
+Notatene nedenfor beskriver tidligere tidspunkt. Grennavn, testtall, neste steg,
+preview-adresser og utrullingsstatus kan være utdaterte. Gjeldende status står over.
+
+### Baseline 23. september 2026
 
 ## Arbeidssted
 

@@ -1,5 +1,7 @@
 # Matching news across languages
 
+[Til dokumentasjonsoversikten](DOCUMENTATION.md)
+
 OWIS uses OpenAI embeddings (`text-embedding-3-small` by default) to retrieve possible matches, then the configured chat model (`gpt-4o-mini` by default) to classify each pair. Embedding similarity is not treated as proof that two articles describe the same event.
 
 The review queue distinguishes `same_event`, `update`, and `uncertain`. Shared topics and unrelated articles are not offered for merging. Accepting an update creates a link between separate events; accepting a same-event suggestion merges all members of existing manual groups. Original article rows and URLs remain intact. Decisions are applied transactionally and cannot be replayed. Linked updates appear in Review.
