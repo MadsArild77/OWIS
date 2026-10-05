@@ -9,6 +9,10 @@ Recommendations to add come from websites that keep supplying verified coverage
 of relevant stories (open versions of paywalled stories, research sources).
 Recommendations to pause come from sources that are mostly off-focus, failing or
 silent. Adding and removing is always the reader's decision.
+
+No decision is final. "Keep" and "Dismiss" hold for DECISION_DAYS, after which the
+source is judged again on data gathered since the decision. Paused sources that keep
+appearing in verified coverage are suggested for resuming.
 """
 from __future__ import annotations
 
@@ -25,6 +29,8 @@ PRIOR_STRENGTH = 25          # articles needed before observed quality outweighs
 MIN_ARTICLES_TO_JUDGE = 20   # before recommending a pause for being off-focus
 OFF_FOCUS_SHARE = 0.4        # below this share of offshore wind + related: recommend pause
 MIN_STORIES_TO_ADD = 2       # distinct relevant stories before a website is recommended
+DECISION_DAYS = 60           # keep/dismiss holds this long, then the source re-enters the loop
+COVERAGE_BASES = ("alternative_fulltext", "additional_coverage")
 IGNORED_HOSTS = {
     "google.com", "news.google.com", "linkedin.com", "youtube.com", "x.com", "twitter.com", "facebook.com",
     "wikipedia.org", "en.wikipedia.org", "no.wikipedia.org", "reddit.com", "medium.com", "t.co",
@@ -122,9 +128,26 @@ def load_learned_weights() -> None:
     signal.set_learned_source_weights(json.loads(row["value"]) if row else {})
 
 
-def _decisions() -> dict[str, str]:
+def _decisions(include_expired: bool = False) -> dict[str, dict]:
+    """Current decisions; after DECISION_DAYS a decision lapses and the source is judged again."""
+    cutoff = _since(DECISION_DAYS)
     with get_conn() as conn:
-        return {r["key"]: r["decision"] for r in conn.execute("SELECT key, decision FROM news_source_advice_decisions")}
+        rows = conn.execute("SELECT key, decision, decided_at FROM news_source_advice_decisions").fetchall()
+    out = {}
+    for r in rows:
+        expires = (datetime.fromisoformat(r["decided_at"]) + timedelta(days=DECISION_DAYS)).isoformat()
+        if include_expired or r["decided_at"] >= cutoff:
+            out[r["key"]] = {"decision": r["decision"], "decided_at": r["decided_at"], "reconsider_from": expires}
+    return out
+
+
+def decision_log() -> list[dict]:
+    return sorted(({"key": k, **v} for k, v in _decisions().items()), key=lambda d: d["decided_at"], reverse=True)
+
+
+def undo_decision(key: str) -> None:
+    with get_conn() as conn:
+        conn.execute("DELETE FROM news_source_advice_decisions WHERE key=?", (key,))
 
 
 def record_decision(key: str, decision: str) -> None:
@@ -139,7 +162,7 @@ def removal_recommendations(card: list[dict]) -> list[dict]:
     decisions = _decisions()
     out = []
     for row in card:
-        if not row["enabled"] or decisions.get(f"remove:{row['name']}") == "kept":
+        if not row["enabled"] or (decisions.get(f"remove:{row['name']}") or {}).get("decision") == "kept":
             continue
         reason = None
         if row["health"] == "red" and row["last_error"]:
@@ -154,30 +177,27 @@ def removal_recommendations(card: list[dict]) -> list[dict]:
     return out
 
 
-def addition_recommendations(card: list[dict]) -> list[dict]:
-    known = {host_of(row["homepage"]) for row in card} | {host_of(s.get("url", "")) for s in _registry()}
-    known.discard("")
-    decisions = _decisions()
-    since = _since()
-    candidates: dict[str, dict] = {}
+def _coverage_by_host(since: str) -> dict[str, dict]:
+    """Websites seen in verified coverage of relevant stories: extra coverage, open copies, research."""
+    hosts: dict[str, dict] = {}
 
-    def note(url: str, title: str, story_id, origin: str):
+    def note(url: str, title: str, story_id, origin: str, seen_at: str):
         host = host_of(url)
-        if not host or host in known or host in IGNORED_HOSTS or any(host.endswith("." + k) for k in known):
+        if not host or host in IGNORED_HOSTS:
             return
-        if decisions.get(f"add:{host}") in {"dismissed", "added"}:
-            return
-        c = candidates.setdefault(host, {"host": host, "stories": set(), "examples": [], "origins": set()})
-        c["stories"].add(story_id)
+        c = hosts.setdefault(host, {"host": host, "events": [], "examples": [], "origins": set()})
+        c["events"].append((story_id, seen_at or ""))
         c["origins"].add(origin)
         if len(c["examples"]) < 3 and url not in [e["url"] for e in c["examples"]]:
             c["examples"].append({"url": url, "title": title or url})
 
     with get_conn() as conn:
-        for r in conn.execute('''SELECT raw_id, url, title FROM news_source_evidence
-                WHERE basis = 'alternative_fulltext' AND checked_at >= ?''', (since,)):
-            note(r["url"], r["title"], ("raw", r["raw_id"]), "Open version of a paywalled story")
-        for r in conn.execute('''SELECT processed_id, result_json FROM news_story_research
+        marks = ",".join("?" * len(COVERAGE_BASES))
+        for r in conn.execute(f'''SELECT raw_id, url, title, basis, checked_at FROM news_source_evidence
+                WHERE basis IN ({marks}) AND checked_at >= ?''', (*COVERAGE_BASES, since)):
+            origin = "Open version of a paywalled story" if r["basis"] == "alternative_fulltext" else "Also covered a story you follow"
+            note(r["url"], r["title"], ("raw", r["raw_id"]), origin, r["checked_at"])
+        for r in conn.execute('''SELECT processed_id, result_json, completed_at FROM news_story_research
                 WHERE status = 'completed' AND completed_at >= ?''', (since,)):
             try:
                 sources = (json.loads(r["result_json"] or "{}") or {}).get("sources") or []
@@ -185,14 +205,47 @@ def addition_recommendations(card: list[dict]) -> list[dict]:
                 continue
             for s in sources:
                 if s.get("relationship") in {"same_event", "update", "background"}:
-                    note(s.get("url", ""), s.get("title", ""), ("research", r["processed_id"]), "Source in story research")
+                    note(s.get("url", ""), s.get("title", ""), ("research", r["processed_id"]), "Source in story research",
+                         r["completed_at"])
+    return hosts
 
+
+def resume_recommendations(card: list[dict]) -> list[dict]:
+    """Paused sources that keep supplying verified coverage come back up for consideration."""
+    decisions = _decisions()
+    coverage = _coverage_by_host(_since())
     out = []
-    for c in candidates.values():
-        count = len(c["stories"])
+    for row in card:
+        host = host_of(row["homepage"])
+        if row["enabled"] or not host or (decisions.get(f"resume:{row['name']}") or {}).get("decision") == "kept":
+            continue
+        hits = coverage.get(host)
+        stories = len({story for story, _ in hits["events"]}) if hits else 0
+        if stories >= MIN_STORIES_TO_ADD:
+            out.append({**row, "key": f"resume:{row['name']}", "stories": stories, "examples": hits["examples"],
+                        "reason": f"Paused, but it supplied coverage of {stories} of your stories in the last {WINDOW_DAYS} days."})
+    return out
+
+
+def addition_recommendations(card: list[dict]) -> list[dict]:
+    known = {host_of(row["homepage"]) for row in card} | {host_of(s.get("url", "")) for s in _registry()}
+    known.discard("")
+    decisions = _decisions()
+    out = []
+    for host, c in _coverage_by_host(_since()).items():
+        if host in known or any(host.endswith("." + k) for k in known):
+            continue
+        decided = decisions.get(f"add:{host}") or {}
+        if decided.get("decision") == "added":
+            continue
+        events = c["events"]
+        if decided.get("decision") == "dismissed":
+            # A dismissed website returns only on new evidence gathered after the dismissal.
+            events = [e for e in events if e[1] and e[1] >= decided["decided_at"]]
+        count = len({story for story, _ in events})
         if count < MIN_STORIES_TO_ADD:
             continue
-        out.append({"key": f"add:{c['host']}", "host": c["host"], "name": _name_from_host(c["host"]),
+        out.append({"key": f"add:{host}", "host": host, "name": _name_from_host(host),
                     "stories": count, "origins": sorted(c["origins"]), "examples": c["examples"],
                     "reason": f"Supplied relevant coverage for {count} of your stories in the last {WINDOW_DAYS} days."})
     return sorted(out, key=lambda x: -x["stories"])
@@ -208,4 +261,6 @@ def advice() -> dict:
     refresh_learned_weights()
     return {"scorecard": sorted(card, key=lambda r: (-r["learned_weight"], r["name"])),
             "remove": removal_recommendations(card), "add": addition_recommendations(card),
-            "window_days": WINDOW_DAYS, "generated_at": datetime.now(timezone.utc).isoformat()}
+            "resume": resume_recommendations(card), "decisions": decision_log(),
+            "window_days": WINDOW_DAYS, "decision_days": DECISION_DAYS,
+            "generated_at": datetime.now(timezone.utc).isoformat()}

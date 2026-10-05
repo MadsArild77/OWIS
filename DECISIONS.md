@@ -184,6 +184,30 @@ Legge til og pause skjer med ett klikk, men alltid etter brukerens valg (AI er
 rådgivende). «Keep» og «Dismiss» huskes, så samme råd ikke gjentas. Når nettsøk
 og hendelseskort utvides, får siden flere forslag.
 
+## D16 – Selvforsterkende innhentingssløyfe
+
+**Vedtatt og implementert 5. oktober 2026. Utvider D14 og D15.**
+- **Hendelseskort:** hver artikkel får en kort engelsk beskrivelse av hendelsen
+  (hva, type, prosjekt, selskaper, sted, MW/beløp, dato). Matching sammenligner
+  kortene i stedet for sidetekst, så bunntekster, bildetekster og språk ikke
+  lenger avgjør. Bildetekster brukt som ingress (Recharge) ignoreres.
+  Inntil 150 kort lages per kjøring; eksisterende saker fylles gradvis.
+- **Matching** vurderer inntil 300 par per kjøring (før 100), med par fra ulike
+  kilder først. Gamle vurderinger gjøres på nytt med det nye grunnlaget.
+- **Fast innhenting** hver tredje time kl. 07–22 (Europe/Oslo), med vern mot
+  doble kjøringer.
+- **Hullfylling:** inntil 5 viktige saker (poengsum ≥ 70) med bare én kilde søkes
+  opp per innhenting, høyst 25 per dag. Treff som AI vurderer som samme hendelse,
+  vises som «Also covered by» og mater kilderådgiveren.
+- **Ingen beslutning er endelig:** «Keep» og «Dismiss» i kilderådgiveren gjelder
+  i 60 dager; deretter vurderes kilden på nytt på ferske data. Avviste nettsteder
+  kommer tilbake bare ved nye treff etter avvisningen. Pausede kilder som fortsatt
+  dukker opp i verifisert dekning, foreslås gjenopptatt. Beslutninger kan
+  vurderes på nytt umiddelbart med «Reconsider now».
+
+Anslått merkostnad med gpt-4o-mini: noen få dollar i måneden. Søk (Tavily) er
+begrenset til 25 per dag for hullfylling.
+
 ## Åpne forslag og avklaringer
 
 - **Lyd/NotebookLM:** vurderes senere; ingen automatisk Google-overføring eller

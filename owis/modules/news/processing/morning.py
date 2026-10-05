@@ -114,8 +114,9 @@ def refresh_news():
         warnings.append('No news-source health reports available.')
     if any(row.get('error') for row in source_report):
         warnings.append('Some news sources failed; see source coverage.')
-    from owis.modules.news.presentation.api import run_matching_after_fetch
+    from owis.modules.news.presentation.api import run_coverage_after_fetch, run_matching_after_fetch
     matching = run_matching_after_fetch()  # group coverage of the same story before the report is built
+    run_coverage_after_fetch()
     try:
         from owis.modules.news.registry.source_advisor import refresh_learned_weights
         refresh_learned_weights()

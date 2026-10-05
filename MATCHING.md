@@ -17,7 +17,7 @@ OWI_AI_PROVIDER=openai_compatible
 OWI_AI_BASE_URL=https://api.openai.com/v1
 OWI_AI_MODEL=gpt-4o-mini
 OWI_AI_EMBEDDING_MODEL=text-embedding-3-small
-OWI_MATCH_MAX_PAIRS=100
+OWI_MATCH_MAX_PAIRS=300
 ```
 
 Restart the server after changing its environment. Setting a GitHub Actions secret does not automatically configure the local application or a Railway service. Never commit keys.
@@ -52,6 +52,16 @@ Live result on 2026-09-23: **30/30 passed**, including candidate retrieval for a
 The prompt requires concrete agreement on action/object and distinguishes suppliers and contract packages before assigning same-event. Cache version was advanced so old judgments are not reused. The earlier six-case prompt evaluation passed 4/6; the new prompt also passes those original six cases, but this single run does not establish repeatability.
 
 Pricing references: [GPT-4o mini](https://developers.openai.com/api/docs/models/gpt-4o-mini), [embeddings](https://developers.openai.com/api/docs/models/text-embedding-3-small).
+
+## Event cards (since 5 October 2026)
+
+Each article gets an event card from the low-cost model: one factual English sentence plus event type, project,
+companies, location, capacity, amount and date. Embeddings use the title and card, and the pair judge sees the
+card before the article text, so site footers, photo captions and language no longer drive similarity. Photo
+captions sent as feed descriptions are ignored. Up to `OWI_EVENT_CARDS_PER_RUN` (150) cards are made per matching
+run; older stories are filled in over the following runs. The cache version is `news-match-v3`, so earlier
+judgements are redone with the new basis. Up to `OWI_MATCH_MAX_PAIRS` (now 300) pairs are judged per run, with
+pairs from different outlets first.
 
 ## Automatic grouping (since 5 October 2026)
 

@@ -948,7 +948,11 @@ def source_advisor():
 def source_advisor_decision(payload: SourceAdviceDecision):
     from owis.modules.news.registry.source_advisor import record_decision
     try:
-        record_decision(payload.key[:300], payload.decision)
+        if payload.decision == "undo":
+            from owis.modules.news.registry.source_advisor import undo_decision
+            undo_decision(payload.key[:300])
+        else:
+            record_decision(payload.key[:300], payload.decision)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     return {"saved": True}
@@ -1056,6 +1060,11 @@ def _run_match_review(payload: MatchRunRequest, job_id: str | None = None) -> di
     items = repo.list_processed_since(since_iso=since_iso, limit=max(payload.lookback_items, 50))
     items = _filter_domain(_attach_domain_data(items), bucket)
     if job_id:
+        _update_job(job_id, percent=14, step="Describing each story as an event card...")
+    from owis.modules.news.processing.event_cards import attach_cards, ensure_cards
+    cards_made = ensure_cards(items)
+    attach_cards(items)
+    if job_id:
         _update_job(job_id, percent=20, step=f"Building candidate pairs from {len(items)} articles...")
 
     learned_pairs = {
@@ -1079,7 +1088,9 @@ def _run_match_review(payload: MatchRunRequest, job_id: str | None = None) -> di
     with get_conn() as conn:
         decided = {(r[0], r[1]) for r in conn.execute("SELECT item_a_id, item_b_id FROM news_match_review_pairs WHERE status != 'pending'")}
     candidates = [p for p in candidates if tuple(sorted((int(p[0]["id"]), int(p[1]["id"])))) not in decided]
-    candidates.sort(key=lambda p: read_cache(judgement_cache_key(p[0], p[1])) is not None)
+    # Unjudged pairs first; coverage from different outlets before same-outlet pairs; then most similar.
+    candidates.sort(key=lambda p: (read_cache(judgement_cache_key(p[0], p[1])) is not None,
+                                   p[0].get("source_name") == p[1].get("source_name"), -p[2]))
     candidate_count = len(candidates)
     candidates = candidates[:max(1, MATCH_MAX_PAIRS)]
 
@@ -1136,6 +1147,7 @@ def _run_match_review(payload: MatchRunRequest, job_id: str | None = None) -> di
         "checked_pairs": reviewed,
         "enqueued_pairs": enqueued,
         "auto_merged_pairs": auto_merged,
+        "event_cards_created": cards_made,
         "auto_linked_pairs": auto_linked,
         "fallback_pairs": fallback_count,
         "domain_bucket": bucket,
@@ -1144,6 +1156,16 @@ def _run_match_review(payload: MatchRunRequest, job_id: str | None = None) -> di
     if job_id:
         _update_job(job_id, percent=100, step="Match review completed.", status="completed", result=result)
     return result
+
+
+def run_coverage_after_fetch() -> dict[str, Any]:
+    """Search for extra coverage of important single-source stories; never breaks a fetch."""
+    try:
+        from owis.modules.news.processing.coverage import fill_coverage_gaps
+        return fill_coverage_gaps()
+    except Exception:
+        logging.getLogger(__name__).exception("Coverage search failed")
+        return {"skipped": "coverage search failed"}
 
 
 def run_matching_after_fetch() -> dict[str, Any]:
@@ -1452,6 +1474,9 @@ def _run_fetch_process(payload: RunFetchProcessRequest, job_id: str | None = Non
     if job_id:
         _update_job(job_id, percent=92, step="Grouping coverage of the same story across sources...")
     matching_result = run_matching_after_fetch()
+    if job_id:
+        _update_job(job_id, percent=93, step="Looking for other outlets' coverage of important single-source stories...")
+    coverage_result = run_coverage_after_fetch()
     try:
         from owis.modules.news.registry.source_advisor import refresh_learned_weights
         refresh_learned_weights()
@@ -1491,6 +1516,7 @@ def _run_fetch_process(payload: RunFetchProcessRequest, job_id: str | None = Non
         "collection_preview": collections,
         "retention": retention_result,
         "matching": matching_result,
+        "coverage": coverage_result,
     }
     if job_id:
         _update_job(job_id, status="completed", percent=100, step="Fetch, processing and UI refresh completed.", result=result)

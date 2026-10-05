@@ -125,6 +125,15 @@ The browser asks for a username and password; the username is `owis` unless
 Without `OWI_ACCESS_PASSWORD` the app is open to anyone with the URL, and a
 warning is logged on Railway at startup.
 
+## Automatic collection, matching and coverage search
+
+- `OWI_SCHEDULED_FETCH_ENABLED=true` (default): fetch every `OWI_FETCH_INTERVAL_HOURS` (3) hours between
+  `OWI_FETCH_FIRST_HOUR` (7) and `OWI_FETCH_LAST_HOUR` (22), Europe/Oslo. Set `false` to fetch only manually.
+- After each fetch: event cards (`OWI_EVENT_CARDS_PER_RUN`, 150), story matching (`OWI_MATCH_MAX_PAIRS`, 300;
+  auto-merge at `OWI_MATCH_AUTO_MERGE_CONFIDENCE`, 0.85), coverage search for important single-source stories
+  (`OWI_GAP_SEARCHES_PER_RUN`, 5; `OWI_GAP_SEARCHES_PER_DAY`, 25; needs `TAVILY_API_KEY` or `BRAVE_SEARCH_API_KEY`)
+  and learned source weights for the Source advisor.
+
 ## Deploy on Railway
 
 Railway builds the `Dockerfile` and uses `railway.json` (start command and
