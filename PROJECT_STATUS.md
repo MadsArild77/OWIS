@@ -16,7 +16,7 @@ hvilken versjon eller konfigurasjon som kjører i produksjon.
 | Jurisdiksjoner og kilder (trinn 1) | Ferdig og flettet til main | Felles register, organisasjoner, test og import/eksport; [SOURCE_CONFIGURATION.md](SOURCE_CONFIGURATION.md) |
 | Settings | Ferdig på main | Separate News- og Regulatory-faner; News er standard |
 | Tilgang og drift | Innlogging i kode; ikke aktivert | Krever `OWI_ACCESS_PASSWORD` i Railway; se [D10](DECISIONS.md) og [teknisk README](owis/README.md) |
-| Grensesnitt | Lyst/mørkt tema og bedre lesbarhet | Se [D11](DECISIONS.md) |
+| Grensesnitt | Ny nyhetsside med sidemeny, søk, leserute og lyst/mørkt tema | Se [D11 og D12](DECISIONS.md) |
 | Felles innhentingsmotor (trinn 2) | Ikke startet | Betinget henting, endringskontroll og versjoner |
 | Norge-adaptere (trinn 3) | Ikke startet | Regjeringens kalender/høringer og Stortingets komiteer, med prioritering |
 | Morgenrapport og drift (trinn 4) | Videre integrasjon gjenstår | Koble ny motor og adaptere til rapporten, kontrollere dekning og drift |
@@ -36,6 +36,9 @@ oppstartskopier. Fire nye tester; hele testsettet kjørt lokalt på Python 3.13.
 Testmiljøet på Railway svarte uten innlogging før endringen.
 Samme dag: nytt lyst/mørkt tema kontrollert i nettleser med testdata,
 inkludert kontrast i alle visninger, temabryter, artikkelvisning og mobilbredde.
+Ny nyhetsside (D12) kontrollert i nettleser: søk, emnefilter, dagsgruppering,
+leserute, hurtigtaster, alle seksjoner og innstillinger, kontrast på minst
+5,2:1 i begge temaer og ingen sidelengs rulling på mobil.
 
 ## Neste arbeid og begrensninger
 

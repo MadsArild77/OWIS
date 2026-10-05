@@ -110,6 +110,18 @@ Interne merkelapper som `general_news` og «top score» vises som lesbar tekst.
 Grensesnittet beholdes på engelsk. Bakgrunn: liten, svak tekst på mørk
 bakgrunn og rester av et eldre lyst tema ga dårlig lesbarhet.
 
+## D12 – Nytt grensesnitt for nyhetssiden etter mønster fra lesetjenester
+
+**Vedtatt og implementert 5. oktober 2026. Erstatter oppsettet i D11; temaene beholdes.**
+Nyhetssiden er bygget om etter mønster fra nyhetslesere som Feedly, Inoreader
+og Ground News: sidemeny med seksjoner og antall saker, søk, emnefilter som
+knapper, saker gruppert per dag med kilde, tid, antall kilder og bilde, og en
+leserute som åpnes fra høyre slik at listen forblir synlig. Hurtigtaster:
+`/` søk, `j`/`k` neste/forrige og `Esc` lukk. Innstillinger er delt i kort
+(hente nyheter, legge til kilder, kildeliste, redigering, vedlikehold).
+Eksisterende funksjoner og API-er er uendret. Bakgrunn: brukeren ønsket en
+moderne og brukervennlig løsning uten hensyn til det tidligere designet.
+
 ## Åpne forslag og avklaringer
 
 - **Lyd/NotebookLM:** vurderes senere; ingen automatisk Google-overføring eller
