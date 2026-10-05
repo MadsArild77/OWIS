@@ -82,3 +82,17 @@ errors. Browser verification used an isolated database and created Norway →
 Stortinget → Energi- og miljøkomiteen → calendar source, fetched a real HTML preview,
 saved/reloaded the hierarchy and checked jurisdiction pause/resume propagation.
 Production source configuration was not modified for this verification.
+
+## Source advisor (learned source quality)
+
+The **Source advisor** page (`/news`, sidebar) and `GET /api/news/source-advisor` show each news source's
+last-30-day delivery (share of offshore wind and related stories, strong signals, reader feedback) and the
+ranking weight learned from it. Weights start at the source's trade-press credibility and move toward
+observed relevance as articles accumulate (`owis/modules/news/registry/source_advisor.py`). They are
+recomputed after every fetch and used for new articles.
+
+Recommendations to add come from websites that repeatedly supply verified coverage of relevant stories;
+recommendations to pause come from sources that are mostly off-focus, failing or silent. Adding uses the
+normal import (with RSS discovery); pausing uses the normal toggle and keeps history. Decisions are stored in
+`news_source_advice_decisions` (`POST /api/news/source-advisor/decision`) so dismissed or kept advice does not return.
+

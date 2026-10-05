@@ -116,6 +116,11 @@ def refresh_news():
         warnings.append('Some news sources failed; see source coverage.')
     from owis.modules.news.presentation.api import run_matching_after_fetch
     matching = run_matching_after_fetch()  # group coverage of the same story before the report is built
+    try:
+        from owis.modules.news.registry.source_advisor import refresh_learned_weights
+        refresh_learned_weights()
+    except Exception:
+        logger.exception('Updating learned source weights failed')
     if matching.get('skipped') and matching['skipped'] != 'AI is not enabled':
         warnings.append('Stories from different sources could not be grouped automatically this time.')
     return source_report, warnings

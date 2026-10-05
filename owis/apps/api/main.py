@@ -42,6 +42,8 @@ def on_startup() -> None:
     try:
         from owis.modules.news.processing.rescore import rescore_existing
         rescore_existing()
+        from owis.modules.news.registry.source_advisor import load_learned_weights
+        load_learned_weights()
     except Exception:
         logging.getLogger(__name__).exception('Rescoring stored news failed; keeping existing scores.')
     from owis.modules.news.processing.morning import start_scheduler
