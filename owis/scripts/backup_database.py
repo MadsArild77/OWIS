@@ -15,6 +15,13 @@ def backup(destination=None):
         if dst.execute('PRAGMA integrity_check').fetchone()[0]!='ok':raise RuntimeError('Backup integrity check failed')
     return target
 
+def prune_startup_backups(folder, keep=14):
+    """Keep the newest daily startup copies so the volume does not fill up."""
+    copies=sorted(Path(folder).glob('startup-*.db'))
+    for old in copies[:-keep] if keep>0 else copies:
+        old.unlink()
+    return copies[-keep:] if keep>0 else []
+
 if __name__=='__main__':
     import argparse
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output');args=p.parse_args()

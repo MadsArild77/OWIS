@@ -87,6 +87,18 @@ Regulatory viser jurisdiksjoner, organisasjoner og den felles kildeeditoren.
 Registeret er fortsatt delt og kan også inneholde nyhetskilder. Bakgrunn:
 nyhetsinnstillingene ble vanskelige å finne i en lukket seksjon under konfigurasjonen.
 
+## D10 – Innlogging med felles passord, Railway som eneste driftsplattform
+
+**Vedtatt 5. oktober 2026. Implementert i kode; må aktiveres i Railway.**
+Appen og alle API-er krever innlogging når `OWI_ACCESS_PASSWORD` er satt.
+`/health` er åpen for Railways helsesjekk. Uten variabelen er appen åpen som før,
+slik at utrullingen ikke låser noen ute, men Railway-loggen viser en advarsel.
+Bakgrunn: testmiljøet på Railway svarte uten innlogging, slik at hvem som helst
+med lenken kunne endre kilder og starte betalte AI-kall. Den ubrukte Render-
+konfigurasjonen (`render.yaml`) er fjernet; Railway er eneste driftsplattform.
+Oppstartskopier av databasen begrenses til de 14 nyeste. Testene kjøres på
+Python 3.11 (Docker/Railway) og 3.13 (lokal utvikling).
+
 ## Åpne forslag og avklaringer
 
 - **Lyd/NotebookLM:** vurderes senere; ingen automatisk Google-overføring eller
@@ -94,6 +106,9 @@ nyhetsinnstillingene ble vanskelige å finne i en lukket seksjon under konfigura
 - **Flere land:** konkrete kalendere, API-er og dekningsgrad undersøkes per land
   etter Norge-piloten. Ingen garanti om komplett europeisk dekning.
 - **Uttrekksbibliotek:** evaluer Trafilatura mot representative sider i trinn 2.
+- **Railway-miljøer:** Railway-prosjektene har autogenererte navn. Hvilket som
+  er OWIS produksjon og testmiljø bør navngis og dokumenteres. «Vent på CI» før
+  utrulling bør slås på i Railway, og databasekopier bør lagres utenfor volumet.
 - **Produksjon:** kode på main bekrefter ikke aktiv rapportplanlegging, kildeoppsett
   eller at siste versjon er rullet ut. Dette må kontrolleres i driftsmiljøet.
 
