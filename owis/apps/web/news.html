@@ -9,663 +9,735 @@
   <style>
     /* Page styles for /news. Colours come from the tokens in theme.css. */
     [hidden] { display: none !important; }
-    .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px 40px; }
-    .topbar {
-      position: sticky;
-      top: 0;
-      z-index: 20;
-      margin: 0 -24px 24px;
-      padding: 12px 24px;
-      background: var(--surface);
-      border-bottom: 1px solid var(--line);
+    * { box-sizing: border-box; }
+
+    /* ---------- App shell: sidebar + main column ---------- */
+    .app { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100vh; }
+    .sidebar {
+      position: sticky; top: 0; height: 100vh;
+      display: flex; flex-direction: column; gap: 4px;
+      padding: 18px 12px 14px;
+      background: var(--sidebar);
+      border-right: 1px solid var(--line);
+      overflow-y: auto;
     }
-    .topbar-inner {
-      max-width: 1180px;
-      margin: 0 auto;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
+    .brand { display: flex; align-items: center; gap: 10px; padding: 4px 10px 18px; color: var(--ink); text-decoration: none; }
+    .brand:hover { color: var(--ink); }
+    .brand-logo {
+      display: grid; place-items: center; width: 32px; height: 32px; flex: none;
+      border-radius: 8px; background: var(--brand); color: var(--brand-ink);
     }
-    .brand-mark {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      color: var(--ink);
-      font-size: 0.9rem;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      text-decoration: none;
-    }
-    .brand-dot { width: 12px; height: 12px; border-radius: 999px; background: var(--brand); }
-    .topnav { display: flex; align-items: center; gap: 18px; font-size: 0.95rem; }
-    .topnav a { color: var(--muted); text-decoration: none; font-weight: 600; }
-    .topnav a:hover, .topnav a[aria-current="page"] { color: var(--brand); }
-    .eyebrow { margin: 0 0 10px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.8rem; font-weight: 700; }
-    h1 { margin: 0; }
-    h2 { font-size: 1.35rem; margin: 0 0 8px; }
-    h3 { font-size: 1.1rem; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: var(--shadow);
-    }
-    .card h3 { margin: 0 0 6px; font-size: 1.05rem; }
-    .muted { color: var(--muted); font-size: 0.95rem; }
-    .meta { margin-top: 6px; font-size: 0.875rem; color: var(--muted); }
-    .compact-card h3 { font-size: 1rem; line-height: 1.35; margin-bottom: 4px; }
-    .compact-image {
-      width: 100%;
-      height: 130px;
-      border-radius: 8px;
-      object-fit: cover;
-      margin-bottom: 10px;
-      border: 1px solid var(--line);
-      background: var(--surface-2);
-    }
-    .compact-summary {
-      margin: 6px 0 0;
-      font-size: 0.95rem;
-      color: var(--muted);
-      line-height: 1.5;
-      display: -webkit-box;
-      -webkit-line-clamp: 4;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-    .compact-meta-row { margin-top: 6px; font-size: 0.85rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px; }
-    .inline-tags { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
-    .inline-tag {
-      display: inline-flex;
-      align-items: center;
-      padding: 2px 9px;
-      border-radius: 999px;
-      font-size: 0.8rem;
-      line-height: 1.4;
-      background: var(--tag-bg);
-      color: var(--tag-ink);
-    }
-    .inline-tag.is-geo { background: var(--tag-plain-bg); color: var(--tag-plain-ink); }
-    .inline-tag.is-actor { background: var(--tag-actor-bg); color: var(--tag-actor-ink); }
-    .card-actions-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
-    .card-actions-inline button { margin-top: 0; padding: 7px 12px; font-size: 0.875rem; }
-    .related-strip { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
-    .related-strip-title { font-size: 0.8rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
-    .related-item { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); }
-    .related-item:first-of-type { border-top: 0; }
-    .related-item-title { font-size: 0.9rem; line-height: 1.4; color: var(--ink); }
-    .related-item-meta { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
-    .related-item button { margin-top: 0; padding: 5px 9px; font-size: 0.8rem; flex: 0 0 auto; }
-    section { margin: 20px 0 28px; }
-    a { text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    textarea, input, select {
-      width: 100%;
-      box-sizing: border-box;
-      border: 1px solid var(--line-strong);
-      border-radius: 8px;
-      padding: 8px 10px;
-      font: inherit;
-      font-size: 0.95rem;
-      background: var(--surface);
-      color: var(--ink);
-    }
-    textarea { min-height: 110px; font-family: var(--mono); font-size: 0.9rem; }
-    input[type="checkbox"], input[type="radio"] { width: auto; accent-color: var(--brand); }
-    label { font-size: 0.9rem; }
-    button {
-      margin-top: 8px;
-      border: 1px solid transparent;
-      border-radius: 8px;
-      padding: 9px 14px;
-      background: var(--brand);
-      color: var(--brand-ink);
-      font: inherit;
-      font-size: 0.95rem;
-      font-weight: 600;
+    .brand-logo svg { width: 20px; height: 20px; }
+    .brand-name { display: block; font-weight: 700; font-size: 1rem; letter-spacing: 0.02em; line-height: 1.2; }
+    .brand-sub { display: block; font-size: 0.75rem; color: var(--muted); line-height: 1.3; }
+    .side-nav { display: flex; flex-direction: column; gap: 2px; }
+    .nav-label { padding: 14px 10px 6px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    .nav-item {
+      display: flex; align-items: center; justify-content: flex-start; gap: 10px; width: 100%;
+      margin: 0; padding: 8px 10px;
+      border: 0; border-radius: 8px;
+      background: transparent; color: var(--ink-2);
+      font: inherit; font-size: 0.94rem; font-weight: 500; text-align: left; text-decoration: none;
       cursor: pointer;
     }
-    button:hover:not([disabled]) { filter: brightness(1.08); }
-    button[disabled] { opacity: 0.55; cursor: not-allowed; }
-    button.is-busy { opacity: 0.8; }
-    .btn-secondary { background: var(--secondary-bg); color: var(--secondary-ink); border-color: var(--line); }
-    .btn-warning { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
-    .status { margin-top: 8px; color: var(--ok); font-size: 0.95rem; }
-    .status.warn { color: var(--warn); }
-    .run-progress { display: none; margin-top: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
-    .run-progress.active { display: block; }
-    .run-progress-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
-    .run-progress-title { font-size: 1rem; font-weight: 700; }
-    .run-progress-time { font-size: 0.9rem; color: var(--muted); font-family: var(--mono); white-space: nowrap; }
-    .run-progress-bar { width: 100%; height: 10px; border-radius: 999px; overflow: hidden; background: var(--line); }
-    .run-progress-fill { width: 0%; height: 100%; border-radius: 999px; background: var(--brand); transition: width 0.6s ease; }
-    .run-progress-meta { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; font-size: 0.9rem; color: var(--muted); }
-    .run-progress-warning { margin-top: 8px; font-size: 0.9rem; color: var(--warn); display: none; }
-    .run-progress-warning.active { display: block; }
-    .source-progress-list { margin-top: 10px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
-    .source-progress-item { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--surface); }
-    .source-progress-name { font-size: 0.875rem; font-weight: 700; }
-    .source-progress-detail { margin-top: 3px; font-size: 0.85rem; color: var(--muted); line-height: 1.4; }
-    .source-progress-item.is-error { border-color: var(--danger); background: var(--danger-bg); }
-    .source-progress-item.is-active { border-color: var(--active-line); background: var(--active-bg); }
-    .source-progress-item.is-pending { opacity: 0.75; }
-    .source-progress-item.is-done { border-color: var(--accent); }
-    .sources-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 0.9rem; }
-    .sources-table th, .sources-table td { border-bottom: 1px solid var(--line); padding: 8px; text-align: left; vertical-align: top; }
-    .sources-table th { color: var(--muted); font-weight: 600; }
-    .count-badge {
-      display: inline-block;
-      min-width: 32px;
-      padding: 2px 8px;
-      border-radius: 999px;
-      background: var(--tag-bg);
-      color: var(--tag-ink);
-      font-size: 0.85rem;
-      font-weight: 700;
-      text-align: center;
+    .nav-item svg { width: 18px; height: 18px; flex: none; color: var(--muted); }
+    .nav-item:hover, .nav-item:hover:not([disabled]) { background: var(--surface-hover); border-color: transparent; color: var(--ink); text-decoration: none; }
+    .nav-item.active, .nav-item[aria-pressed="true"], .nav-item.active:hover:not([disabled]), .nav-item[aria-pressed="true"]:hover:not([disabled]) { background: var(--active-bg); color: var(--active-ink); font-weight: 600; }
+    .theme-toggle:hover:not([disabled]) { background: var(--surface-hover); border-color: var(--line-strong); color: var(--ink); }
+    .nav-item.active svg, .nav-item[aria-pressed="true"] svg { color: var(--brand); }
+    .nav-count { margin-left: auto; padding: 0 7px; border-radius: 999px; background: var(--surface-2); color: var(--muted); font-size: 0.78rem; font-weight: 600; line-height: 1.6; }
+    .nav-count:empty { display: none; }
+    .sidebar-foot { margin-top: auto; padding: 12px 10px 0; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+    .shortcut-hint { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+    kbd {
+      display: inline-block; min-width: 1.4em; padding: 0 5px;
+      border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 4px;
+      background: var(--surface); color: var(--ink-2);
+      font-family: var(--font); font-size: 0.75rem; text-align: center; line-height: 1.5;
     }
-    .count-badge.is-zero { background: var(--tag-plain-bg); color: var(--muted); }
-    .row-actions button { margin: 0 4px 4px 0; padding: 5px 10px; font-size: 0.85rem; }
-    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .settings-details > summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; cursor: pointer; list-style: none; }
-    .settings-details > summary::-webkit-details-marker { display: none; }
-    .settings-title { display: flex; flex-direction: column; gap: 3px; }
-    .settings-title h2 { margin: 0; }
-    .settings-chevron { color: var(--muted); font-size: 0.9rem; }
-    .settings-details[open] .settings-chevron::after { content: "Hide"; }
-    .settings-details:not([open]) .settings-chevron::after { content: "Show"; }
-    .settings-body { margin-top: 16px; }
-    .health-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+
+    .main { min-width: 0; }
+    .main-head {
+      position: sticky; top: 0; z-index: 30;
+      display: flex; align-items: center; justify-content: space-between; gap: 20px;
+      padding: 16px 32px;
+      background: color-mix(in srgb, var(--page) 88%, transparent);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--line);
+    }
+    .main-head h1 { margin: 0; font-size: 1.5rem; font-weight: 700; }
+    .main-head p { margin: 2px 0 0; color: var(--muted); font-size: 0.92rem; }
+    .search {
+      position: relative; flex: 0 1 380px;
+    }
+    .search svg { position: absolute; left: 11px; top: 50%; width: 17px; height: 17px; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+    .search input { padding-left: 36px; padding-right: 40px; border-radius: 10px; background: var(--surface); }
+    .search kbd { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+    .content { max-width: 1080px; padding: 22px 32px 64px; }
+
+    /* ---------- Controls ---------- */
+    textarea, input, select {
+      width: 100%;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      padding: 8px 11px;
+      font: inherit; font-size: 0.94rem;
+      background: var(--surface); color: var(--ink);
+    }
+    textarea { min-height: 110px; font-family: var(--mono); font-size: 0.88rem; line-height: 1.5; }
+    input:focus, select:focus, textarea:focus { outline: 2px solid var(--brand); outline-offset: 0; border-color: var(--brand); }
+    input[type="checkbox"], input[type="radio"] { width: auto; accent-color: var(--brand); }
+    input[type="search"]::-webkit-search-cancel-button { cursor: pointer; }
+    label { font-size: 0.88rem; }
+    .field { display: flex; flex-direction: column; gap: 5px; font-size: 0.85rem; font-weight: 600; color: var(--ink-2); }
+    button {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      margin-top: 8px;
+      border: 1px solid var(--brand);
+      border-radius: 8px;
+      padding: 8px 14px;
+      background: var(--brand); color: var(--brand-ink);
+      font: inherit; font-size: 0.92rem; font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.12s ease, border-color 0.12s ease;
+    }
+    button:hover:not([disabled]) { background: var(--brand-hover); border-color: var(--brand-hover); }
+    button[disabled] { opacity: 0.5; cursor: not-allowed; }
+    button.is-busy { opacity: 0.75; cursor: progress; }
+    .btn-secondary { background: var(--secondary-bg); color: var(--secondary-ink); border-color: var(--line-strong); box-shadow: var(--shadow); }
+    .btn-secondary:hover:not([disabled]) { background: var(--surface-hover); border-color: var(--line-strong); }
+    .btn-warning { background: var(--danger-bg); color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, transparent); }
+    .btn-warning:hover:not([disabled]) { background: var(--danger-bg); border-color: var(--danger); }
+    .btn-ghost { background: transparent; color: var(--brand); border-color: transparent; padding-inline: 8px; }
+    .btn-ghost:hover:not([disabled]) { background: var(--brand-soft); border-color: transparent; }
+    a { text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ---------- Generic blocks used by rendered content ---------- */
+    section { margin: 0; }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; box-shadow: var(--shadow); }
+    .card h3 { margin: 0 0 6px; font-size: 1.05rem; }
+    .muted { color: var(--muted); font-size: 0.94rem; }
+    .meta { margin-top: 4px; font-size: 0.86rem; color: var(--muted); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .status { margin-top: 8px; color: var(--ok); font-size: 0.92rem; }
+    .status.warn { color: var(--warn); }
+    .status:empty { display: none; }
+    .inline-tags, .master-tags, .story-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .inline-tags { margin-top: 8px; }
+    .inline-tag, .chip-tag {
+      display: inline-flex; align-items: center;
+      padding: 1px 9px; border-radius: 999px;
+      font-size: 0.78rem; font-weight: 500; line-height: 1.6;
+      background: var(--tag-bg); color: var(--tag-ink);
+    }
+    .inline-tag.is-geo, .chip-tag.is-geo { background: var(--tag-plain-bg); color: var(--tag-plain-ink); }
+    .inline-tag.is-actor, .chip-tag.is-actor { background: var(--tag-actor-bg); color: var(--tag-actor-ink); }
+    .card-actions-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+    .card-actions-inline button { margin-top: 0; padding: 6px 12px; font-size: 0.86rem; }
+    .compact-card h3 { font-size: 1rem; line-height: 1.35; margin-bottom: 4px; }
+    .compact-image { width: 100%; height: 140px; border-radius: 8px; object-fit: cover; margin-bottom: 10px; background: var(--surface-2); }
+    .compact-summary { margin: 6px 0 0; font-size: 0.94rem; color: var(--muted); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .compact-meta-row { margin-top: 8px; font-size: 0.84rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 10px; }
+    .related-strip { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
+    .related-strip-title { font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+    .related-item { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); }
+    .related-item:first-of-type { border-top: 0; }
+    .related-item-title { font-size: 0.9rem; line-height: 1.4; }
+    .related-item-meta { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+    .related-item button { margin-top: 0; padding: 4px 9px; font-size: 0.8rem; flex: none; }
+    .collection-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .collection-key { font-family: var(--mono); font-size: 0.82rem; color: var(--muted); }
+    .collection-item { margin: 10px 0; font-size: 0.94rem; }
+    .master-card { border: 1px solid var(--line); border-radius: 12px; padding: 16px; background: var(--surface); box-shadow: var(--shadow); }
+    .master-card.has-image { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 14px; }
+    .master-content { min-width: 0; }
+    .master-title { font-size: 1.05rem; font-weight: 700; line-height: 1.35; margin-bottom: 4px; }
+    .master-summary, .master-why { color: var(--muted); line-height: 1.5; font-size: 0.94rem; margin-top: 6px; }
+    .master-tags { margin-top: 10px; }
+    .story-thumb { display: block; border-radius: 8px; min-height: 100px; background-size: cover; background-position: center; background-color: var(--surface-2); }
+    .selection-row { margin-top: 8px; font-size: 0.88rem; color: var(--muted); }
+    .health-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
     .health-green { background: #16a34a; }
     .health-yellow { background: #f59e0b; }
     .health-red { background: #dc2626; }
     .health-gray { background: #94a3b8; }
-    .badge-paywall { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; background: var(--danger-bg); color: var(--danger); }
-    .collection-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
-    .collection-key { font-family: var(--mono); font-size: 0.85rem; color: var(--muted); }
-    .collection-item { margin: 8px 0; font-size: 0.95rem; }
-    .master-card {
-      margin-bottom: 10px;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      padding: 16px;
-      background: var(--surface);
-    }
-    .master-card.has-image { display: grid; grid-template-columns: minmax(0, 1fr) 156px; gap: 14px; align-items: stretch; }
-    .master-title { font-size: 1.1rem; font-weight: 700; line-height: 1.35; margin-bottom: 6px; }
-    .master-summary, .master-why { color: var(--muted); line-height: 1.5; font-size: 0.95rem; margin-top: 6px; }
-    .master-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-    .view-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 10px 0 12px; flex-wrap: wrap; }
-    .view-toggle { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); }
-    .view-toggle button { margin-top: 0; padding: 5px 14px; border-radius: 999px; background: transparent; border: 0; color: var(--muted); font-size: 0.875rem; }
-    .view-toggle button.active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
-    .story-list { display: flex; flex-direction: column; gap: 0; }
-    .story-row { padding: 16px 0; cursor: pointer; }
-    .story-row h3 { margin: 0; font-size: 1.1rem; line-height: 1.4; }
-    .story-open { margin: 0; padding: 0; background: transparent; border: 0; color: var(--ink); text-align: left; font: inherit; font-weight: 700; }
-    .story-open:hover:not([disabled]) { filter: none; }
-    .story-description { margin: 6px 0; font-size: 1rem; line-height: 1.55; color: var(--muted); max-width: 75ch; }
-    .story-meta { font-size: 0.875rem; }
-    .overview-heading { margin: 0 0 18px; }
-    .overview-heading h1 { font-size: 1.75rem; margin: 0 0 4px; }
-    .overview-heading p { margin: 0; color: var(--muted); font-size: 1rem; }
-    .overview-filters { display: flex; flex-wrap: wrap; gap: 14px; align-items: end; }
-    .overview-filters label { flex: 1 1 160px; font-size: 0.875rem; font-weight: 600; color: var(--muted); }
-    .overview-filters select { display: block; width: 100%; margin-top: 4px; }
-    .story-list .story-row { border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; box-shadow: none; padding: 16px 0; }
-    .story-list .story-row:last-child { border-bottom: 0; }
-    .story-row:hover .story-open { color: var(--brand); }
-    .story-context { color: var(--accent); font-weight: 600; }
-    #articlesView > .card { padding: 18px 22px; margin-bottom: 14px; }
-    #articlesView .card-actions-inline > label { display: inline-flex; align-items: center; gap: 6px; font-size: 0.9rem; }
-    #showDismissed { width: auto; margin: 0; }
-    #showFeedbackHistory { margin: 0; padding: 6px 10px; background: transparent; border-color: transparent; color: var(--brand); font-size: 0.9rem; }
-    #tab-reading .view-toolbar { margin: 0 0 4px; }
-    #feedbackNotice:empty { display: none; }
-    .story-list .story-card { padding: 14px; border-radius: 10px; }
-    .story-list .master-card {
-      min-height: 0;
-      margin-bottom: 10px;
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 132px;
-      gap: 14px;
-      align-items: stretch;
-      padding: 14px;
-    }
-    .story-list .master-content { min-width: 0; }
-    .story-thumb { display: block; border-radius: 8px; min-height: 112px; background-size: cover; background-position: center; border: 1px solid var(--line); }
-    .story-list .master-title { font-size: 1.05rem; line-height: 1.35; }
-    .story-list .master-summary { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-top: 5px; }
-    .story-list .master-why { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 0.9rem; }
-    .story-list .master-tags .inline-tag:nth-child(n+7) { display: none; }
-    .story-list .collection-head { margin-bottom: 0; font-size: 0.9rem; }
-    .story-list .collection-key { display: none; }
-    .selection-row { margin-top: 8px; font-size: 0.9rem; color: var(--muted); }
-    .tab-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
-    [role="tablist"] [role="tab"], .tab-btn, .tab-bar > button[aria-pressed] {
-      margin-top: 0;
-      background: transparent;
-      color: var(--muted);
-      border: 1px solid var(--line);
-    }
-    [role="tablist"] [aria-selected="true"], .tab-btn.active, .tab-bar > button[aria-pressed="true"] {
-      background: var(--active-bg);
-      color: var(--active-ink);
-      border-color: var(--active-line);
-    }
+    .badge-paywall { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; background: var(--danger-bg); color: var(--danger); vertical-align: middle; }
+    .count-badge { display: inline-block; min-width: 30px; padding: 1px 8px; border-radius: 999px; background: var(--tag-bg); color: var(--tag-ink); font-size: 0.82rem; font-weight: 700; text-align: center; }
+    .count-badge.is-zero { background: var(--tag-plain-bg); color: var(--muted); }
+    .card.is-clickable { cursor: pointer; transition: border-color 0.12s ease, box-shadow 0.12s ease; }
+    .card.is-clickable:hover { border-color: var(--line-strong); box-shadow: var(--shadow-md); }
+    .story-card.is-updated { animation: storyPulse 1.2s ease both; }
+    @keyframes storyPulse { 0% { box-shadow: 0 0 0 3px var(--active-line); } 100% { box-shadow: var(--shadow); } }
+    .research-panel { margin: 16px 0; padding: 18px 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); }
+    .research-panel h3, .research-panel h4 { margin: 14px 0 6px; }
+    .research-panel > h3:first-child, .research-panel > h4:first-child { margin-top: 0; }
+    .research-panel p, .research-panel li { line-height: 1.6; }
+    .research-ratings { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+    .research-ratings > div { padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
+    .pager { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 20px; color: var(--muted); font-size: 0.9rem; }
+    .pager button { margin-top: 0; padding: 6px 12px; font-size: 0.86rem; }
+
+    /* ---------- Section heading inside a view ---------- */
+    .view-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+    .view-head h2 { margin: 0; font-size: 1.2rem; }
+    .view-head p { margin: 4px 0 0; color: var(--muted); font-size: 0.92rem; max-width: 70ch; }
+    .view-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .view-actions button { margin-top: 0; }
     .tab-panel { display: none; }
     .tab-panel.active { display: block; }
-    .story-card { animation: storyEnter 0.2s ease both; }
-    .story-card.is-updated { animation: storyPulse 1.2s ease both; }
-    @keyframes storyEnter { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes storyPulse { 0% { box-shadow: 0 0 0 0 var(--active-line); } 100% { box-shadow: 0 0 0 0 transparent; } }
-    .pager { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
-    .pager button { margin-top: 0; padding: 6px 12px; font-size: 0.875rem; }
-    .card.is-clickable { cursor: pointer; transition: border-color 0.14s ease; }
-    .card.is-clickable:hover { border-color: var(--active-line); }
-    .detail-overlay {
-      position: fixed;
-      inset: 0;
-      background: var(--overlay);
-      display: none;
-      align-items: flex-start;
-      justify-content: center;
-      padding: 24px;
-      z-index: 1000;
+
+    /* ---------- News toolbar ---------- */
+    .toolbar { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      margin: 0; padding: 6px 14px;
+      border: 1px solid var(--line-strong); border-radius: 999px;
+      background: var(--surface); color: var(--ink-2);
+      font-size: 0.88rem; font-weight: 500; box-shadow: none;
     }
+    .chip:hover:not([disabled]) { background: var(--surface-hover); border-color: var(--line-strong); }
+    .chip[aria-pressed="true"], .chip[aria-pressed="true"]:hover:not([disabled]) { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+    .filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .pill-select {
+      width: auto; max-width: 220px; padding: 6px 30px 6px 12px;
+      border-radius: 8px; font-size: 0.88rem; font-weight: 500;
+      background-color: var(--surface);
+    }
+    .filter-row .spacer { flex: 1; }
+    .toggle-label { display: inline-flex; align-items: center; gap: 7px; font-size: 0.88rem; color: var(--ink-2); cursor: pointer; }
+    .view-toggle { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); }
+    .view-toggle button { margin: 0; padding: 4px 12px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 0.85rem; box-shadow: none; }
+    .view-toggle button:hover:not([disabled]) { background: transparent; color: var(--ink); }
+    .view-toggle button.active, .view-toggle button.active:hover:not([disabled]) { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+    #feedbackNotice:empty { display: none; }
+    #showDismissed { margin: 0; }
+
+    /* ---------- Story feed ---------- */
+    #readingStories.story-list { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; }
+    .day-head { margin: 0; padding: 14px 20px 8px; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: var(--surface-2); border-bottom: 1px solid var(--line); }
+    .story-list .day-head:not(:first-child) { border-top: 1px solid var(--line); }
+    .grid .day-head { grid-column: 1 / -1; padding: 6px 2px 0; background: transparent; border: 0; }
+    .story {
+      display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px;
+      padding: 18px 20px; cursor: pointer; position: relative;
+      transition: background-color 0.12s ease;
+    }
+    .story-list .story + .story { border-top: 1px solid var(--line); }
+    .story:hover { background: var(--surface-hover); }
+    .story.is-active { background: var(--active-bg); box-shadow: inset 3px 0 0 var(--brand); }
+    .story-source { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 0.84rem; color: var(--muted); }
+    .source-avatar {
+      display: grid; place-items: center; width: 20px; height: 20px; flex: none;
+      border-radius: 5px; background: var(--brand-soft); color: var(--brand);
+      font-size: 0.7rem; font-weight: 800;
+    }
+    .source-name { color: var(--ink-2); font-weight: 600; }
+    .sources-badge { padding: 0 8px; border-radius: 999px; border: 1px solid var(--line-strong); font-size: 0.75rem; font-weight: 600; color: var(--ink-2); line-height: 1.6; }
+    .story h3 { margin: 6px 0 0; font-size: 1.08rem; line-height: 1.38; font-weight: 650; }
+    .story-open {
+      margin: 0; padding: 0; border: 0; background: none; box-shadow: none;
+      color: var(--ink); font: inherit; text-align: left; display: inline; cursor: pointer;
+    }
+    .story-open:hover:not([disabled]) { background: none; color: var(--brand); }
+    .story-open::after { content: ""; position: absolute; inset: 0; }
+    .story-description { margin: 6px 0 0; color: var(--muted); font-size: 0.95rem; line-height: 1.55; max-width: 72ch; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .story-tags { margin-top: 10px; position: relative; }
+    .story-image { width: 132px; height: 92px; border-radius: 8px; background: var(--surface-2) center / cover no-repeat; border: 1px solid var(--line); }
+    #readingStories.grid .story { grid-template-columns: 1fr; gap: 12px; padding: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+    #readingStories.grid .story:hover { box-shadow: var(--shadow-md); border-color: var(--line-strong); }
+    #readingStories.grid .story-image { order: -1; width: 100%; height: 160px; }
+    #readingStories.grid .story-description { -webkit-line-clamp: 3; }
+    .empty-state { padding: 48px 24px; text-align: center; color: var(--muted); }
+    .empty-state strong { display: block; margin-bottom: 4px; color: var(--ink); font-size: 1.05rem; }
+    .skeleton { padding: 18px 20px; border-top: 1px solid var(--line); }
+    .skeleton:first-child { border-top: 0; }
+    .skeleton span { display: block; height: 12px; margin-top: 10px; border-radius: 6px; background: var(--skeleton); animation: shimmer 1.4s ease-in-out infinite; }
+    .skeleton span:first-child { width: 22%; margin-top: 0; }
+    .skeleton span:nth-child(2) { width: 70%; height: 16px; }
+    .skeleton span:nth-child(3) { width: 92%; }
+    @keyframes shimmer { 50% { opacity: 0.45; } }
+
+    /* ---------- Settings ---------- */
+    .settings-tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--line); }
+    .settings-tabs [role="tab"] {
+      margin: 0 0 -1px; padding: 10px 14px;
+      border: 0; border-bottom: 2px solid transparent; border-radius: 0;
+      background: transparent; color: var(--muted); font-weight: 600; box-shadow: none;
+    }
+    .settings-tabs [role="tab"]:hover:not([disabled]) { background: transparent; border-color: transparent; border-bottom-color: var(--line-strong); color: var(--ink); }
+    .settings-tabs [aria-selected="true"], .settings-tabs [aria-selected="true"]:hover:not([disabled]) { color: var(--ink); border-bottom-color: var(--brand); }
+    .settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .settings-grid .span-2 { grid-column: 1 / -1; }
+    .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; box-shadow: var(--shadow); }
+    .panel > h3 { margin: 0 0 4px; font-size: 1.02rem; }
+    .panel > p.muted { margin: 0 0 14px; font-size: 0.9rem; }
+    .panel .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .panel .actions button { margin-top: 0; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+    .table-wrap { overflow-x: auto; margin-top: 4px; }
+    .sources-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    .sources-table th, .sources-table td { border-bottom: 1px solid var(--line); padding: 9px 8px; text-align: left; vertical-align: top; }
+    .sources-table th { color: var(--muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .sources-table tbody tr:hover { background: var(--surface-hover); }
+    .row-actions button { margin: 0 4px 4px 0; padding: 4px 10px; font-size: 0.82rem; }
+    .ai-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .ai-row button { margin-top: 0; }
+    .run-progress { display: none; margin-top: 14px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
+    .run-progress.active { display: block; }
+    .run-progress-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .run-progress-title { font-weight: 700; }
+    .run-progress-time { font-size: 0.88rem; color: var(--muted); font-family: var(--mono); }
+    .run-progress-bar { height: 8px; border-radius: 999px; overflow: hidden; background: var(--line); }
+    .run-progress-fill { width: 0%; height: 100%; border-radius: 999px; background: var(--brand); transition: width 0.6s ease; }
+    .run-progress-meta { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; font-size: 0.88rem; color: var(--muted); }
+    .run-progress-warning { margin-top: 8px; font-size: 0.88rem; color: var(--warn); display: none; }
+    .run-progress-warning.active { display: block; }
+    .source-progress-list { margin-top: 10px; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; }
+    .source-progress-item { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--surface); }
+    .source-progress-name { font-size: 0.86rem; font-weight: 700; }
+    .source-progress-detail { margin-top: 2px; font-size: 0.82rem; color: var(--muted); line-height: 1.4; }
+    .source-progress-item.is-error { border-color: var(--danger); background: var(--danger-bg); }
+    .source-progress-item.is-active { border-color: var(--active-line); background: var(--active-bg); }
+    .source-progress-item.is-pending { opacity: 0.7; }
+    .source-progress-item.is-done { border-color: var(--accent); }
+    #sourceConfig > h3 { margin-top: 0; }
+    #sourceConfig label { display: block; margin-top: 12px; font-weight: 600; }
+    #sourceConfig select { margin-top: 5px; max-width: 360px; }
+    fieldset { border: 1px solid var(--line); border-radius: 8px; margin: 12px 0; padding: 10px 14px; }
+    legend { padding: 0 6px; font-weight: 600; font-size: 0.88rem; }
+    details > summary { cursor: pointer; }
+
+    /* ---------- Review ---------- */
+    .review-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .review-actions button { margin-top: 0; }
+    .subhead { margin: 28px 0 4px; font-size: 1.05rem; }
+
+    /* ---------- Reading pane (detail drawer) ---------- */
+    .detail-overlay { position: fixed; inset: 0; z-index: 1000; display: none; justify-content: flex-end; background: var(--overlay); }
     .detail-overlay.open { display: flex; }
     .detail-panel {
-      width: min(860px, 100%);
-      max-height: calc(100vh - 48px);
-      overflow: auto;
-      box-sizing: border-box;
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      box-shadow: var(--shadow-strong);
-      padding: 24px;
+      width: min(760px, 100%); height: 100%; overflow-y: auto;
+      background: var(--surface); border-left: 1px solid var(--line); box-shadow: var(--shadow-strong);
+      animation: drawerIn 0.18s ease-out;
     }
-    #detailTitle { font-size: 1.45rem; line-height: 1.3; }
-    .detail-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
-    .detail-controls { display: flex; gap: 6px; align-items: center; }
-    .detail-close, .detail-nav-btn { margin-top: 0; padding: 6px 12px; font-size: 0.875rem; background: var(--secondary-bg); color: var(--secondary-ink); border-color: var(--line); }
+    @keyframes drawerIn { from { transform: translateX(24px); opacity: 0.6; } to { transform: none; opacity: 1; } }
+    .detail-head {
+      position: sticky; top: 0; z-index: 2;
+      display: flex; flex-direction: column; gap: 12px;
+      padding: 14px 28px 16px; background: var(--surface); border-bottom: 1px solid var(--line);
+    }
+    .detail-controls { display: flex; gap: 6px; align-items: center; justify-content: flex-end; order: -1; }
+    .detail-controls .grow { flex: 1; font-size: 0.8rem; color: var(--muted); }
+    .detail-close, .detail-nav-btn { margin-top: 0; padding: 5px 11px; font-size: 0.85rem; background: var(--secondary-bg); color: var(--secondary-ink); border-color: var(--line-strong); }
+    .detail-close:hover:not([disabled]), .detail-nav-btn:hover:not([disabled]) { background: var(--surface-hover); border-color: var(--line-strong); }
+    #detailTitle { margin: 0; font-size: 1.5rem; line-height: 1.3; font-weight: 700; }
+    .detail-body { padding: 20px 28px 40px; color: var(--ink); font-size: 1rem; line-height: 1.65; }
+    .detail-body > details { margin-top: 16px; }
+    .detail-body summary { color: var(--muted); font-weight: 600; font-size: 0.9rem; }
     .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 12px; }
-    .detail-block { border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: var(--surface-2); }
+    .detail-block { border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: var(--surface-2); }
     .detail-block h4 { margin: 0 0 8px; font-size: 0.95rem; }
-    .detail-body { white-space: normal; line-height: 1.6; color: var(--ink); font-size: 1rem; }
-    .detail-body > details { margin-top: 12px; }
-    .detail-body summary { cursor: pointer; color: var(--muted); font-weight: 600; font-size: 0.9rem; }
-    .detail-summary, .detail-why {
-      margin-top: 14px;
-      padding: 0 0 0 14px;
-      border-left: 3px solid var(--active-line);
-      color: var(--ink);
-      line-height: 1.6;
+    .detail-summary, .detail-why { margin-top: 18px; color: var(--ink); line-height: 1.65; }
+    .detail-summary strong, .detail-why strong, .detail-source-context h4 {
+      display: block; margin: 0 0 6px;
+      color: var(--muted); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
     }
-    .detail-why { border-left-color: var(--accent); }
-    .detail-summary strong, .detail-why strong {
-      display: block;
-      margin-bottom: 4px;
-      color: var(--muted);
-      font-size: 0.8rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-    .detail-linkedin-suggestion { display: none; margin-top: 12px; padding: 12px 14px; border-radius: 8px; background: var(--active-bg); border: 1px solid var(--active-line); }
+    .detail-why { padding: 14px 16px; border-radius: 10px; background: var(--surface-2); }
+    .detail-linkedin-suggestion { display: none; margin-top: 14px; padding: 14px 16px; border-radius: 10px; background: var(--active-bg); }
     .detail-linkedin-suggestion.open { display: block; }
     .detail-linkedin-suggestion strong { display: block; margin-bottom: 4px; color: var(--active-ink); font-size: 0.9rem; }
-    .detail-linkedin-text { color: var(--ink); line-height: 1.55; font-size: 0.95rem; }
+    .detail-linkedin-text { line-height: 1.6; font-size: 0.95rem; }
     .detail-meta-strip { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
-    .detail-meta-chip {
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: var(--surface-2);
-      border: 1px solid var(--line);
-      min-width: 0;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      max-width: 100%;
-    }
-    .detail-meta-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); white-space: nowrap; }
-    .detail-meta-value { font-size: 0.875rem; color: var(--ink); line-height: 1.4; word-break: break-word; }
-    .detail-preview { margin-top: 12px; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(220px, 0.9fr); gap: 14px; align-items: start; }
-    .detail-topline { margin-top: 4px; display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(220px, 0.8fr); gap: 16px; align-items: start; }
-    .detail-topline.no-image { grid-template-columns: 1fr; }
+    .detail-meta-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); }
+    .detail-meta-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); white-space: nowrap; }
+    .detail-meta-value { font-size: 0.86rem; line-height: 1.4; word-break: break-word; }
+    .detail-preview, .detail-topline { margin-top: 8px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+    .detail-topline.has-image > div:last-child { order: -1; }
     .detail-preview-text { min-width: 0; }
-    .detail-preview-image { width: 100%; border-radius: 8px; border: 1px solid var(--line); object-fit: cover; max-height: 220px; background: var(--surface-2); }
-    .detail-preview-lead { margin-top: 10px; color: var(--ink); line-height: 1.6; font-size: 1rem; }
-    .detail-preview-excerpt { margin-top: 10px; color: var(--ink); line-height: 1.65; font-size: 1rem; }
-    .detail-source-context { margin-top: 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); padding: 16px; }
-    .detail-source-context h4 { margin: 0 0 8px; font-size: 1rem; }
-    .detail-source-context-text { white-space: pre-wrap; line-height: 1.65; color: var(--ink); font-size: 1rem; max-width: 75ch; }
+    .detail-preview-image { width: 100%; max-height: 300px; border-radius: 10px; object-fit: cover; background: var(--surface-2); }
+    .detail-preview-lead, .detail-preview-excerpt { margin-top: 10px; line-height: 1.65; font-size: 1rem; }
+    .detail-source-context { margin-top: 18px; padding: 16px; border: 1px solid var(--line); border-radius: 10px; }
+    .detail-source-context-text { white-space: pre-wrap; line-height: 1.7; font-size: 1rem; }
     .detail-source-link { margin-top: 10px; font-size: 0.9rem; }
-    .detail-action-row { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
-    .detail-action-row button { margin-top: 0; padding: 7px 12px; font-size: 0.875rem; }
+    .detail-action-row { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .detail-body > .detail-action-row:first-child { display: inline-flex; margin: 0 8px 4px 0; vertical-align: top; }
+    .detail-body > .detail-action-row:first-child + .detail-action-row { display: inline-flex; margin: 0 0 4px; vertical-align: top; }
+    .detail-action-row button { margin-top: 0; padding: 6px 12px; font-size: 0.86rem; }
+    .detail-body > button { margin-right: 6px; }
     .info-search {
-      display: inline-block;
-      padding: 7px 12px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--secondary-bg);
-      color: var(--secondary-ink);
-      text-decoration: none;
-      font-size: 0.875rem;
-      font-weight: 600;
+      display: inline-flex; align-items: center; padding: 6px 12px;
+      border: 1px solid var(--line-strong); border-radius: 8px;
+      background: var(--secondary-bg); color: var(--secondary-ink);
+      font-size: 0.86rem; font-weight: 600; text-decoration: none; box-shadow: var(--shadow);
     }
-    .info-search:hover { border-color: var(--brand); color: var(--brand); text-decoration: none; }
-    .research-panel { margin: 16px 0; padding: 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); color: var(--ink); }
-    .research-panel h3, .research-panel h4 { margin: 12px 0 6px; }
-    .research-panel > h3:first-child { margin-top: 0; }
-    .research-panel p, .research-panel li { line-height: 1.55; }
-    .research-ratings { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
-    .research-ratings > div { padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
-    @media (max-width: 760px) {
-      .detail-overlay { padding: 0; }
-      .detail-panel { max-height: 100vh; border-radius: 0; padding: 16px; }
-      .detail-head { flex-direction: column; }
-      .detail-controls { align-self: flex-end; order: -1; }
-      #detailTitle { font-size: 1.25rem; overflow-wrap: anywhere; }
-      .research-ratings, .two-col { grid-template-columns: 1fr; }
-      .detail-preview, .detail-topline { grid-template-columns: 1fr; }
-      .story-list .master-card, .master-card.has-image { grid-template-columns: 1fr; }
-      .story-list .story-thumb { min-height: 150px; }
-      .sources-table { display: block; overflow-x: auto; }
+    .info-search:hover { background: var(--surface-hover); color: var(--ink); text-decoration: none; }
+
+    body.settings-open .nav-item.tab-btn.active { background: transparent; color: var(--ink-2); font-weight: 500; }
+    body.settings-open .nav-item.tab-btn.active svg { color: var(--muted); }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 1100px) {
+      .settings-grid { grid-template-columns: 1fr; }
     }
-    @media (max-width: 600px) {
-      .wrap { padding: 0 16px 32px; }
-      .topbar { margin: 0 -16px 16px; padding: 10px 16px; }
-      .brand-mark { font-size: 0.8rem; letter-spacing: 0.06em; }
-      .topnav { gap: 12px; font-size: 0.875rem; }
-      .overview-heading h1 { font-size: 1.45rem; }
-      #articlesView > .card, .card { padding: 14px; }
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar {
+        position: sticky; top: 0; z-index: 40; height: auto;
+        flex-direction: row; align-items: center; gap: 8px;
+        padding: 8px 12px; border-right: 0; border-bottom: 1px solid var(--line);
+        overflow-x: auto; overflow-y: hidden;
+      }
+      .brand { padding: 0 6px 0 0; }
+      .brand-text, .nav-label, .shortcut-hint { display: none; }
+      .side-nav { flex-direction: row; gap: 2px; }
+      .nav-item { white-space: nowrap; padding: 7px 10px; }
+      .sidebar-foot { margin: 0 0 0 auto; padding: 0; }
+      .main-head { position: static; flex-wrap: wrap; padding: 14px 16px; }
+      .search { flex: 1 1 100%; }
+      .search kbd { display: none; }
+      .content { padding: 16px 16px 48px; }
+      .two-col { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .chip-row, .filter-row { flex-wrap: nowrap; overflow-x: auto; margin: 0 -16px; padding: 0 16px 2px; scrollbar-width: none; }
+      .chip-row::-webkit-scrollbar, .filter-row::-webkit-scrollbar { display: none; }
+      .chip, .pill-select, .toggle-label, #showFeedbackHistory { flex: none; white-space: nowrap; }
+      .filter-row .spacer { display: none; }
+      .story { grid-template-columns: 1fr; padding: 16px; }
+      .story-image { display: none; }
+      #readingStories.grid .story-image { display: block; }
+      .main-head h1 { font-size: 1.3rem; }
+      .theme-toggle .label { display: none; }
+      .detail-head { padding: 12px 16px 14px; }
+      .detail-body { padding: 16px 16px 32px; }
+      #detailTitle { font-size: 1.25rem; }
+      .master-card.has-image { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header class="topbar">
-      <div class="topbar-inner">
-        <a class="brand-mark" href="/news" aria-label="OWIS News">
-          <span class="brand-dot"></span>
-          <span>OWIS Intelligence</span>
+  <div class="app">
+    <aside class="sidebar">
+      <a class="brand" href="/news" aria-label="OWIS – news">
+        <span class="brand-logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="1.6"/><path d="M12 10.6V22M12 9 7 3.5M12 9l7.2-1.6M12 9l-4.6 6.4M9 22h6"/></svg>
+        </span>
+        <span class="brand-text"><span class="brand-name">OWIS</span><span class="brand-sub">Offshore wind intelligence</span></span>
+      </a>
+      <nav class="side-nav" aria-label="Sections">
+        <div class="nav-label">Briefing</div>
+        <button class="nav-item tab-btn" data-tab="morning" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v2M5.6 5.6 7 7M3 13h2M19 13h2M17 7l1.4-1.4M7 17a5 5 0 0 1 10 0M3 21h18"/></svg>
+          Morning brief
+        </button>
+        <button class="nav-item tab-btn active" data-tab="reading" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h13a2 2 0 0 1 2 2v12a2 2 0 0 0 2-2V9h-2M4 5v12a2 2 0 0 0 2 2h13M8 9h7M8 13h7M8 16h4"/></svg>
+          News <span class="nav-count" id="navNewsCount"></span>
+        </button>
+        <button class="nav-item tab-btn" data-tab="governance" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M7 21h10M5 7h14M5 7l-3 6a3 3 0 0 0 6 0zM19 7l-3 6a3 3 0 0 0 6 0z"/></svg>
+          Policy &amp; regulation
+        </button>
+        <div class="nav-label">Workspace</div>
+        <button class="nav-item tab-btn" data-tab="researched" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>
+          Researched
+        </button>
+        <button class="nav-item tab-btn" data-tab="review" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>
+          Review queue
+        </button>
+        <div class="nav-label">More</div>
+        <a class="nav-item" href="/opportunities">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h16v11H4zM9 8V5h6v3M4 13h16"/></svg>
+          Opportunities
         </a>
-        <nav class="topnav" aria-label="Primary navigation">
-          <a href="/news" aria-current="page">News</a>
-          <a href="/opportunities">Opportunities</a>
-          <button type="button" class="theme-toggle" data-theme-toggle>Dark mode</button>
-        </nav>
+        <button class="nav-item" id="showSettingsView" type="button" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+          Settings
+        </button>
+        <button id="showNewsView" type="button" aria-pressed="true" hidden>News</button>
+      </nav>
+      <div class="sidebar-foot">
+        <button type="button" class="theme-toggle" data-theme-toggle>Dark mode</button>
+        <p class="shortcut-hint"><kbd>/</kbd> search · <kbd>j</kbd> <kbd>k</kbd> next/previous · <kbd>Esc</kbd> close</p>
       </div>
-    </header>
+    </aside>
 
-    <section class="overview-heading"><h1>Industry brief</h1><p>Energy, maritime and electrification — what is happening and who is involved.</p></section>
-
-<nav class="tab-bar" aria-label="View"><button id="showNewsView" type="button" aria-pressed="true">News</button><button id="showSettingsView" type="button" aria-pressed="false">Settings</button></nav>
-    <section id="settingsView" class="card" hidden>
-      <h2>Settings</h2>
-      <div class="tab-bar" role="tablist" aria-label="Settings sections">
-        <button id="newsSettingsTab" type="button" role="tab" aria-selected="true" aria-controls="newsSettings">News</button>
-        <button id="regulatorySettingsTab" type="button" role="tab" aria-selected="false" aria-controls="regulatorySettings" tabindex="-1">Regulatory</button>
-      </div>
-      <section id="regulatorySettings" role="tabpanel" aria-labelledby="regulatorySettingsTab" hidden>
-      <div id="sourceConfig">
-        <h3>Jurisdictions, organisations and sources</h3>
-        <p class="muted">Configure jurisdictions, organisations, policy and calendar sources. The shared registry also includes news sources. Pausing preserves sources and their history.</p>
-        <div class="card-actions-inline" style="flex-wrap:wrap">
-          <button type="button" id="cfgReload">Reload configuration</button>
-          <button type="button" id="cfgAddJurisdiction">+ Jurisdiction</button>
-          <button type="button" id="cfgExport">Export configuration</button>
-          <button type="button" id="cfgImportToggle">Import configuration</button>
+    <main class="main">
+      <header class="main-head">
+        <div>
+          <h1 id="pageTitle">News</h1>
+          <p id="pageSubtitle">Energy, maritime and electrification — what is happening and who is involved.</p>
         </div>
-        <p id="cfgStatus" role="status" aria-live="polite"></p>
-        <div id="cfgImportPanel" hidden>
-          <p>Import merges records by their stable IDs. Existing records with matching IDs are updated; other records and history remain. Credentials are not included in exports.</p>
-          <label>Configuration file <input id="cfgImportFile" type="file" accept=".json,application/json"></label>
-          <button type="button" id="cfgImportApply" disabled>Validate and import</button>
-          <p id="cfgImportSummary"></p>
-        </div>
-        <label>Jurisdiction <select id="cfgJurisdiction"><option value="">Loading…</option></select></label>
-        <div id="cfgJurisdictionActions" class="card-actions-inline" style="flex-wrap:wrap"></div>
-        <div id="cfgEditor" class="research-panel" hidden></div>
-        <div id="cfgTree"></div>
-      </div>
-      </section>
-      <section id="newsSettings" role="tabpanel" aria-labelledby="newsSettingsTab">
-        <div class="settings-body">
+        <label class="search" id="searchBox">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="storySearch" type="search" placeholder="Search stories, companies, places" aria-label="Search stories" autocomplete="off" />
+          <kbd aria-hidden="true">/</kbd>
+        </label>
+      </header>
 
-          <p class="muted">Expand relevant stories with additional reporting when available.</p><h3>Monitored sources</h3><p class="muted">Manage RSS feeds, news sites and press rooms. Source settings are saved for future fetches.</p>
-          <textarea id="sourceInput" placeholder="Recharge - https://www.rechargenews.com\nhttps://windeurope.org"></textarea>
-          <button id="importBtn">Import Sources</button>
-
-          <h3>Edit source</h3><label>Topic <select id="editInterest"><option value="all">All</option><option value="energy">Offshore wind / energy</option><option value="maritime">Maritime / ports</option><option value="grid">Grid / electrification</option></select></label>
-          <div class="two-col">
-            <div>
-              <label class="muted">Index</label>
-              <input id="editIndex" type="number" readonly />
-            </div>
-            <div>
-              <label class="muted">Name</label>
-              <input id="editName" />
-            </div>
-            <div>
-              <label class="muted">Homepage</label>
-              <input id="editHomepage" />
-            </div>
-            <div>
-              <label class="muted">Type</label>
-              <select id="editType">
-                <option value="rss">rss</option>
-                <option value="scrape">scrape</option>
-              </select>
-            </div>
-            <div>
-              <label class="muted">URL</label>
-              <input id="editUrl" />
-            </div>
-            <div>
-              <label class="muted">Priority</label>
-              <input id="editPriority" />
-            </div>
-          </div>
-          <button id="saveEditBtn" class="btn-secondary">Save Edit</button>
-
-          <div style="margin-top:10px;">
-            <button id="dedupeBtn" class="btn-warning">Remove Duplicates</button>
-            <button id='rediscoverBtn' class='btn-secondary'>Rediscover RSS</button>
-            <button id='healthBtn' class='btn-secondary'>Source Health</button>
-            <button id="backfillBtn" class="btn-secondary">Expand older stories (up to 5)</button>
-            <button id="runPipelineBtn">Run Fetch + Processing</button>
-          </div>
-          <div class="two-col" style="margin-top:8px;">
-            <div>
-              <label class="muted">Days back</label>
-              <input id="fetchDaysBack" type="number" min="1" max="90" value="7" />
-            </div>
-            <div>
-              <label class="muted">Since last run</label>
-              <select id="fetchSinceLast">
-                <option value="false" selected>No</option>
-                <option value="true">Yes</option>
-              </select>
-            </div>
+      <div class="content">
+        <section id="settingsView" hidden>
+          <div class="settings-tabs" role="tablist" aria-label="Settings sections">
+            <button id="newsSettingsTab" type="button" role="tab" aria-selected="true" aria-controls="newsSettings">News sources</button>
+            <button id="regulatorySettingsTab" type="button" role="tab" aria-selected="false" aria-controls="regulatorySettings" tabindex="-1">Regulatory sources</button>
           </div>
 
-          <div class="two-col" style="margin-top:10px;">
-            <div>
-              <label class="muted">Filter cards by source</label>
-              <select id="sourceFilter">
-                <option value="">All sources</option>
-              </select>
+          <section id="newsSettings" role="tabpanel" aria-labelledby="newsSettingsTab">
+            <div class="settings-grid">
+              <div class="panel">
+                <h3>Fetch news</h3>
+                <p class="muted">Collect and process new articles from all active sources.</p>
+                <div class="form-grid">
+                  <label class="field">Days back <input id="fetchDaysBack" type="number" min="1" max="90" value="7" /></label>
+                  <label class="field">Only since last run
+                    <select id="fetchSinceLast"><option value="false" selected>No</option><option value="true">Yes</option></select>
+                  </label>
+                </div>
+                <div class="actions">
+                  <button id="runPipelineBtn" type="button">Fetch and process now</button>
+                  <button id="backfillBtn" class="btn-secondary" type="button">Expand older stories (up to 5)</button>
+                </div>
+                <div id="adminStatus" class="status"></div>
+                <div id="runProgress" class="run-progress" aria-live="polite">
+                  <div class="run-progress-head">
+                    <div id="runProgressTitle" class="run-progress-title">Pipeline running</div>
+                    <div id="runProgressTime" class="run-progress-time">00:00</div>
+                  </div>
+                  <div class="run-progress-bar"><div id="runProgressFill" class="run-progress-fill"></div></div>
+                  <div class="run-progress-meta"><span id="runProgressStep">Waiting to start...</span><span id="runProgressPercent">0%</span></div>
+                  <div id="runProgressWarning" class="run-progress-warning">This run is taking longer than expected. It may still be working, but it could also be waiting on a slow source.</div>
+                  <div id="sourceProgressList" class="source-progress-list"></div>
+                </div>
+              </div>
+
+              <div class="panel">
+                <h3>Add sources</h3>
+                <p class="muted">Paste one source per line: a name and URL, or just a URL. RSS feeds are found automatically.</p>
+                <textarea id="sourceInput" placeholder="Recharge - https://www.rechargenews.com&#10;https://windeurope.org"></textarea>
+                <div class="actions"><button id="importBtn" type="button">Import sources</button></div>
+              </div>
+
+              <div class="panel span-2">
+                <h3>Monitored sources</h3>
+                <p class="muted">Health, latest results and controls for each source. Select Edit to change a source below.</p>
+                <div class="table-wrap">
+                  <table class="sources-table">
+                    <thead><tr><th>#</th><th>Name</th><th>Type</th><th>URL</th><th>Last items</th><th>Health</th><th>Enabled</th><th>Actions</th></tr></thead>
+                    <tbody id="sourcesBody"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="panel">
+                <h3>Edit source</h3>
+                <p class="muted">Changes are saved for future fetches.</p>
+                <div class="form-grid">
+                  <label class="field">Index <input id="editIndex" type="number" readonly /></label>
+                  <label class="field">Name <input id="editName" /></label>
+                  <label class="field">Homepage <input id="editHomepage" /></label>
+                  <label class="field">URL <input id="editUrl" /></label>
+                  <label class="field">Type <select id="editType"><option value="rss">RSS</option><option value="scrape">Web page</option></select></label>
+                  <label class="field">Priority <input id="editPriority" /></label>
+                  <label class="field">Topic
+                    <select id="editInterest"><option value="all">All</option><option value="energy">Offshore wind / energy</option><option value="maritime">Maritime / ports</option><option value="grid">Grid / electrification</option></select>
+                  </label>
+                </div>
+                <div class="actions"><button id="saveEditBtn" class="btn-secondary" type="button">Save changes</button></div>
+              </div>
+
+              <div class="panel">
+                <h3>Maintenance</h3>
+                <p class="muted">Keep the source list clean and check AI availability.</p>
+                <div class="actions" style="margin-top:0">
+                  <button id="healthBtn" class="btn-secondary" type="button">Check source health</button>
+                  <button id="rediscoverBtn" class="btn-secondary" type="button">Rediscover RSS feeds</button>
+                  <button id="dedupeBtn" class="btn-warning" type="button">Remove duplicates</button>
+                </div>
+                <div class="ai-row" style="margin-top:16px">
+                  <span id="aiStatus" class="muted">AI: unknown</span>
+                  <button id="checkAiBtn" class="btn-secondary" type="button">Check AI</button>
+                </div>
+                <h3 style="margin:20px 0 4px;font-size:0.95rem">Display filters</h3>
+                <div class="form-grid">
+                  <label class="field">Source <select id="sourceFilter"><option value="">All sources</option></select></label>
+                  <label class="field">Domain
+                    <select id="domainFilter"><option value="offshore_wind">Offshore wind</option><option value="adjacent_energy">Adjacent energy</option><option value="other_energy">Other energy</option><option value="all" selected>All domains</option></select>
+                  </label>
+                </div>
+              </div>
             </div>
-            <div>
-              <label class="muted">Domain filter</label>
-              <select id="domainFilter">
-                <option value="offshore_wind">Offshore wind</option>
-                <option value="adjacent_energy">Adjacent energy</option>
-                <option value="other_energy">Other energy</option>
-                <option value="all" selected>All domains</option>
-              </select>
+          </section>
+
+          <section id="regulatorySettings" role="tabpanel" aria-labelledby="regulatorySettingsTab" hidden>
+            <div class="panel">
+              <div id="sourceConfig">
+                <h3>Jurisdictions, organisations and sources</h3>
+                <p class="muted">Configure jurisdictions, organisations, policy and calendar sources. The shared registry also includes news sources. Pausing preserves sources and their history.</p>
+                <div class="card-actions-inline">
+                  <button type="button" id="cfgReload" class="btn-secondary">Reload</button>
+                  <button type="button" id="cfgAddJurisdiction">+ Jurisdiction</button>
+                  <button type="button" id="cfgExport" class="btn-secondary">Export</button>
+                  <button type="button" id="cfgImportToggle" class="btn-secondary">Import</button>
+                </div>
+                <p id="cfgStatus" role="status" aria-live="polite"></p>
+                <div id="cfgImportPanel" hidden>
+                  <p>Import merges records by their stable IDs. Existing records with matching IDs are updated; other records and history remain. Credentials are not included in exports.</p>
+                  <label>Configuration file <input id="cfgImportFile" type="file" accept=".json,application/json"></label>
+                  <button type="button" id="cfgImportApply" disabled>Validate and import</button>
+                  <p id="cfgImportSummary"></p>
+                </div>
+                <label>Jurisdiction <select id="cfgJurisdiction"><option value="">Loading…</option></select></label>
+                <div id="cfgJurisdictionActions" class="card-actions-inline"></div>
+                <div id="cfgEditor" class="research-panel" hidden></div>
+                <div id="cfgTree"></div>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <div id="articlesView">
+          <section id="newsFilters" class="toolbar" aria-label="Filters">
+            <div class="chip-row" role="group" aria-label="Topic" id="topicChips">
+              <button type="button" class="chip" data-topic="all" aria-pressed="true">All topics</button>
+              <button type="button" class="chip" data-topic="energy" aria-pressed="false">Offshore wind &amp; energy</button>
+              <button type="button" class="chip" data-topic="maritime" aria-pressed="false">Maritime &amp; ports</button>
+              <button type="button" class="chip" data-topic="grid" aria-pressed="false">Grid &amp; electrification</button>
+              <select id="interestFilter" hidden aria-hidden="true" tabindex="-1"><option value="all">All topics</option><option value="energy">Offshore wind &amp; energy</option><option value="maritime">Maritime &amp; ports</option><option value="grid">Grid &amp; electrification</option></select>
+            </div>
+            <div class="filter-row">
+              <select id="geographyFilter" class="pill-select" aria-label="Geography"><option value="">All geographies</option></select>
+              <select id="companyFilter" class="pill-select" aria-label="Company"><option value="">All companies</option></select>
+              <select id="storySort" class="pill-select" aria-label="Sort by"><option value="latest">Newest first</option><option value="relevance">Most relevant</option></select>
+              <span class="spacer"></span>
+              <label class="toggle-label"><input type="checkbox" id="showDismissed"> Show hidden</label>
+              <button type="button" id="showFeedbackHistory" class="btn-ghost" style="margin:0">Saved feedback</button>
+            </div>
+            <div id="feedbackNotice" class="status" role="status" aria-live="polite"></div>
+            <div id="editorialHistory" class="panel" hidden><h3>Saved feedback</h3><div id="editorialHistoryBody"></div><div class="actions"><button type="button" class="btn-secondary" onclick="this.closest('.panel').hidden=true">Close</button></div></div>
+            <div id="editorialDraft" class="panel" hidden><h3>LinkedIn draft · saved</h3><textarea id="draftBody" readonly rows="10"></textarea><div class="actions"><button id="copyDraft" type="button">Copy</button><button type="button" class="btn-secondary" onclick="this.closest('.panel').hidden=true">Close</button></div></div>
+          </section>
+
+          <div id="tab-morning" class="tab-panel">
+            <div class="view-head">
+              <div>
+                <h2>Morning brief</h2>
+                <p>Last 24 hours, today and the next 90 days across energy, offshore wind, maritime and electrification.</p>
+              </div>
+              <div class="view-actions">
+                <select id="morningHistory" class="pill-select" aria-label="Saved report"><option value="">Latest report</option></select>
+                <button type="button" class="btn-secondary" data-copy-morning disabled>Copy report</button>
+                <button type="button" data-generate-morning>Generate / refresh</button>
+              </div>
+            </div>
+            <p id="morningSchedule" class="muted"></p>
+            <p id="morningStatus" role="status" aria-live="polite"></p>
+            <div id="morningBody"></div>
+          </div>
+
+          <div id="tab-governance" class="tab-panel">
+            <div class="view-head">
+              <div>
+                <h2>Policy &amp; regulation</h2>
+                <p>Norway and EU first, followed by the Nordics and other European countries. Based on the latest saved morning brief.</p>
+              </div>
+              <div class="view-actions">
+                <select id="policyRegion" class="pill-select" aria-label="Jurisdiction"><option value="">All regions</option><option>Norway</option><option>EU</option><option>Nordics</option><option>Europe</option></select>
+                <button type="button" data-generate-morning>Update outlook</button>
+              </div>
+            </div>
+            <p id="policyStatus" role="status" aria-live="polite"></p>
+            <div id="policyBody"></div>
+          </div>
+
+          <div id="tab-reading" class="tab-panel active">
+            <div class="view-head" style="margin-bottom:12px">
+              <p id="readingSummary" class="muted" style="margin:0" aria-live="polite"></p>
+              <div class="view-toggle" role="group" aria-label="Layout">
+                <button id="readingListViewBtn" class="active" type="button" data-reading-layout="list">List</button>
+                <button id="readingCardViewBtn" type="button" data-reading-layout="cards">Cards</button>
+              </div>
+            </div>
+            <div id="readingStories" class="story-list" aria-busy="true">
+              <div class="skeleton"><span></span><span></span><span></span></div>
+              <div class="skeleton"><span></span><span></span><span></span></div>
+              <div class="skeleton"><span></span><span></span><span></span></div>
+              <div class="skeleton"><span></span><span></span><span></span></div>
+            </div>
+            <div class="pager">
+              <button id="readingPrev" class="btn-secondary" type="button">← Previous</button>
+              <span id="readingPageInfo"></span>
+              <button id="readingNext" class="btn-secondary" type="button">Next →</button>
+            </div>
+          </div>
+
+          <div id="tab-researched" class="tab-panel">
+            <div class="view-head">
+              <div>
+                <h2>Researched stories</h2>
+                <p>All stories you have researched, including running and failed attempts. Independent of news filters.</p>
+              </div>
+              <div class="view-actions"><button type="button" class="btn-secondary" onclick="loadResearchedStories()">Refresh</button></div>
+            </div>
+            <div id="researchedStories" aria-live="polite"></div>
+          </div>
+
+          <div id="tab-review" class="tab-panel">
+            <div class="view-head">
+              <div>
+                <h2>Review queue</h2>
+                <p>Select articles to merge them into one story, rate their relevance, or review matches suggested by AI.</p>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="form-grid">
+                <label class="field">Collection key (optional) <input id="collectionKey" placeholder="manual:offshore-policy-eu" /></label>
+                <label class="field">Selected articles <input id="selectedCount" readonly value="0" /></label>
+              </div>
+              <div class="review-actions">
+                <button id="mergeBtn" type="button">Merge selected</button>
+                <button id="unmergeBtn" class="btn-warning" type="button">Unmerge selected</button>
+                <button id="relevantBtn" class="btn-secondary" type="button">Mark relevant</button>
+                <button id="nonRelevantBtn" class="btn-secondary" type="button">Mark not relevant</button>
+                <button id="clearRatingBtn" class="btn-secondary" type="button">Clear rating</button>
+                <button id="runMatchBtn" class="btn-secondary" type="button">Run AI matching</button>
+              </div>
+            </div>
+            <div id="collections" class="grid" style="margin-top:16px"></div>
+            <h3 class="subhead">AI match suggestions</h3>
+            <p class="muted" style="margin-top:0">Review suggested matches before combining stories.</p>
+            <div id="matchReview" class="grid" style="margin-top:12px"></div>
+            <div class="pager">
+              <button id="mergedPrev" class="btn-secondary" type="button">← Previous</button>
+              <span id="mergedPageInfo"></span>
+              <button id="mergedNext" class="btn-secondary" type="button">Next →</button>
             </div>
           </div>
         </div>
-
-
-      <div id="adminStatus" class="status"></div>
-      <div id="runProgress" class="run-progress" aria-live="polite">
-        <div class="run-progress-head">
-          <div id="runProgressTitle" class="run-progress-title">Pipeline running</div>
-          <div id="runProgressTime" class="run-progress-time">00:00</div>
-        </div>
-        <div class="run-progress-bar">
-          <div id="runProgressFill" class="run-progress-fill"></div>
-        </div>
-        <div class="run-progress-meta">
-          <span id="runProgressStep">Waiting to start...</span>
-          <span id="runProgressPercent">0%</span>
-        </div>
-        <div id="runProgressWarning" class="run-progress-warning">
-          This run is taking longer than expected. It may still be working, but it could also be waiting on a slow source.
-        </div>
-        <div id="sourceProgressList" class="source-progress-list"></div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
-        <span id="aiStatus" class="muted">AI: unknown</span>
-        <button id="checkAiBtn" class="btn-secondary" type="button" style="margin-top:0;">Check AI</button>
-      </div>
-      <table class="sources-table">
-        <thead>
-          <tr>
-            <th>#</th><th>Name</th><th>Type</th><th>URL</th><th>Last Items</th><th>Health</th><th>Enabled</th><th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="sourcesBody"></tbody>
-      </table>
-      </section>
-    </section>
-
-    <div id="articlesView">
-<section class="card" id="newsFilters">      <div class="overview-filters">
-        <label>Topic <select id="interestFilter"><option value="all">All topics</option><option value="energy">Offshore wind & energy</option><option value="maritime">Maritime & ports</option><option value="grid">Grid & electrification</option></select></label>
-        <label>Geography <select id="geographyFilter"><option value="">All geographies</option></select></label>
-        <label>Company <select id="companyFilter"><option value="">All companies</option></select></label>
-        <label>Sort by <select id="storySort"><option value="latest">Latest</option><option value="relevance">Most relevant</option></select></label>
-      </div><div class="card-actions-inline" style="margin-top:8px;flex-wrap:wrap">
-        <label><input type="checkbox" id="showDismissed"> Include hidden</label>
-        <button type="button" id="showFeedbackHistory">Saved feedback</button>
-      </div>
-      <div id="feedbackNotice" class="status" role="status" aria-live="polite"></div>
-      <div id="editorialHistory" class="card" hidden><h3>Saved feedback</h3><div id="editorialHistoryBody"></div><button type="button" onclick="this.parentElement.hidden=true">Close</button></div>
-      <div id="editorialDraft" class="card" hidden><h3>LinkedIn draft · saved</h3><textarea id="draftBody" readonly rows="10" style="width:100%"></textarea><button id="copyDraft" type="button">Copy</button><button type="button" onclick="this.parentElement.hidden=true">Close</button></div>
-</section>
-    <section class="card">
-      <div class="tab-bar">
-        <button class="tab-btn" data-tab="morning" type="button">Morning report</button>
-        <button class="tab-btn" data-tab="governance" type="button">Policy & regulation</button>
-        <button class="tab-btn active" data-tab="reading" type="button">News</button>
-        <button class="tab-btn" data-tab="researched" type="button">Researched stories</button>
-        <button class="tab-btn" data-tab="review" type="button">Review</button>
-      </div>
-
-
-      <div id="tab-morning" class="tab-panel">
-        <h2>Morning report</h2>
-        <p class="muted">Last 24 hours · Today · Next 90 days. Energy, offshore wind, maritime and electrification.</p>
-        <div class="card-actions-inline" style="flex-wrap:wrap">
-          <button type="button" data-generate-morning>Generate / refresh report</button>
-          <button type="button" data-copy-morning disabled>Copy report</button>
-          <label>Saved report <select id="morningHistory"><option value="">Latest</option></select></label>
-        </div>
-        <p id="morningSchedule" class="muted"></p>
-        <p id="morningStatus" role="status" aria-live="polite"></p>
-        <div id="morningBody"></div>
-      </div>
-      <div id="tab-governance" class="tab-panel">
-        <h2>Policy & regulation</h2>
-        <p class="muted">Norway and EU first, followed by the Nordics and other European countries. Based on the latest saved morning report.</p>
-        <label>Jurisdiction <select id="policyRegion"><option value="">All regions</option><option>Norway</option><option>EU</option><option>Nordics</option><option>Europe</option></select></label>
-        <button type="button" data-generate-morning>Update report and policy outlook</button>
-        <p id="policyStatus" role="status" aria-live="polite"></p>
-        <div id="policyBody"></div>
-      </div>
-      <div id="tab-reading" class="tab-panel active">
-        <div class="view-toolbar">
-          <strong>Headlines</strong>
-          <div class="view-toggle" aria-label="Reading layout">
-            <button id="readingListViewBtn" class="active" type="button" data-reading-layout="list">List</button>
-            <button id="readingCardViewBtn" type="button" data-reading-layout="cards">Cards</button>
-          </div>
-        </div>
-        <div id="readingStories" class="grid"></div>
-        <div class="pager">
-          <button id="readingPrev" class="btn-secondary" type="button">Prev</button>
-          <span id="readingPageInfo" class="muted"></span>
-          <button id="readingNext" class="btn-secondary" type="button">Next</button>
-        </div>
-      </div>
-
-      <div id="tab-researched" class="tab-panel">
-        <h2>Researched stories</h2>
-        <p class="muted">All stories you have researched, including running and failed attempts. Independent of news filters.</p>
-        <button type="button" class="btn-secondary" onclick="loadResearchedStories()">Refresh</button>
-        <div id="researchedStories" aria-live="polite"></div>
-      </div>
-      <div id="tab-review" class="tab-panel">
-        <h2>Review</h2>
-        <p class="muted">Merge related articles, accept/reject AI matches and train grouping decisions.</p>
-        <div class="two-col">
-          <div>
-            <label class="muted">Manual collection key (optional)</label>
-            <input id="collectionKey" placeholder="manual:offshore-policy-eu" />
-          </div>
-          <div>
-            <label class="muted">Selected card count</label>
-            <input id="selectedCount" readonly value="0" />
-          </div>
-        </div>
-        <div style="margin-top:10px;">
-          <button id="mergeBtn" class="btn-secondary">Merge Selected</button>
-          <button id="unmergeBtn" class="btn-warning">Unmerge Selected</button>
-          <button id="clearRatingBtn" class="btn-secondary">Clear Rating</button>
-          <button id="relevantBtn" class="btn-secondary">Relevant Selected</button>
-          <button id="nonRelevantBtn" class="btn-secondary">Non-relevant Selected</button>
-          <button id="runMatchBtn" class="btn-secondary">Run Match AI</button>
-        </div>
-        <div id="collections" class="grid" style="margin-top:12px;"></div>
-        <h3 style="margin-top:16px;">AI Match Review</h3>
-        <p class="muted">Review suggested matches before combining stories.</p>
-        <div id="matchReview" class="grid" style="margin-top:10px;"></div>
-        <div class="pager">
-          <button id="mergedPrev" class="btn-secondary" type="button">Prev</button>
-          <span id="mergedPageInfo" class="muted"></span>
-          <button id="mergedNext" class="btn-secondary" type="button">Next</button>
-        </div>
-      </div>
-    </section>
-  </div>
-
+    </main>
   </div>
 
   <div id="detailOverlay" class="detail-overlay" aria-hidden="true">
     <div class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
       <div class="detail-head">
+        <div class="detail-controls">
+          <span class="grow"><kbd>j</kbd> <kbd>k</kbd> to move between stories</span>
+          <button id="detailPrevBtn" class="detail-nav-btn" type="button" aria-label="Previous story">↑ Previous</button>
+          <button id="detailNextBtn" class="detail-nav-btn" type="button" aria-label="Next story">↓ Next</button>
+          <button id="detailCloseBtn" class="detail-close" type="button" aria-label="Close">✕</button>
+        </div>
         <div>
-          <h2 id="detailTitle" style="margin:0;">News basis</h2>
+          <h2 id="detailTitle">News basis</h2>
           <div id="detailMeta" class="meta"></div>
         </div>
-        <div class="detail-controls">
-          <button id="detailPrevBtn" class="detail-nav-btn" type="button">Prev</button>
-          <button id="detailNextBtn" class="detail-nav-btn" type="button">Next</button>
-          <button id="detailCloseBtn" class="detail-close" type="button">Close</button>
-        </div>
       </div>
-      <div id="detailContent" class="detail-body muted" style="margin-top:12px;">Select a card to view details.</div>
+      <div id="detailContent" class="detail-body">Select a story to view details.</div>
     </div>
   </div>
-
   <script>
     let currentSources = [];
     let healthStateBySource = {};
@@ -673,6 +745,7 @@
     let latestItems = [];
     let topItems = [];
     let mergedItems = [];
+    let collectionsLoaded = false;
     let matchReviewItems = [];
     let storyLinks = [];
     let viewMode = 'reading';
@@ -1198,6 +1271,15 @@
       const overlay = document.getElementById('detailOverlay');
       overlay?.classList.add('open');
       overlay?.setAttribute('aria-hidden', 'false');
+      markActiveStory();
+    }
+
+    function markActiveStory() {
+      document.querySelectorAll('#readingStories .story').forEach(row => {
+        const active = Boolean(activeDetailCollectionKey) && row.dataset.key === String(activeDetailCollectionKey);
+        row.classList.toggle('is-active', active);
+        if (active) row.scrollIntoView({block: 'nearest'});
+      });
     }
 
     function closeDetailOverlay() {
@@ -1206,6 +1288,7 @@
       overlay?.setAttribute('aria-hidden', 'true');
       activeDetailItemId = null;
       activeDetailCollectionKey = null;
+      markActiveStory();
     }
 
     function moreInfoLink(title) {
@@ -1764,13 +1847,25 @@
       if(root){root.classList.toggle('grid',readingLayout==='cards');root.classList.toggle('story-list',readingLayout==='list');}
       renderStoryRows(root,pageItems);
       updatePager('reading',visible.length);
+      if(!collectionsLoaded) return;
+      if(root) root.setAttribute('aria-busy','false');
+      const count=document.getElementById('navNewsCount');
+      if(count) count.textContent=visible.length ? String(visible.length) : '';
+      const summary=document.getElementById('readingSummary');
+      if(summary){
+        const query=(document.getElementById('storySearch')?.value||'').trim();
+        summary.textContent=`${visible.length} ${visible.length===1?'story':'stories'}${query?` matching “${query}”`:''}`;
+      }
     }
 
     function visibleCollections() {
       const current = new Map(latestItems.map(item => [Number(item.id), item]));
       const geography = document.getElementById('geographyFilter')?.value;
       const company = document.getElementById('companyFilter')?.value;
-      const visible = mergedItems.filter(col =>
+      const query = (document.getElementById('storySearch')?.value || '').trim().toLowerCase();
+      const matchesQuery = col => !query || [col.master?.title, col.master?.summary, ...(col.master?.sources || []),
+        ...(col.master?.actors || []), ...(col.master?.geographies || [])].join(' ').toLowerCase().includes(query);
+      const visible = mergedItems.filter(col => matchesQuery(col) &&
         (!geography || (col.master?.geographies || []).includes(geography)) &&
         (!company || (col.master?.actors || []).includes(company)) &&
         visibleArticles((col.items || []).map(item => current.get(Number(item.id)) || item)).length);
@@ -1803,30 +1898,79 @@
       return brief || text;
     }
 
+    function relativeTime(value) {
+      const date = new Date(value || '');
+      if (!value || Number.isNaN(date.getTime())) return 'Date unavailable';
+      const minutes = Math.round((Date.now() - date.getTime()) / 60000);
+      if (minutes < 1) return 'Just now';
+      if (minutes < 60) return `${minutes} min ago`;
+      if (minutes < 24 * 60) return `${Math.round(minutes / 60)} h ago`;
+      return date.toLocaleDateString('en-GB', {day: 'numeric', month: 'short'});
+    }
+
+    function dayHeading(value) {
+      const date = new Date(value || '');
+      if (!value || Number.isNaN(date.getTime())) return 'Undated';
+      const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+      const days = Math.round((startOfDay(new Date()) - startOfDay(date)) / 86400000);
+      if (days === 0) return 'Today';
+      if (days === 1) return 'Yesterday';
+      return date.toLocaleDateString('en-GB', {weekday: 'long', day: 'numeric', month: 'long'});
+    }
+
     function renderStoryRows(root, items) {
-      if (!root) return;
+      if (!root || !collectionsLoaded) return;
       root.innerHTML = '';
       if (!items.length) {
-        root.innerHTML = '<p class="muted">No stories match these filters.</p>';
+        const filtered = (document.getElementById('storySearch')?.value || '').trim() || document.getElementById('geographyFilter')?.value
+          || document.getElementById('companyFilter')?.value || (document.getElementById('interestFilter')?.value || 'all') !== 'all';
+        root.innerHTML = filtered
+          ? '<div class="empty-state"><strong>No stories match these filters</strong>Try another topic, clear the search or include hidden stories.</div>'
+          : '<div class="empty-state"><strong>No stories yet</strong>Fetch news under Settings → News sources to fill your feed.</div>';
         return;
       }
+      const groupByDay = document.getElementById('storySort')?.value !== 'relevance';
+      let lastDay = null;
       for (const col of items) {
         const master = col.master || {};
+        if (groupByDay) {
+          const day = dayHeading(col.latest_published_at);
+          if (day !== lastDay) {
+            const head = document.createElement('h3');
+            head.className = 'day-head';
+            head.textContent = day;
+            root.appendChild(head);
+            lastDay = day;
+          }
+        }
+        const sources = master.sources || [];
+        const sourceName = sources[0] || 'Unknown source';
+        const articleCount = Number(col.article_count || (col.items || []).length || 1);
+        const imageUrl = cssImageUrl(master.image_url);
+        const tags = [
+          ...(master.geographies || []).filter(tag => tag !== 'Global').slice(0, 2).map(tag => `<span class="chip-tag is-geo">${escapeHtml(tag)}</span>`),
+          ...(master.actors || []).slice(0, 3).map(tag => `<span class="chip-tag is-actor">${escapeHtml(tag)}</span>`),
+        ].join('');
         const row = document.createElement('article');
-        row.className = 'card story-row';
-        const date = new Date(col.latest_published_at);
-        const dateLabel = col.latest_published_at && !Number.isNaN(date.getTime())
-          ? date.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}) : 'Date unavailable';
-        const context = [...(master.geographies || []).slice(0,2), ...(master.actors || []).slice(0,2)].join(' · ');
-        row.innerHTML = `<h3><button type="button" class="story-open">${escapeHtml(master.title || 'Untitled')}</button></h3>
-          <p class="story-description">${escapeHtml(storyBrief(col))}</p>
-          <div class="muted story-meta">${escapeHtml(dateLabel)}${context ? ` · <span class="story-context">${escapeHtml(context)}</span>` : ''}</div>`;
-        row.querySelector('button').addEventListener('click', () => showCollectionDetails(col.collection_key));
-        row.addEventListener('click', event => {
-          if (!event.target.closest('button')) showCollectionDetails(col.collection_key);
-        });
+        row.className = 'story';
+        row.dataset.key = String(col.collection_key || '');
+        row.innerHTML = `<div class="story-main">
+            <div class="story-source">
+              <span class="source-avatar" aria-hidden="true">${escapeHtml(sourceName.charAt(0).toUpperCase())}</span>
+              <span class="source-name">${escapeHtml(sourceName)}</span>
+              <span aria-hidden="true">·</span>
+              <time datetime="${escapeHtml(col.latest_published_at || '')}">${escapeHtml(relativeTime(col.latest_published_at))}</time>
+              ${articleCount > 1 ? `<span class="sources-badge">${articleCount} sources</span>` : ''}
+            </div>
+            <h3><button type="button" class="story-open">${escapeHtml(master.title || 'Untitled')}</button></h3>
+            <p class="story-description">${escapeHtml(storyBrief(col))}</p>
+            ${tags ? `<div class="story-tags">${tags}</div>` : ''}
+          </div>
+          ${imageUrl ? `<div class="story-image" style="background-image:url('${imageUrl}')" aria-hidden="true"></div>` : ''}`;
+        row.querySelector('.story-open').addEventListener('click', () => showCollectionDetails(col.collection_key));
         root.appendChild(row);
       }
+      markActiveStory();
     }
 
     function renderMergedPage() {
@@ -2112,8 +2256,19 @@
     }
 
     async function refreshCollections() {
-      const result = await getJson(`/api/news/collections?limit=120&items_per_collection=400${sourceFilterQuery()}`);
+      let result;
+      try {
+        result = await getJson(`/api/news/collections?limit=120&items_per_collection=400${sourceFilterQuery()}`);
+      } catch (error) {
+        const root = document.getElementById('readingStories');
+        if (root && !collectionsLoaded) {
+          root.setAttribute('aria-busy', 'false');
+          root.innerHTML = '<div class="empty-state"><strong>Could not load stories</strong>Check your connection and reload the page.</div>';
+        }
+        throw error;
+      }
       mergedItems = Array.isArray(result.items) ? result.items : [];
+      collectionsLoaded = true;
       updateStoryFilters();
       pageState.reading = 1;
       pageState.merged = 1;
@@ -2351,7 +2506,7 @@
           <td title="${tooltip.replace(/"/g, '&quot;')}"><span class="${healthDotClass(color)}"></span>${color}</td>
           <td><input type="checkbox" ${s.enabled ? 'checked' : ''} data-toggle-index="${s.index}" /></td>
           <td class="row-actions">
-            <button data-history-index="${s.index}" class="btn-secondary">Feilhistorikk</button>
+            <button data-history-index="${s.index}" class="btn-secondary">Error log</button>
             <button data-edit-index="${s.index}" class="btn-secondary">Edit</button>
             <button data-delete-index="${s.index}" class="btn-warning">Delete</button>
           </td>
@@ -2765,6 +2920,88 @@
     }
 
     boot();
+  </script>
+  <script>
+    // App shell: page heading per section, topic chips, search and keyboard shortcuts.
+    (function () {
+      const sections = {
+        reading: ['News', 'Energy, maritime and electrification — what is happening and who is involved.'],
+        morning: ['Morning brief', 'The last 24 hours and what is coming up.'],
+        governance: ['Policy & regulation', 'Laws, consultations and political milestones.'],
+        researched: ['Researched', 'Stories you have looked into, with saved findings.'],
+        review: ['Review queue', 'Merge, rate and train how stories are grouped.'],
+        settings: ['Settings', 'Sources, fetching and configuration.'],
+      };
+      const settingsView = document.getElementById('settingsView');
+      const search = document.getElementById('storySearch');
+      let currentSection = 'reading';
+
+      function showSection(key) {
+        currentSection = key;
+        const [title, subtitle] = sections[key] || sections.reading;
+        document.getElementById('pageTitle').textContent = title;
+        document.getElementById('pageSubtitle').textContent = subtitle;
+        document.title = `${title} · OWIS`;
+        document.getElementById('searchBox').hidden = key !== 'reading';
+        document.body.classList.toggle('settings-open', key === 'settings');
+      }
+
+      document.querySelectorAll('.nav-item.tab-btn').forEach(button => button.addEventListener('click', () => {
+        if (!settingsView.hidden) document.getElementById('showNewsView').click();
+        showSection(button.dataset.tab);
+        window.scrollTo({top: 0});
+      }));
+      document.getElementById('showSettingsView').addEventListener('click', () => {
+        showSection('settings');
+        window.scrollTo({top: 0});
+      });
+
+      const interest = document.getElementById('interestFilter');
+      document.querySelectorAll('#topicChips [data-topic]').forEach(chip => chip.addEventListener('click', () => {
+        document.querySelectorAll('#topicChips [data-topic]').forEach(other => other.setAttribute('aria-pressed', String(other === chip)));
+        interest.value = chip.dataset.topic;
+        interest.dispatchEvent(new Event('change'));
+      }));
+
+      let searchTimer;
+      search.addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => { pageState.reading = 1; renderReadingPage(); }, 120);
+      });
+      search.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+          event.stopPropagation();
+          if (search.value) { search.value = ''; search.dispatchEvent(new Event('input')); } else search.blur();
+        }
+      });
+
+      function isTyping(target) {
+        return target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
+      }
+
+      document.addEventListener('keydown', event => {
+        if (event.ctrlKey || event.metaKey || event.altKey || isTyping(event.target)) return;
+        const drawerOpen = document.getElementById('detailOverlay').classList.contains('open');
+        if (event.key === '/' && !drawerOpen) {
+          event.preventDefault();
+          if (currentSection !== 'reading') document.querySelector('.nav-item[data-tab="reading"]').click();
+          search.focus();
+          return;
+        }
+        if (event.key !== 'j' && event.key !== 'k') return;
+        const delta = event.key === 'j' ? 1 : -1;
+        if (drawerOpen) { stepDetailItem(delta); return; }
+        if (currentSection !== 'reading') return;
+        const links = [...document.querySelectorAll('#readingStories .story-open')];
+        if (!links.length) return;
+        const index = links.indexOf(document.activeElement);
+        const next = index < 0 ? (delta > 0 ? 0 : links.length - 1) : Math.min(Math.max(index + delta, 0), links.length - 1);
+        links[next].focus();
+        links[next].closest('.story')?.scrollIntoView({block: 'nearest'});
+      });
+
+      showSection('reading');
+    })();
   </script>
   <script src="/static/source-config.js" defer></script>
 </body>
