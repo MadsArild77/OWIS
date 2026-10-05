@@ -147,6 +147,13 @@ def should_enqueue_review(judgement: dict[str, Any]) -> bool:
     return relationship == "uncertain" or (relationship in {"same_event", "update"} and confidence >= 0.70)
 
 
+def auto_decision(judgement: dict[str, Any], threshold: float) -> str | None:
+    """Clear same-event matches are merged and clear follow-ups linked without waiting for review."""
+    if judgement.get("fallback") or float(judgement.get("confidence") or 0) < threshold:
+        return None
+    return {"same_event": "accept", "update": "link_update"}.get(judgement.get("relationship"))
+
+
 def make_manual_collection_key() -> str:
     return f"manual:review:{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
 

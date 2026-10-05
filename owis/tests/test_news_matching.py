@@ -160,6 +160,21 @@ def test_semantic_match_api_with_mocked_openai(repo, monkeypatch):
     monkeypatch.setattr(api,"embed_articles",lambda rows:{int(r["id"]):[1,0] for r in rows})
     # Avoid tying this test to wall-clock date or classification quality.
     monkeypatch.setattr(api,"window_start_iso",lambda days:"2020-01-01T00:00:00Z")
-    result=api._run_match_review(api.MatchRunRequest(domain_bucket="all"))
-    assert result["checked_pairs"]==1 and result["enqueued_pairs"]==1
+    manual=api._run_match_review(api.MatchRunRequest(domain_bucket="all",auto_apply=False))
+    assert manual["checked_pairs"]==1 and manual["enqueued_pairs"]==1 and manual["auto_merged_pairs"]==0
     assert repo.list_match_review_pairs()[0]["relationship"]=="same_event"
+
+
+def test_confident_same_event_is_merged_automatically(repo, monkeypatch):
+    from owis.modules.news.presentation import api
+    ids=[seed(repo,i) for i in range(2)]
+    monkeypatch.setattr(api,"AIClient",lambda:SimpleNamespace(enabled=True,judge_news_match=lambda **kw:dict(relationship="same_event",same_story="yes",confidence=0.95,reason_short="Same decision")))
+    monkeypatch.setattr(api,"embed_articles",lambda rows:{int(r["id"]):[1,0] for r in rows})
+    monkeypatch.setattr(api,"window_start_iso",lambda days:"2020-01-01T00:00:00Z")
+    result=api._run_match_review(api.MatchRunRequest(domain_bucket="all"))
+    assert result["auto_merged_pairs"]==1 and repo.list_match_review_pairs()==[]
+    keys={o["collection_key"] for o in repo.list_collection_overrides().values()}
+    assert len(keys)==1 and set(repo.list_collection_overrides())==set(ids)
+    # A second run neither re-judges nor re-merges the decided pair.
+    again=api._run_match_review(api.MatchRunRequest(domain_bucket="all"))
+    assert again["checked_pairs"]==0 and again["auto_merged_pairs"]==0
