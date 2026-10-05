@@ -201,6 +201,29 @@ def _get_from_json_ld(soup: BeautifulSoup, field_names: list[str]) -> str:
     return ""
 
 
+_DATE_ONLY_TITLE = re.compile(r"^(january|february|march|april|may|june|july|august|september|october|november|december) \d{4}$")
+
+
+def is_junk_link(url: str, title: str) -> bool:
+    """Cloudflare e-mail obfuscation and similar links are not articles."""
+    normalized = " ".join(title.lower().split())
+    return "/cdn-cgi/" in url or "email protected" in normalized or bool(_DATE_ONLY_TITLE.match(normalized))
+
+
+def is_subscriber_title(title: str) -> bool:
+    """Norwegian trade press (e.g. Europower) marks subscriber-only stories with "(+)"."""
+    return bool(re.search(r"\(\+\)\s*$", str(title or "")))
+
+
+def _anchor_title(anchor) -> str:
+    """Prefer the headline inside a teaser link over category labels; keep a trailing subscriber marker."""
+    heading = anchor.find(["h1", "h2", "h3", "h4"])
+    text = (heading or anchor).get_text(" ", strip=True)
+    if heading is not None and is_subscriber_title(anchor.get_text(" ", strip=True)) and not is_subscriber_title(text):
+        text = f"{text} (+)"
+    return text.strip()
+
+
 def _strip_title_suffix(value: str) -> str:
     return re.sub(r"\s+\|\s+[^|]+$", "", value).strip()
 
@@ -401,8 +424,8 @@ def fetch_scrape_items_with_report(limit_per_source: int = 20) -> tuple[list[dic
                 domain = urlparse(homepage).netloc
                 for anchor in soup.select("a[href]"):
                     href = (anchor.get("href") or "").strip()
-                    title = anchor.get_text(" ", strip=True)
-                    if not href or not title:
+                    title = _anchor_title(anchor)
+                    if not href or not title or is_junk_link(href, title):
                         continue
 
                     url = urljoin(homepage, href)

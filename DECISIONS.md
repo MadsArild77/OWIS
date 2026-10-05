@@ -122,6 +122,34 @@ leserute som åpnes fra høyre slik at listen forblir synlig. Hurtigtaster:
 Eksisterende funksjoner og API-er er uendret. Bakgrunn: brukeren ønsket en
 moderne og brukervennlig løsning uten hensyn til det tidligere designet.
 
+## D13 – Markedsinnsikt med havvind først, og bedre dekning av betalingsmur
+
+**Vedtatt og implementert 5. oktober 2026.**
+Hovedbruken er markedsinnsikt for Mads selv, med LinkedIn-innhold som biprodukt.
+Havvind er viktigst; nett, kraftmarked, elektrifisering, energipolitikk, maritim
+næring, leverandørkjede og hydrogen er relaterte områder. Annen energi (olje og
+gass, sol, elbiler, kjernekraft) beholdes, men rangeres lavt og vises ikke som standard.
+
+- **Poengsum** (0–100) etter spesifikasjonens komponenter: fagområde (35),
+  markedspåvirkning som kontrakter, auksjoner, investeringsbeslutninger og
+  tilbakeslag (25), geografi med Norge høyest (15), kildens troverdighet (10),
+  tekstgrunnlag (10) og kjente aktører (5). Grunnene vises i lesevisningen.
+  En betalingsmur gir høyst 4 poeng lavere sum enn åpen tekst.
+- **Fast taksonomi** for land, aktører og temaer slår sammen varianter
+  («UK»/«United Kingdom», «Orsted»/«Ørsted»). Norskspråklige saker uten land får Norge.
+- **Standardvisning** er «Offshore wind & related»; innenfor hver dag står de
+  sterkeste signalene først. Eksisterende saker beregnes på nytt ved oppstart når
+  poengversjonen endres (uten AI-kostnad).
+- **Betalingsmur:** søk etter åpne kilder for samme sak bruker nå den konfigurerte
+  søketjenesten (Tavily eller Brave), ikke bare Brave. Om saken er viktig nok vurderes
+  ut fra hva den ville fått med full tekst, ikke utdraget. Europowers «(+)» gjenkjennes
+  som abonnentsak. Listen viser «Subscriber» eller «Open version found».
+- **Søppel fra skraping** (e-postbeskyttelse, rene datotitler) filtreres.
+
+Bakgrunn: gjennomgang av 500 artikler i produksjon viste at 57 % var annen energi,
+at poengsummen ikke skilte (65 % var LinkedIn-kandidater), at ingen saker bak
+betalingsmur hadde fått åpen alternativkilde, og at merkelappene var inkonsekvente.
+
 ## Åpne forslag og avklaringer
 
 - **Lyd/NotebookLM:** vurderes senere; ingen automatisk Google-overføring eller

@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 from owis.core.storage.db import get_conn
 from owis.core.llm.client import AIClient
 from owis.modules.news.processing.editorial import prefilter, topics_for
-from owis.modules.news.collectors.scrape_fetcher import _extract_article_text
+from owis.modules.news.collectors.scrape_fetcher import _extract_article_text, is_subscriber_title
 
 def public_url(url):
     p=urlparse(url)
@@ -54,6 +54,11 @@ def fetch_public(url):
                 return 'open',text,url
     return 'unknown','',url
 
+def _search_query(title):
+    '''Headline without paywall and section markers, so other outlets' coverage is found.'''
+    return re.sub(r'^\[paywalled\]\s*|\s*\(\+\)\s*$','',str(title or ''),flags=re.I).strip()[:300]
+
+
 def alternative_sources(raw, ai):
     """Search collected sources first. Only verified open same-event coverage is offered."""
     from owis.modules.news.matching.service import build_candidate_pairs,judge_pair
@@ -64,16 +69,12 @@ def alternative_sources(raw, ai):
     for row in rows:row['domain_bucket']='offshore_wind'
     pairs=build_candidate_pairs(rows+[target],days_window=30)
     candidates=[a if b['id']==target['id'] else b for a,b,_ in pairs if target['id'] in (a['id'],b['id'])][:3]
-    # Optional broader search; one request, no more than three external candidates.
-    key=os.getenv('BRAVE_SEARCH_API_KEY','')
-    if key and len(candidates)<3:
+    # Optional broader search with the configured provider (Tavily or Brave); one request, at most three candidates.
+    if (os.getenv('TAVILY_API_KEY') or os.getenv('BRAVE_SEARCH_API_KEY')) and len(candidates)<3:
+        from owis.modules.news.processing.research import search
         try:
-            response=httpx.get('https://api.search.brave.com/res/v1/web/search',
-                params={'q':raw['title_raw'][:300], 'count':3},
-                headers={'X-Subscription-Token':key},timeout=12)
-            response.raise_for_status()
-            for i,row in enumerate(response.json().get('web',{}).get('results',[])[:3]):
-                if row.get('url')==raw['article_url']:continue
+            for i,row in enumerate(search(_search_query(raw['title_raw']))[:3]):
+                if not row.get('url') or row.get('url')==raw['article_url']:continue
                 candidates.append({'id':2147483600+i,'title':row.get('title',''),'summary':row.get('description',''),
                     'article_url':row['url'],'published_at':None})
         except Exception:pass
@@ -91,13 +92,17 @@ def alternative_sources(raw, ai):
     return results
 
 def enrichment_eligible(raw):
-    from owis.modules.news.processing.pipeline import _score, _classify_theme, _classify_geo, _extract_actors, _clean_text
+    from owis.modules.news.processing.pipeline import _clean_text
+    from owis.modules.news.processing import signal, taxonomy
     with get_conn() as c:
         positive=c.execute("""SELECT 1 FROM news_editorial_state s JOIN news_editorial_events e ON e.id=s.event_id
             JOIN news_processed_items p ON p.id=s.processed_id WHERE p.raw_item_id=? AND e.value='relevant' LIMIT 1""",(raw['id'],)).fetchone()
         stored=c.execute('SELECT signal_score FROM news_processed_items WHERE raw_item_id=?',(raw['id'],)).fetchone()
     text=_clean_text(f"{raw.get('title_raw','')} {raw.get('content_raw') or raw.get('summary_raw','')}")
-    score=stored['signal_score'] if stored else _score(_classify_theme(text),_classify_geo(text),_extract_actors(text),text)
+    # Judge the story's potential as if the full text were available: a paywall must not rule a story out.
+    potential=signal.score_signal(raw.get('title_raw',''),text,taxonomy.geographies_for(raw.get('title_raw',''),text),
+        taxonomy.extract_actors(text),raw.get('source_name',''),{'basis':'fulltext'})[0]
+    score=max(potential, stored['signal_score'] if stored else 0)
     try:threshold=max(0,min(100,int(os.getenv('OWI_OPEN_SOURCE_MIN_SCORE','70'))))
     except ValueError:threshold=70
     return bool(positive) or (score>=threshold and bool(topics_for(text))), bool(positive)
@@ -124,6 +129,7 @@ def prepare(raw, refresh=False):
                 meta['access']=access
                 if access=='open':meta.update(text=text,source_url=url,basis='fulltext')
             except Exception as exc:meta['reason']+=f'; Fulltekst ikke tilgjengelig ({type(exc).__name__})'
+        if meta['access']=='unknown' and is_subscriber_title(raw.get('title_raw','')):meta['access']='restricted'
         save(raw['id'],raw['article_url'],raw['title_raw'],raw.get('source_name',''),meta['access'],meta['basis'],meta['text'])
     if saved and saved['basis']=='alternative_fulltext' and meta['basis']!='fulltext':
         meta=dict(saved)  # Preserve verified evidence during cached rechecks.

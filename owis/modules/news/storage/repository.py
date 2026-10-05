@@ -616,7 +616,10 @@ class NewsRepository:
     ) -> list[dict[str, Any]]:
         params: list[Any] = [status]
         domain_sql = ""
-        if domain_bucket and domain_bucket != "all":
+        if domain_bucket == "core":
+            core = "('offshore_wind', 'adjacent_energy')"
+            domain_sql = f"AND dca.domain_bucket IN {core} AND dcb.domain_bucket IN {core}"
+        elif domain_bucket and domain_bucket != "all":
             domain_sql = "AND dca.domain_bucket = ? AND dcb.domain_bucket = ?"
             params.extend([domain_bucket, domain_bucket])
         params.append(int(limit))

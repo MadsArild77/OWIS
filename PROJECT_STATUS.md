@@ -11,6 +11,7 @@ hvilken versjon eller konfigurasjon som kjører i produksjon.
 | Område | Status | Detaljer |
 |---|---|---|
 | Nyheter og redaksjonell flyt | Implementert med kjente begrensninger | RSS/nettsider, relevans, tilbakemeldinger, research, Copy info og researchede saker; se [EDITORIAL.md](EDITORIAL.md) |
+| Relevans og poengsum | Ny modell med havvind først, fast taksonomi og betalingsmur-dekning | Se [D13](DECISIONS.md); må kontrolleres på nye produksjonsdata |
 | Artikkelmatching | Implementert; kvalitet må fortsatt vurderes på virkelige data | [MATCHING.md](MATCHING.md) |
 | Morgenrapport og politikk | Grunnversjon implementert | Siste døgn, kommende milepæler, radar og valgfri 06-kjøring; [MORNING_REPORT.md](MORNING_REPORT.md) |
 | Jurisdiksjoner og kilder (trinn 1) | Ferdig og flettet til main | Felles register, organisasjoner, test og import/eksport; [SOURCE_CONFIGURATION.md](SOURCE_CONFIGURATION.md) |
@@ -39,6 +40,9 @@ inkludert kontrast i alle visninger, temabryter, artikkelvisning og mobilbredde.
 Ny nyhetsside (D12) kontrollert i nettleser: søk, emnefilter, dagsgruppering,
 leserute, hurtigtaster, alle seksjoner og innstillinger, kontrast på minst
 5,2:1 i begge temaer og ingen sidelengs rulling på mobil.
+Relevansmodellen (D13) er kalibrert mot et utdrag på 500 produksjonsartikler:
+havvind-saker med kontrakter/auksjoner havner øverst (85–96), elbil- og solsaker
+under 56. 180 tester består lokalt.
 
 ## Neste arbeid og begrensninger
 

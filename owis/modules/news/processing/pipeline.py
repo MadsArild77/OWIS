@@ -3,6 +3,8 @@ import re
 from bs4 import BeautifulSoup
 
 from owis.core.llm.client import AIClient
+from owis.modules.news.processing import signal, taxonomy
+from owis.modules.news.collectors.scrape_fetcher import is_subscriber_title
 
 PAYWALL_MARKERS = ["paywalled", "paywall", "no full access", "partial/open text", "subscriber", "subscription"]
 
@@ -96,75 +98,11 @@ def _extract_story_tags(text: str) -> list[str]:
 
 
 def _classify_geo(text: str) -> list[str]:
-    lower = text.lower()
-    mapping = {
-        "norway": "Norway",
-        "norwegian": "Norway",
-        "norge": "Norway",
-        "uk": "UK",
-        "united kingdom": "UK",
-        "england": "UK",
-        "scotland": "UK",
-        "eu": "EU",
-        "europe": "Europe",
-        "haugalandet": "Haugalandet",
-        "rogaland": "Rogaland",
-        "karmøy": "Karmoy",
-        "karmoy": "Karmoy",
-        "bergen": "Bergen",
-        "stavanger": "Stavanger",
-        "denmark": "Denmark",
-        "germany": "Germany",
-        "netherlands": "Netherlands",
-        "dutch": "Netherlands",
-        "sweden": "Sweden",
-        "france": "France",
-        "spain": "Spain",
-        "poland": "Poland",
-        "italy": "Italy",
-        "japan": "Japan",
-        "korea": "South Korea",
-        "south korea": "South Korea",
-        "usa": "USA",
-        "united states": "USA",
-        "canada": "Canada",
-        "australia": "Australia",
-        "taiwan": "Taiwan",
-    }
-
-    tags = [label for token, label in mapping.items() if _contains_token(lower, token)]
-    unique = sorted(set(tags))
-    return unique or ["Global"]
+    return taxonomy.extract_geographies(text)
 
 
 def _extract_actors(text: str) -> list[str]:
-    candidates = [
-        "Equinor",
-        "RWE",
-        "Vattenfall",
-        "Orsted",
-        "TotalEnergies",
-        "BP",
-        "Shell",
-        "Iberdrola",
-        "Siemens Gamesa",
-        "Vestas",
-        "GE Vernova",
-        "Statkraft",
-        "Statnett",
-        "NVE",
-        "ESA",
-        "Ventyr",
-        "Mingyang",
-        "Offshore Norge",
-        "Norwegian Offshore Wind",
-        "Motvind",
-        "Aasland",
-        "UiB",
-        "Spoor",
-    ]
-    lower = text.lower()
-    return [company for company in candidates if _contains_token(lower, company)]
+    return taxonomy.extract_actors(text)
 
 
 def _why_it_matters(theme_tags: list[str], geo_tags: list[str]) -> str:
@@ -198,22 +136,6 @@ def _why_it_matters(theme_tags: list[str], geo_tags: list[str]) -> str:
     )
 
 
-def _score(theme_tags: list[str], geo_tags: list[str], actors: list[str], text: str) -> int:
-    score = 28
-    score += min(len(theme_tags) * 9, 30)
-    score += 10 if any(geo in geo_tags for geo in ["Norway", "UK", "EU", "Europe"]) else 5
-    score += min(len(actors) * 7, 21)
-    if len(text) > 500:
-        score += 10
-    if any(tag in theme_tags for tag in ["market_competition", "procurement", "funding", "policy"]):
-        score += 8
-    if any(tag in theme_tags for tag in ["utsira_nord", "sorlige_nordsjo_ii", "state_aid", "industrial_policy"]):
-        score += 6
-    if any(tag in theme_tags for tag in ["norgespris", "power_price_policy", "electricity_market_design", "energy_security"]):
-        score += 6
-    return min(score, 100)
-
-
 def _safe_list(value: object, fallback: list[str]) -> list[str]:
     if isinstance(value, list):
         cleaned = [str(x).strip() for x in value if str(x).strip()]
@@ -241,17 +163,20 @@ def process_raw_item(raw: dict) -> dict:
     classification_text = f"{raw.get('title_raw') or ''} {text}"
 
     ai = AIClient()
+    basis = raw.get('_content_basis') or {}
     try:
-        basis=raw.get('_content_basis', {})
         ai_data = None if basis.get('relevance')=='excluded' else ai.enrich_news(
             f"Title: {raw.get('title_raw','')}\nSource: {basis.get('source_url',raw.get('article_url',''))}\n"
             f"Evidence: {basis.get('basis','feed_text')}; access: {basis.get('access','unknown')}\n{text}")
     except Exception:
         ai_data = None
 
-    theme_tags = _safe_list(ai_data.get("theme_tags") if ai_data else None, _classify_theme(classification_text))
-    geo_tags = _safe_list(ai_data.get("geography_tags") if ai_data else None, _classify_geo(classification_text))
-    actors = _safe_list(ai_data.get("actors") if ai_data else None, _extract_actors(classification_text))
+    title_raw = raw.get("title_raw") or ""
+    theme_tags = taxonomy.normalize_themes(
+        _safe_list(ai_data.get("theme_tags") if ai_data else None, _classify_theme(classification_text)))
+    geo_tags = taxonomy.geographies_for(title_raw, text, _safe_list(ai_data.get("geography_tags") if ai_data else None, []))
+    actors = taxonomy.normalize_actors(
+        _safe_list(ai_data.get("actors") if ai_data else None, []) + _extract_actors(f"{title_raw} {text[:2000]}"))
     summary = ai_data.get("summary") if ai_data and ai_data.get("summary") else _summary(text)
     why_it_matters = (
         ai_data.get("why_it_matters")
@@ -265,9 +190,9 @@ def process_raw_item(raw: dict) -> dict:
     )
     confidence = _safe_float(ai_data.get("confidence", 0.65), 0.65) if ai_data else 0.65
 
-    score = _score(theme_tags, geo_tags, actors, text)
-    paywalled = _is_paywalled(raw, text)
-    title = raw.get("title_raw") or "Untitled"
+    score, focus, _ = signal.score_signal(title_raw, text, geo_tags, actors, raw.get("source_name") or "", basis)
+    paywalled = _is_paywalled(raw, text) or is_subscriber_title(raw.get("title_raw") or "")
+    title = re.sub(r"\s*\(\+\)\s*$", "", raw.get("title_raw") or "").strip() or "Untitled"
 
     if paywalled and "[Paywalled]" not in title:
         title = f"[Paywalled] {title}"
@@ -276,7 +201,7 @@ def process_raw_item(raw: dict) -> dict:
     if paywalled:
         confidence = min(confidence, 0.45)
 
-    linkedin_candidate = 1 if score >= 65 else 0
+    linkedin_candidate = 1 if signal.is_linkedin_candidate(score, focus) else 0
 
     return {
         "raw_item_id": raw["id"],
