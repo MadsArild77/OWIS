@@ -84,3 +84,45 @@ def test_websites_supplying_verified_coverage_are_recommended(setup):
     assert adds[0]["stories"] == 4 and len(adds[0]["examples"]) == 3
     advisor.record_decision("add:newoutlet.example", "dismissed")
     assert advisor.advice()["add"] == []
+
+
+def _evidence(raw_id, url, checked_at):
+    with db.get_conn() as c:
+        c.execute('''INSERT INTO news_source_evidence(raw_id,url,title,publisher,access,basis,content_hash,text,checked_at)
+            VALUES(?,?,?,?, 'open','additional_coverage',?, 'text', ?)''', (raw_id, url, f"Story {raw_id}", "x", f"h{raw_id}{url}", checked_at))
+
+
+def _decide_at(key, decision, when):
+    with db.get_conn() as c:
+        c.execute("INSERT OR REPLACE INTO news_source_advice_decisions VALUES(?,?,?)", (key, decision, when))
+
+
+def test_decisions_expire_and_reenter_the_loop(setup):
+    from datetime import timedelta
+    add_article("Clean Technica", "other_energy", 30)
+    old = (datetime.now(timezone.utc) - timedelta(days=advisor.DECISION_DAYS + 1)).isoformat()
+    _decide_at("remove:Clean Technica", "kept", old)
+    assert "Clean Technica" in {r["name"] for r in advisor.advice()["remove"]}
+    assert advisor.decision_log() == []
+
+
+def test_dismissed_site_returns_on_new_evidence(setup):
+    from datetime import timedelta
+    before = (datetime.now(timezone.utc) - timedelta(days=5)).isoformat()
+    _evidence(1, "https://outlet.example/a", before)
+    _evidence(2, "https://outlet.example/b", before)
+    _decide_at("add:outlet.example", "dismissed", (datetime.now(timezone.utc) - timedelta(days=2)).isoformat())
+    assert advisor.advice()["add"] == []
+    _evidence(3, "https://outlet.example/c", NOW)
+    _evidence(4, "https://outlet.example/d", NOW)
+    assert [a["host"] for a in advisor.advice()["add"]] == ["outlet.example"]
+
+
+def test_paused_source_with_coverage_is_suggested_for_resume(setup, monkeypatch):
+    paused = [{"index": 0, "name": "Paused Press", "homepage": "https://pausedpress.example", "url": "https://pausedpress.example/rss",
+               "enabled": False, "type": "rss"}]
+    monkeypatch.setattr(advisor, "_registry", lambda: paused)
+    _evidence(1, "https://pausedpress.example/a", NOW)
+    _evidence(2, "https://www.pausedpress.example/b", NOW)
+    result = advisor.advice()
+    assert [r["name"] for r in result["resume"]] == ["Paused Press"] and result["add"] == []

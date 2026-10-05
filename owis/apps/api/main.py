@@ -48,13 +48,16 @@ def on_startup() -> None:
         logging.getLogger(__name__).exception('Rescoring stored news failed; keeping existing scores.')
     from owis.modules.news.processing.morning import start_scheduler
     app.state.morning_stop = start_scheduler()
+    from owis.modules.news.processing.fetch_scheduler import start_scheduler as start_fetch_scheduler
+    app.state.fetch_stop = start_fetch_scheduler()
 
 
 @app.on_event('shutdown')
 def on_shutdown():
-    stop = getattr(app.state, 'morning_stop', None)
-    if stop:
-        stop.set()
+    for name in ('morning_stop', 'fetch_stop'):
+        stop = getattr(app.state, name, None)
+        if stop:
+            stop.set()
 
 
 @app.get("/", include_in_schema=False)

@@ -45,6 +45,12 @@ def init_db() -> None:
                 processed_id INTEGER PRIMARY KEY, version INTEGER NOT NULL
             );
             CREATE TABLE IF NOT EXISTS news_registry_meta (key TEXT PRIMARY KEY,value TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS news_coverage_searches (
+                raw_id INTEGER PRIMARY KEY, searched_at TEXT NOT NULL, found INTEGER NOT NULL DEFAULT 0
+            );
+            CREATE TABLE IF NOT EXISTS news_event_cards (
+                processed_id INTEGER PRIMARY KEY, card_json TEXT NOT NULL, created_at TEXT NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS news_source_advice_decisions (
                 key TEXT PRIMARY KEY, decision TEXT NOT NULL, decided_at TEXT NOT NULL
             );

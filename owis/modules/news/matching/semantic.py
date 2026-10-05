@@ -6,11 +6,18 @@ import httpx
 from owis.core.config import settings
 from owis.core.storage.db import get_conn
 
-VERSION = "news-match-v2"
+VERSION = "news-match-v3"  # v3: compare event cards, not raw page text
 
 def article_text(item):
-    return (str(item.get("title") or "")[:500] + "\n" +
-            str(item.get("cleaned_text") or item.get("summary") or "")[:5000])
+    card = item.get("event_text")
+    head = str(item.get("title") or "")[:500] + ("\nEvent card: " + card if card else "")
+    return head + "\n" + str(item.get("cleaned_text") or item.get("summary") or "")[:5000]
+
+
+def embedding_text(item):
+    """The event card when available: free of site footers and captions, and language-neutral."""
+    card = item.get("event_text")
+    return str(item.get("title") or "")[:500] + "\n" + card if card else article_text(item)
 
 def cache_key(kind, payload):
     data = json.dumps([VERSION, kind, settings.AI_BASE_URL, settings.AI_MODEL,
@@ -34,7 +41,7 @@ def cosine(a, b):
 def embed_articles(items):
     vectors, missing = {}, []
     for item in items:
-        text = article_text(item)
+        text = embedding_text(item)
         key = cache_key("embedding", text)
         value = read_cache(key)
         if value is not None: vectors[int(item["id"])] = value
