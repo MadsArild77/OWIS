@@ -163,6 +163,27 @@ manuelt med godkjenning av hvert par. Av 392 saker i produksjon hadde bare 2 fle
 kilder. Risikoen er feilaktige sammenslåinger; terskelen kan justeres med
 `OWI_MATCH_AUTO_MERGE_CONFIDENCE`, og sammenslåtte saker bør kontrolleres de første ukene.
 
+## D15 – Selvlærende kildevekting og kilderådgiver
+
+**Vedtatt og implementert 5. oktober 2026.**
+Hver kildes vekt i poengsummen læres av hva kilden faktisk leverer de siste
+30 dagene: andel havvind, andel havvind og relaterte områder, og Mads' egne
+relevansvurderinger. Startverdien er kildens troverdighet som fagpresse; den
+observerte kvaliteten overtar gradvis etter omtrent 25 artikler. Vektene
+oppdateres etter hver innhenting og gjelder nye artikler.
+
+Siden **Source advisor** viser:
+- **Anbefalt lagt til:** nettsteder vi ikke følger som minst to ganger på 30 dager
+  har levert verifisert dekning av relevante saker (åpne versjoner av saker bak
+  betalingsmur, kilder i research), med eksempler.
+- **Anbefalt satt på pause:** aktive kilder der under 40 % av minst 20 artikler er
+  havvind eller relatert, kilder som feiler, og kilder uten artikler på 30 dager.
+- **Alle kilder:** artikler, andeler, sterke signaler, tilbakemeldinger og lært vekt.
+
+Legge til og pause skjer med ett klikk, men alltid etter brukerens valg (AI er
+rådgivende). «Keep» og «Dismiss» huskes, så samme råd ikke gjentas. Når nettsøk
+og hendelseskort utvides, får siden flere forslag.
+
 ## Åpne forslag og avklaringer
 
 - **Lyd/NotebookLM:** vurderes senere; ingen automatisk Google-overføring eller

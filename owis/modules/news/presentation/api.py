@@ -932,6 +932,28 @@ def article_sources(item_id: int):
             FROM news_source_evidence WHERE raw_id=? ORDER BY id DESC''',(found['raw_item_id'],))]
 
 
+class SourceAdviceDecision(BaseModel):
+    key: str
+    decision: str
+
+
+@router.get('/source-advisor')
+def source_advisor():
+    from owis.modules.news.registry.source_advisor import advice
+    init_db()
+    return advice()
+
+
+@router.post('/source-advisor/decision')
+def source_advisor_decision(payload: SourceAdviceDecision):
+    from owis.modules.news.registry.source_advisor import record_decision
+    try:
+        record_decision(payload.key[:300], payload.decision)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"saved": True}
+
+
 @router.get('/sources/saved')
 def saved_source_evidence():
     with get_conn() as c:
@@ -1430,6 +1452,11 @@ def _run_fetch_process(payload: RunFetchProcessRequest, job_id: str | None = Non
     if job_id:
         _update_job(job_id, percent=92, step="Grouping coverage of the same story across sources...")
     matching_result = run_matching_after_fetch()
+    try:
+        from owis.modules.news.registry.source_advisor import refresh_learned_weights
+        refresh_learned_weights()
+    except Exception:
+        logging.getLogger(__name__).exception("Updating learned source weights failed")
     collection_items = _filter_domain(_attach_metadata(repo.latest(limit=300)), "offshore_wind")
     if job_id:
         _update_job(job_id, percent=94, step="Refreshing collection preview...")

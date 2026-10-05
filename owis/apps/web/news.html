@@ -315,6 +315,22 @@
     legend { padding: 0 6px; font-weight: 600; font-size: 0.88rem; }
     details > summary { cursor: pointer; }
 
+    /* ---------- Source advisor ---------- */
+    .advice-list { display: grid; gap: 12px; }
+    .advice-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: start; padding: 16px 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+    .advice-card h4 { margin: 0 0 4px; font-size: 1rem; }
+    .advice-card p { margin: 4px 0 0; color: var(--ink-2); font-size: 0.92rem; }
+    .advice-card ul { margin: 8px 0 0; padding-left: 18px; font-size: 0.88rem; }
+    .advice-card li { margin: 2px 0; }
+    .advice-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .advice-actions button { margin: 0; }
+    .weight-change { font-weight: 600; }
+    .weight-change.up { color: var(--ok); }
+    .weight-change.down { color: var(--warn); }
+    .share-bar { display: inline-block; width: 60px; height: 6px; margin-right: 6px; border-radius: 999px; background: var(--line); vertical-align: middle; overflow: hidden; }
+    .share-bar span { display: block; height: 100%; background: var(--brand); }
+    @media (max-width: 640px) { .advice-card { grid-template-columns: 1fr; } }
+
     /* ---------- Review ---------- */
     .review-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
     .review-actions button { margin-top: 0; }
@@ -454,6 +470,10 @@
         <button class="nav-item tab-btn" data-tab="review" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>
           Review queue
+        </button>
+        <button class="nav-item tab-btn" data-tab="sources" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9M12 7a5 5 0 1 0 5 5M12 12l8-8M16 4h4v4"/></svg>
+          Source advisor <span class="nav-count" id="navAdviceCount"></span>
         </button>
         <div class="nav-label">More</div>
         <a class="nav-item" href="/opportunities">
@@ -687,6 +707,27 @@
               <div class="view-actions"><button type="button" class="btn-secondary" onclick="loadResearchedStories()">Refresh</button></div>
             </div>
             <div id="researchedStories" aria-live="polite"></div>
+          </div>
+
+          <div id="tab-sources" class="tab-panel">
+            <div class="view-head">
+              <div>
+                <h2>Source advisor</h2>
+                <p>OWIS learns from what each source delivers. Source weights in the ranking adjust automatically; you decide what is added or removed.</p>
+              </div>
+              <div class="view-actions"><button type="button" class="btn-secondary" id="adviceRefresh">Refresh</button></div>
+            </div>
+            <p id="adviceStatus" class="status" role="status" aria-live="polite"></p>
+            <h3 class="subhead" style="margin-top:0">Recommended to add</h3>
+            <div id="adviceAdd" class="advice-list"></div>
+            <h3 class="subhead">Recommended to pause</h3>
+            <div id="adviceRemove" class="advice-list"></div>
+            <h3 class="subhead">All sources</h3>
+            <p class="muted" style="margin-top:0" id="adviceWindow"></p>
+            <div class="panel" style="padding:8px 12px"><div class="table-wrap"><table class="sources-table">
+              <thead><tr><th>Source</th><th>Articles</th><th>Offshore wind</th><th>Wind &amp; related</th><th>Strong signals</th><th>Your feedback</th><th>Ranking weight</th><th>Status</th></tr></thead>
+              <tbody id="adviceScorecard"></tbody>
+            </table></div></div>
           </div>
 
           <div id="tab-review" class="tab-panel">
@@ -1764,8 +1805,9 @@
       }
     }
     function setActiveTab(tabName) {
-      const normalized = ['review', 'researched', 'morning', 'governance'].includes(tabName) ? tabName : 'reading';
+      const normalized = ['review', 'researched', 'morning', 'governance', 'sources'].includes(tabName) ? tabName : 'reading';
       if (normalized === 'researched') loadResearchedStories();
+      if (normalized === 'sources') loadSourceAdvice();
       document.getElementById('newsFilters').hidden = !['reading', 'review'].includes(normalized);
       if (['morning', 'governance'].includes(normalized)) loadMorningReport();
       setViewMode(normalized);
@@ -2959,6 +3001,7 @@
         governance: ['Policy & regulation', 'Laws, consultations and political milestones.'],
         researched: ['Researched', 'Stories you have looked into, with saved findings.'],
         review: ['Review queue', 'Merge, rate and train how stories are grouped.'],
+        sources: ['Source advisor', 'Which sources to add, pause or rely on, learned from what they deliver.'],
         settings: ['Settings', 'Sources, fetching and configuration.'],
       };
       const settingsView = document.getElementById('settingsView');
@@ -3031,6 +3074,97 @@
 
       showSection('reading');
     })();
+  </script>
+  <script>
+    // Source advisor: learned source quality with add / pause recommendations.
+    async function loadSourceAdvice() {
+      const status = document.getElementById('adviceStatus');
+      status.textContent = 'Loading…';
+      let data;
+      try { data = await getJson('/api/news/source-advisor'); }
+      catch (error) { status.textContent = 'Could not load source advice.'; status.classList.add('warn'); return; }
+      status.textContent = ''; status.classList.remove('warn');
+      document.getElementById('navAdviceCount').textContent = (data.add.length + data.remove.length) || '';
+      document.getElementById('adviceWindow').textContent =
+        `Last ${data.window_days} days. The ranking weight starts from the source's trade-press credibility and moves toward what it actually delivers as articles accumulate.`;
+      const pct = value => `${Math.round((Number(value) || 0) * 100)} %`;
+      const bar = value => `<span class="share-bar"><span style="width:${Math.round((Number(value) || 0) * 100)}%"></span></span>${pct(value)}`;
+
+      const add = document.getElementById('adviceAdd');
+      add.innerHTML = data.add.length ? data.add.map(item => `
+        <article class="advice-card" data-key="${escapeHtml(item.key)}">
+          <div>
+            <h4>${escapeHtml(item.name)} <span class="muted" style="font-weight:400">· ${escapeHtml(item.host)}</span></h4>
+            <p>${escapeHtml(item.reason)} <span class="muted">(${escapeHtml(item.origins.join(', '))})</span></p>
+            <ul>${item.examples.map(e => `<li><a href="${escapeHtml(e.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(e.title)}</a></li>`).join('')}</ul>
+          </div>
+          <div class="advice-actions">
+            <button type="button" data-advice-add="${escapeHtml(item.host)}" data-name="${escapeHtml(item.name)}">Add source</button>
+            <button type="button" class="btn-secondary" data-advice-dismiss="${escapeHtml(item.key)}">Dismiss</button>
+          </div>
+        </article>`).join('')
+        : '<div class="empty-state"><strong>No new sources to suggest yet</strong>Suggestions appear when other websites repeatedly supply verified coverage of your stories, for example open versions of paywalled articles or sources found in research.</div>';
+
+      const remove = document.getElementById('adviceRemove');
+      remove.innerHTML = data.remove.length ? data.remove.map(item => `
+        <article class="advice-card" data-key="${escapeHtml(item.key)}">
+          <div>
+            <h4>${escapeHtml(item.name)}</h4>
+            <p>${escapeHtml(item.reason)}</p>
+            <p class="muted">${item.articles} articles · ${pct(item.offshore_share)} offshore wind · ${pct(item.focus_share)} wind &amp; related · ranking weight ${item.learned_weight}/10</p>
+          </div>
+          <div class="advice-actions">
+            <button type="button" class="btn-warning" data-advice-pause="${item.index}" data-key="${escapeHtml(item.key)}">Pause source</button>
+            <button type="button" class="btn-secondary" data-advice-keep="${escapeHtml(item.key)}">Keep</button>
+          </div>
+        </article>`).join('')
+        : '<div class="empty-state"><strong>All active sources look useful</strong>Sources that are mostly off-focus, failing or silent will appear here.</div>';
+
+      document.getElementById('adviceScorecard').innerHTML = data.scorecard.map(row => {
+        const change = row.learned_weight - row.prior_weight;
+        const weight = change === 0 ? `${row.learned_weight}/10`
+          : `${row.prior_weight} → <span class="weight-change ${change > 0 ? 'up' : 'down'}">${row.learned_weight}/10</span>`;
+        const feedback = row.positive_feedback + row.negative_feedback
+          ? `${row.positive_feedback} 👍 · ${row.negative_feedback} 👎` : '–';
+        const state = !row.enabled ? 'Paused' : row.health === 'red' ? 'Failing' : 'Active';
+        return `<tr><td><strong>${escapeHtml(row.name)}</strong></td><td>${row.articles}</td><td>${bar(row.offshore_share)}</td>
+          <td>${bar(row.focus_share)}</td><td>${row.strong_signals}</td><td>${feedback}</td><td>${weight}</td>
+          <td><span class="health-dot health-${escapeHtml(row.health)}"></span>${state}</td></tr>`;
+      }).join('');
+    }
+
+    document.addEventListener('click', async event => {
+      const target = event.target.closest('[data-advice-add],[data-advice-dismiss],[data-advice-pause],[data-advice-keep]');
+      if (!target) return;
+      const status = document.getElementById('adviceStatus');
+      const decide = (key, decision) => postJson('/api/news/source-advisor/decision', {key, decision});
+      target.disabled = true;
+      try {
+        if (target.dataset.adviceAdd) {
+          const host = target.dataset.adviceAdd;
+          const result = await postJson('/api/news/sources/import-text', {text: `${target.dataset.name} - https://${host}`});
+          await decide(`add:${host}`, 'added');
+          status.textContent = result.added_count ? `${target.dataset.name} added. RSS was looked up automatically; check it under Settings → News sources.` : `${host} is already in your sources.`;
+          refreshSources?.().catch?.(() => {});
+        } else if (target.dataset.adviceDismiss) {
+          await decide(target.dataset.adviceDismiss, 'dismissed');
+          status.textContent = 'Suggestion dismissed.';
+        } else if (target.dataset.advicePause) {
+          await postJson('/api/news/sources/toggle', {index: Number(target.dataset.advicePause), enabled: false});
+          await decide(target.dataset.key, 'paused');
+          status.textContent = 'Source paused. Its history is kept, and you can resume it under Settings.';
+          refreshSources?.().catch?.(() => {});
+        } else if (target.dataset.adviceKeep) {
+          await decide(target.dataset.adviceKeep, 'kept');
+          status.textContent = 'Kept. This source will not be suggested for removal again.';
+        }
+        await loadSourceAdvice();
+      } catch (error) {
+        status.textContent = error.message || 'The action failed.'; status.classList.add('warn');
+        target.disabled = false;
+      }
+    });
+    document.getElementById('adviceRefresh').addEventListener('click', loadSourceAdvice);
   </script>
   <script src="/static/source-config.js" defer></script>
 </body>

@@ -12,6 +12,7 @@ hvilken versjon eller konfigurasjon som kjører i produksjon.
 |---|---|---|
 | Nyheter og redaksjonell flyt | Implementert med kjente begrensninger | RSS/nettsider, relevans, tilbakemeldinger, research, Copy info og researchede saker; se [EDITORIAL.md](EDITORIAL.md) |
 | Relevans og poengsum | Ny modell med havvind først, fast taksonomi og betalingsmur-dekning | Se [D13](DECISIONS.md); må kontrolleres på nye produksjonsdata |
+| Kilderådgiver og lært kildevekting | Implementert | [D15](DECISIONS.md); forslag om nye kilder krever verifiserte treff over tid |
 | Artikkelmatching | Automatisk gruppering av sikre treff etter hver innhenting; usikre i Review | [D14](DECISIONS.md), [MATCHING.md](MATCHING.md); feilrate på virkelige data ikke målt |
 | Morgenrapport og politikk | Grunnversjon implementert | Siste døgn, kommende milepæler, radar og valgfri 06-kjøring; [MORNING_REPORT.md](MORNING_REPORT.md) |
 | Jurisdiksjoner og kilder (trinn 1) | Ferdig og flettet til main | Felles register, organisasjoner, test og import/eksport; [SOURCE_CONFIGURATION.md](SOURCE_CONFIGURATION.md) |

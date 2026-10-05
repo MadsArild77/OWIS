@@ -109,7 +109,18 @@ def classify_focus(text: str) -> Focus:
     return Focus("other_energy", 0.5, areas)
 
 
-def source_weight(source_name: str) -> int:
+_LEARNED_SOURCE_WEIGHT: dict[str, int] = {}
+
+
+def set_learned_source_weights(weights: dict[str, int]) -> None:
+    """Weights learned from each source's observed relevance (see registry.source_advisor)."""
+    _LEARNED_SOURCE_WEIGHT.clear()
+    _LEARNED_SOURCE_WEIGHT.update({str(k): int(v) for k, v in (weights or {}).items()})
+
+
+def source_weight(source_name: str, learned: bool = True) -> int:
+    if learned and source_name in _LEARNED_SOURCE_WEIGHT:
+        return _LEARNED_SOURCE_WEIGHT[source_name]
     name = str(source_name or "").lower()
     return next((weight for key, weight in SOURCE_WEIGHT.items() if key in name), 6)
 
