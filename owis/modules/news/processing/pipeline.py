@@ -194,7 +194,7 @@ def _why_it_matters(theme_tags: list[str], geo_tags: list[str]) -> str:
 
     return (
         f"This may influence energy, maritime or industrial developments in {geography} "
-        f"through themes: {', '.join(theme_tags)}."
+        f"through themes: {', '.join(tag.replace('_', ' ') for tag in theme_tags)}."
     )
 
 

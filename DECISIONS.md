@@ -99,6 +99,17 @@ konfigurasjonen (`render.yaml`) er fjernet; Railway er eneste driftsplattform.
 Oppstartskopier av databasen begrenses til de 14 nyeste. Testene kjøres på
 Python 3.11 (Docker/Railway) og 3.13 (lokal utvikling).
 
+## D11 – Lesbart grensesnitt med lyst og mørkt tema
+
+**Vedtatt og implementert 5. oktober 2026.**
+News og Opportunities bruker et felles tema (`owis/apps/web/theme.css`) med
+lyst og mørkt fargesett. Lyst er standard; mørkt følger systeminnstillingen,
+og en bryter øverst til høyre lagrer valget i nettleseren. Teksten er større,
+all tekst har kontrast på minst 4,5:1, og glass- og glødeeffekter er fjernet.
+Interne merkelapper som `general_news` og «top score» vises som lesbar tekst.
+Grensesnittet beholdes på engelsk. Bakgrunn: liten, svak tekst på mørk
+bakgrunn og rester av et eldre lyst tema ga dårlig lesbarhet.
+
 ## Åpne forslag og avklaringer
 
 - **Lyd/NotebookLM:** vurderes senere; ingen automatisk Google-overføring eller
