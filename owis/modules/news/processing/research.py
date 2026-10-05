@@ -115,7 +115,10 @@ def safe_url(value):
         return None
 
 
-def search(query):
+def search(query, purpose='research'):
+    """One web search, counted against the shared monthly budget (raises SearchBudgetExceeded when used up)."""
+    from owis.modules.news.processing.search_budget import spend
+    spend(purpose)
     if os.getenv('TAVILY_API_KEY'):
         response = httpx.post('https://api.tavily.com/search',
                               headers={'Authorization': 'Bearer ' + os.environ['TAVILY_API_KEY']},

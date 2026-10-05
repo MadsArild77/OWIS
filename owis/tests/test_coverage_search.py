@@ -30,7 +30,7 @@ def setup(tmp_path, monkeypatch):
 
 def test_only_verified_coverage_of_important_stories_is_kept(setup, monkeypatch):
     queries = []
-    monkeypatch.setattr(research, "search", lambda q: queries.append(q) or [
+    monkeypatch.setattr(research, "search", lambda q, **kw: queries.append(q) or [
         {"url": "https://rechargenews.com/own", "title": "Own site"},
         {"url": "https://offshorewind.biz/already", "title": "Already collected"},
         {"url": "https://newoutlet.example/same", "title": "Same story", "description": "Same event"},
@@ -47,7 +47,7 @@ def test_only_verified_coverage_of_important_stories_is_kept(setup, monkeypatch)
 
 def test_daily_cap_and_missing_provider(setup, monkeypatch):
     monkeypatch.setenv("OWI_GAP_SEARCHES_PER_DAY", "0")
-    monkeypatch.setattr(research, "search", lambda q: pytest.fail("must not search"))
+    monkeypatch.setattr(research, "search", lambda q, **kw: pytest.fail("must not search"))
     assert coverage.fill_coverage_gaps() == {"searched": 0, "found": 0}
     monkeypatch.delenv("TAVILY_API_KEY")
     assert coverage.fill_coverage_gaps()["skipped"] == "no search provider configured"

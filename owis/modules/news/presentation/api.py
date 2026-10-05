@@ -937,6 +937,13 @@ class SourceAdviceDecision(BaseModel):
     decision: str
 
 
+@router.get('/search-budget')
+def search_budget_status():
+    from owis.modules.news.processing.search_budget import status
+    init_db()
+    return status()
+
+
 @router.get('/source-advisor')
 def source_advisor():
     from owis.modules.news.registry.source_advisor import advice

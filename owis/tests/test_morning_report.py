@@ -183,7 +183,7 @@ def test_missing_setup_is_visible(monkeypatch):
 def test_collect_continues_after_failure_and_rejects_external_redirect(monkeypatch):
     monkeypatch.setattr(governance, 'capabilities', lambda: {'available': True})
     monkeypatch.setattr(governance, 'REGIONS', [('Norway', ['regjeringen.no'], 'energy'), ('EU', ['ec.europa.eu'], 'energy')])
-    def search(query):
+    def search(query, **kw):
         if 'regjeringen.no' in query:
             raise RuntimeError('Search offline')
         return [dict(url='https://ec.europa.eu/a', title='Event', description='Search excerpt')]
@@ -220,7 +220,7 @@ def test_known_upcoming_sources_are_rechecked_when_search_is_empty(monkeypatch):
                   ('2026-10-01', 'completed', NOW.isoformat(), NOW.isoformat(), 'previous', json.dumps(saved), None))
     monkeypatch.setattr(governance, 'capabilities', lambda: {'available': True})
     monkeypatch.setattr(governance, 'REGIONS', [('Norway', ['regjeringen.no'], 'energy')])
-    monkeypatch.setattr(governance, 'search', lambda query: [])
+    monkeypatch.setattr(governance, 'search', lambda query, **kw: [])
     fetched = []
     def fetch(url):
         fetched.append(url)

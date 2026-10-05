@@ -157,7 +157,7 @@ def collect(today):
             retained = [s for s in known if official_url(s['url'], domains)][:2]
             hits = [{'url': s['url'], 'title': s['title'], 'description': ''} for s in retained]
             try:
-                hits.extend(search(query))
+                hits.extend(search(query, purpose='policy'))
             except Exception:
                 if not retained:
                     raise

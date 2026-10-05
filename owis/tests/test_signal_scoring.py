@@ -96,7 +96,7 @@ def test_alternative_search_uses_configured_provider(monkeypatch):
     monkeypatch.setenv("TAVILY_API_KEY", "test")
     monkeypatch.delenv("BRAVE_SEARCH_API_KEY", raising=False)
     queries, fetched = [], []
-    monkeypatch.setattr(research, "search", lambda q: queries.append(q) or [{"url": "https://open.example/a", "title": "t"}])
+    monkeypatch.setattr(research, "search", lambda q, **kw: queries.append(q) or [{"url": "https://open.example/a", "title": "t"}])
     monkeypatch.setattr(content, "fetch_public", lambda url: fetched.append(url) or ("restricted", "", url))
     monkeypatch.setattr(content, "get_conn", _empty_conn)
     raw = {"id": 1, "title_raw": "Ørsted wins tender (+)", "article_url": "https://paywalled.example/a", "summary_raw": ""}

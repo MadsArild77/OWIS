@@ -585,7 +585,8 @@
                   <button id="rediscoverBtn" class="btn-secondary" type="button">Rediscover RSS feeds</button>
                   <button id="dedupeBtn" class="btn-warning" type="button">Remove duplicates</button>
                 </div>
-                <div class="ai-row" style="margin-top:16px">
+                <p id="settingsSearchBudget" class="muted" style="margin:16px 0 0"></p>
+                <div class="ai-row" style="margin-top:8px">
                   <span id="aiStatus" class="muted">AI: unknown</span>
                   <button id="checkAiBtn" class="btn-secondary" type="button">Check AI</button>
                 </div>
@@ -719,6 +720,7 @@
               </div>
               <div class="view-actions"><button type="button" class="btn-secondary" id="adviceRefresh">Refresh</button></div>
             </div>
+            <p id="searchBudget" class="muted" style="margin:0 0 8px"></p>
             <p id="adviceStatus" class="status" role="status" aria-live="polite"></p>
             <h3 class="subhead" style="margin-top:0">Recommended to add</h3>
             <div id="adviceAdd" class="advice-list"></div>
@@ -3115,6 +3117,20 @@
   <script>
     // Source advisor: learned source quality with add / pause recommendations.
     let adviceDecisionDays = 60;
+    async function showSearchBudget() {
+      try {
+        const b = await getJson('/api/news/search-budget');
+        const resets = new Date(b.resets_on).toLocaleDateString('en-GB', {day: 'numeric', month: 'short'});
+        const text = `Web searches this month: ${b.used} of ${b.limit} (research ${b.by_purpose.research}, policy ${b.by_purpose.policy}, `
+          + `paywalled stories ${b.by_purpose.alternative}, extra coverage ${b.by_purpose.coverage}). `
+          + `Automatic searches today: ${b.automatic_today} of ${b.automatic_per_day}. ${b.research_reserve} are kept for your own research. Resets ${resets}.`;
+        for (const id of ['searchBudget', 'settingsSearchBudget']) {
+          const el = document.getElementById(id);
+          if (el) el.textContent = text;
+        }
+      } catch (error) { /* budget display is informational */ }
+    }
+    document.getElementById('showSettingsView').addEventListener('click', showSearchBudget);
     async function loadSourceAdvice() {
       const status = document.getElementById('adviceStatus');
       status.textContent = 'Loading…';
@@ -3123,6 +3139,7 @@
       catch (error) { status.textContent = 'Could not load source advice.'; status.classList.add('warn'); return; }
       status.textContent = ''; status.classList.remove('warn');
       adviceDecisionDays = data.decision_days || 60;
+      showSearchBudget();
       document.getElementById('navAdviceCount').textContent = (data.add.length + data.remove.length + (data.resume || []).length) || '';
       const shortDate = value => value ? new Date(value).toLocaleDateString('en-GB', {day: 'numeric', month: 'short', year: 'numeric'}) : '';
       const resume = data.resume || [];

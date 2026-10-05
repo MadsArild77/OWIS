@@ -34,7 +34,7 @@ def analysis():
 
 
 def mock_analysis(monkeypatch, output):
-    monkeypatch.setattr(research, 'search', lambda query:[{'url':'https://example.org/report','title':'Background','description':'Context.'}])
+    monkeypatch.setattr(research, 'search', lambda query, **kw:[{'url':'https://example.org/report','title':'Background','description':'Context.'}])
     monkeypatch.setattr(research, 'fetch_public', lambda url: ('blocked','',url))
     def respond(self, prompt, evidence, **kw):
         assert 'not a finished LinkedIn post' in prompt
@@ -55,7 +55,7 @@ def test_saved_research_survives_reopen_without_new_search(story, analysis, monk
     assert first['result']['conversation_potential']['level'] == 'Medium'
     assert first['result']['sources'][1]['url'] == 'https://example.org/report'
     db.init_db()
-    monkeypatch.setattr(research, 'search', lambda q:pytest.fail('Cached result must not search again'))
+    monkeypatch.setattr(research, 'search', lambda q, **kw:pytest.fail('Cached result must not search again'))
     assert research.start(story)['result'] == first['result']
 
 
@@ -128,7 +128,7 @@ def test_researched_articles_are_not_archived(story):
 
 def test_no_results_does_not_invent_new_coverage(story, analysis, monkeypatch):
     analysis['sources']=analysis['sources'][:1]
-    monkeypatch.setattr(research,'search',lambda query:[])
+    monkeypatch.setattr(research,'search',lambda query, **kw:[])
     monkeypatch.setattr(research.AIClient,'_post_json_prompt',lambda *a,**kw:analysis)
     result=research.analyse(NewsRepository().get_item(story))
     assert len(result['sources'])==1 and result['whats_new']==[]
