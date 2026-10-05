@@ -851,6 +851,13 @@ class NewsRepository:
                 JOIN news_raw_items rb ON rb.id=b.raw_item_id
                 ORDER BY l.created_at DESC LIMIT 100""")]
 
+    def pending_pair_id(self, item_a_id: int, item_b_id: int) -> int | None:
+        a, b = sorted([int(item_a_id), int(item_b_id)])
+        with get_conn() as conn:
+            row = conn.execute("SELECT id FROM news_match_review_pairs WHERE item_a_id=? AND item_b_id=? AND status='pending'",
+                               (a, b)).fetchone()
+        return int(row["id"]) if row else None
+
     def apply_match_decision(self, pair_id: int, decision: str, actor: str | None = None):
         """Apply a review once, atomically, including every existing group member."""
         from uuid import uuid4

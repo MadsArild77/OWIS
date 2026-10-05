@@ -53,7 +53,11 @@ The prompt requires concrete agreement on action/object and distinguishes suppli
 
 Pricing references: [GPT-4o mini](https://developers.openai.com/api/docs/models/gpt-4o-mini), [embeddings](https://developers.openai.com/api/docs/models/text-embedding-3-small).
 
-A manually curated set of real articles and measured candidate recall/false-merge rate are still needed before automatic merging is considered. All merging currently requires human confirmation.
+## Automatic grouping (since 5 October 2026)
+
+Matching runs automatically after every fetch and before the morning report, over the last 14 days of offshore wind and related stories. Pairs judged `same_event` with confidence at least `OWI_MATCH_AUTO_MERGE_CONFIDENCE` (default 0.85, minimum 0.70) are merged at once; confident `update` pairs are linked. Lower-confidence and `uncertain` pairs still go to the Review queue. Decided pairs are never judged or merged again, so a story the user splits stays split, and a rejected pair stays apart. The Run AI matching button applies the same rule; the API accepts `auto_apply=false` for review-only runs.
+
+A manually curated set of real articles and a measured false-merge rate are still missing; check merged stories in the first weeks and split wrong ones.
 
 Reference: [OpenAI embeddings guide](https://developers.openai.com/api/docs/guides/embeddings).
 

@@ -3,6 +3,8 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from itertools import combinations
+import logging
+import os
 import re
 from threading import Lock
 from uuid import uuid4
@@ -18,6 +20,7 @@ from owis.core.storage.db import init_db, get_conn
 from owis.modules.news.collectors.rss_fetcher import fetch_rss_items_with_report
 from owis.modules.news.collectors.scrape_fetcher import fetch_article_preview, fetch_scrape_items_with_report
 from owis.modules.news.matching.service import (
+    auto_decision,
     build_candidate_pairs,
     judge_pair,
     judgement_cache_key,
@@ -117,7 +120,15 @@ class MatchRunRequest(BaseModel):
     lookback_items: int = Field(default=350, ge=2, le=1000)
     days_window: int = Field(default=30, ge=1, le=365)
     top_k: int = Field(default=8, ge=1, le=20)
-    domain_bucket: str = "offshore_wind"
+    domain_bucket: str = "core"
+    auto_apply: bool = True
+
+
+def _auto_merge_threshold() -> float:
+    try:
+        return min(max(float(os.getenv("OWI_MATCH_AUTO_MERGE_CONFIDENCE", "0.85")), 0.7), 1.0)
+    except ValueError:
+        return 0.85
 
 
 class MatchReviewDecisionRequest(BaseModel):
@@ -1053,6 +1064,9 @@ def _run_match_review(payload: MatchRunRequest, job_id: str | None = None) -> di
     enqueued = 0
     reviewed = 0
     fallback_count = 0
+    auto_merged = 0
+    auto_linked = 0
+    threshold = _auto_merge_threshold()
 
     total = max(len(candidates), 1)
     for left, right, heuristic_score in candidates:
@@ -1078,6 +1092,19 @@ def _run_match_review(payload: MatchRunRequest, job_id: str | None = None) -> di
             relationship=judgement.get("relationship", "uncertain"),
         )
         enqueued += 1
+        decision = auto_decision(judgement, threshold) if payload.auto_apply else None
+        pair_id = repo.pending_pair_id(int(left.get("id") or 0), int(right.get("id") or 0)) if decision else None
+        if pair_id:
+            try:
+                applied = repo.apply_match_decision(pair_id, decision, "auto")
+            except (LookupError, ValueError):
+                continue
+            if applied["collection_key"]:
+                found_items = repo.list_processed_by_ids(applied["item_ids"])
+                repo.upsert_collection_master(_synthesize_collection_master(applied["collection_key"], found_items))
+                auto_merged += 1
+            else:
+                auto_linked += 1
 
     if reviewed and fallback_count == reviewed:
         raise HTTPException(status_code=502, detail="OpenAI could not assess the candidate pairs. No negative matches were recorded. Check quota and model access.")
@@ -1086,6 +1113,8 @@ def _run_match_review(payload: MatchRunRequest, job_id: str | None = None) -> di
         "deferred_pairs": max(0, candidate_count - len(candidates)),
         "checked_pairs": reviewed,
         "enqueued_pairs": enqueued,
+        "auto_merged_pairs": auto_merged,
+        "auto_linked_pairs": auto_linked,
         "fallback_pairs": fallback_count,
         "domain_bucket": bucket,
         "lookback_items": len(items),
@@ -1093,6 +1122,19 @@ def _run_match_review(payload: MatchRunRequest, job_id: str | None = None) -> di
     if job_id:
         _update_job(job_id, percent=100, step="Match review completed.", status="completed", result=result)
     return result
+
+
+def run_matching_after_fetch() -> dict[str, Any]:
+    """Group new coverage automatically; failures never break a fetch."""
+    if not AIClient().enabled:
+        return {"skipped": "AI is not enabled"}
+    try:
+        return _run_match_review(MatchRunRequest(days_window=14))
+    except HTTPException as exc:
+        return {"skipped": str(exc.detail)}
+    except Exception:
+        logging.getLogger(__name__).exception("Automatic story matching failed")
+        return {"skipped": "matching failed"}
 
 
 @router.post("/match/run")
@@ -1385,6 +1427,9 @@ def _run_fetch_process(payload: RunFetchProcessRequest, job_id: str | None = Non
         row["health_reason"] = reason
         health_rows.append({"source": source_name, "health": color, "reason": reason, "items": items})
 
+    if job_id:
+        _update_job(job_id, percent=92, step="Grouping coverage of the same story across sources...")
+    matching_result = run_matching_after_fetch()
     collection_items = _filter_domain(_attach_metadata(repo.latest(limit=300)), "offshore_wind")
     if job_id:
         _update_job(job_id, percent=94, step="Refreshing collection preview...")
@@ -1418,6 +1463,7 @@ def _run_fetch_process(payload: RunFetchProcessRequest, job_id: str | None = Non
         "source_health": health_rows,
         "collection_preview": collections,
         "retention": retention_result,
+        "matching": matching_result,
     }
     if job_id:
         _update_job(job_id, status="completed", percent=100, step="Fetch, processing and UI refresh completed.", result=result)

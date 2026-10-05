@@ -150,6 +150,19 @@ Bakgrunn: gjennomgang av 500 artikler i produksjon viste at 57 % var annen energ
 at poengsummen ikke skilte (65 % var LinkedIn-kandidater), at ingen saker bak
 betalingsmur hadde fått åpen alternativkilde, og at merkelappene var inkonsekvente.
 
+## D14 – Samme sak fra flere kilder grupperes automatisk
+
+**Vedtatt og implementert 5. oktober 2026. Erstatter kravet om manuell godkjenning i MATCHING.md.**
+Etter hver innhenting og før morgenrapporten sammenlignes de siste 14 dagenes
+saker innen havvind og relaterte områder på tvers av kilder og språk. Par som AI
+vurderer som samme hendelse med minst 85 % sikkerhet slås sammen automatisk;
+tydelige oppfølgingssaker kobles. Usikre forslag venter i Review. Saker som
+brukeren deler opp eller avviser, slås ikke sammen igjen.
+Bakgrunn: gruppering krevde nesten identiske titler, og AI-matchingen kjørte bare
+manuelt med godkjenning av hvert par. Av 392 saker i produksjon hadde bare 2 flere
+kilder. Risikoen er feilaktige sammenslåinger; terskelen kan justeres med
+`OWI_MATCH_AUTO_MERGE_CONFIDENCE`, og sammenslåtte saker bør kontrolleres de første ukene.
+
 ## Åpne forslag og avklaringer
 
 - **Lyd/NotebookLM:** vurderes senere; ingen automatisk Google-overføring eller
