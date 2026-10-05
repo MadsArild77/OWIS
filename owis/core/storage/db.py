@@ -45,6 +45,9 @@ def init_db() -> None:
                 processed_id INTEGER PRIMARY KEY, version INTEGER NOT NULL
             );
             CREATE TABLE IF NOT EXISTS news_registry_meta (key TEXT PRIMARY KEY,value TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS news_search_usage (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, purpose TEXT NOT NULL, used_at TEXT NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS news_coverage_searches (
                 raw_id INTEGER PRIMARY KEY, searched_at TEXT NOT NULL, found INTEGER NOT NULL DEFAULT 0
             );

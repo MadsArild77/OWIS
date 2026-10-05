@@ -208,6 +208,21 @@ og hendelseskort utvides, får siden flere forslag.
 Anslått merkostnad med gpt-4o-mini: noen få dollar i måneden. Søk (Tavily) er
 begrenset til 25 per dag for hullfylling.
 
+## D17 – Saken i sentrum, og ett felles søkebudsjett
+
+**Vedtatt og implementert 6. oktober 2026.**
+- **Saken, ikke kilden, bestemmer rangeringen.** Kildens andel av poengsummen er
+  redusert fra 10 til 5 poeng; markedspåvirkning er økt fra 25 til 30. En viktig
+  sak skal ikke falle fordi den kom fra en svakere kilde. Søk brukes til å gjøre
+  viktige saker komplette; kildeforslag er et biprodukt.
+- **Søkebudsjett:** Tavilys gratisplan gir 1 000 basissøk i måneden (1 kreditt
+  per søk, nullstilles den 1.; stopper ved tom kvote). Alle søk telles mot
+  `OWI_SEARCH_MONTHLY_LIMIT` (1 000). Prioritet: egen research (kan bruke alt),
+  politikkdelen i morgenrapporten (stopper ved reserven), automatiske søk etter
+  åpne versjoner og ekstra dekning (fordelt jevnt over resten av måneden).
+  `OWI_SEARCH_RESEARCH_RESERVE` (100) holdes av til egen research. Forbruket vises
+  i Source advisor og under Settings.
+
 ## Åpne forslag og avklaringer
 
 - **Lyd/NotebookLM:** vurderes senere; ingen automatisk Google-overføring eller

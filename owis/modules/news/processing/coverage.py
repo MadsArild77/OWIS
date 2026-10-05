@@ -65,14 +65,17 @@ def fill_coverage_gaps() -> dict:
         collected = {r[0] for r in conn.execute("SELECT article_url FROM news_raw_items")}
     budget = min(_limit("OWI_GAP_SEARCHES_PER_RUN", "5"), _limit("OWI_GAP_SEARCHES_PER_DAY", "25") - used_today)
     searched = found = 0
+    from owis.modules.news.processing.search_budget import allowed
     for item in attach_cards(gap_candidates())[:max(budget, 0)]:
+        if not allowed("coverage"):
+            break  # paced share of the monthly search quota is used for today
         now = datetime.now(timezone.utc).isoformat()
         with get_conn() as conn:
             conn.execute("INSERT OR IGNORE INTO news_coverage_searches(raw_id, searched_at, found) VALUES(?,?,0)",
                          (item["raw_item_id"], now))
         searched += 1
         try:
-            results = search(_query(item))
+            results = search(_query(item), purpose="coverage")
         except Exception:
             logger.exception("Coverage search failed for article %s", item["id"])
             continue

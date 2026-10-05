@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-SCORING_VERSION = "2026-10-05.3"
+SCORING_VERSION = "2026-10-06.1"
 
 
 def _terms(*words: str) -> list[re.Pattern]:
@@ -145,8 +145,8 @@ def score_signal(title: str, text: str, geographies: list[str], actors: list[str
     score = FOCUS_POINTS[focus.bucket] if focus.confidence > 0.5 else 0
 
     impacts = [name for name, patterns in IMPACT.items() if _hits(blob, patterns)]
-    impact = min(len(impacts) * 7, 20) + (5 if CAPACITY.search(blob) else 0)
-    score += min(impact, 25)
+    impact = min(len(impacts) * 8, 24) + (6 if CAPACITY.search(blob) else 0)
+    score += min(impact, 30)
     reasons += impacts[:2]
 
     geo_points = max((GEO_WEIGHT.get(g, 3) for g in geographies), default=5)
@@ -155,9 +155,10 @@ def score_signal(title: str, text: str, geographies: list[str], actors: list[str
     if geo_points >= 11:
         reasons.append(best_geo)
 
-    source_points = source_weight(source_name)
+    # The story decides the score; the source only adds a little confidence (0-5).
+    source_points = round(source_weight(source_name) / 2)
     score += source_points
-    if source_points >= 9:
+    if source_points >= 5:
         reasons.append("Trade press")
 
     score += evidence_weight(basis, text)

@@ -73,7 +73,7 @@ def alternative_sources(raw, ai):
     if (os.getenv('TAVILY_API_KEY') or os.getenv('BRAVE_SEARCH_API_KEY')) and len(candidates)<3:
         from owis.modules.news.processing.research import search
         try:
-            for i,row in enumerate(search(_search_query(raw['title_raw']))[:3]):
+            for i,row in enumerate(search(_search_query(raw['title_raw']),purpose='alternative')[:3]):
                 if not row.get('url') or row.get('url')==raw['article_url']:continue
                 candidates.append({'id':2147483600+i,'title':row.get('title',''),'summary':row.get('description',''),
                     'article_url':row['url'],'published_at':None})

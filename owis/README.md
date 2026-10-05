@@ -133,6 +133,8 @@ warning is logged on Railway at startup.
   auto-merge at `OWI_MATCH_AUTO_MERGE_CONFIDENCE`, 0.85), coverage search for important single-source stories
   (`OWI_GAP_SEARCHES_PER_RUN`, 5; `OWI_GAP_SEARCHES_PER_DAY`, 25; needs `TAVILY_API_KEY` or `BRAVE_SEARCH_API_KEY`)
   and learned source weights for the Source advisor.
+- All web searches share one monthly budget: `OWI_SEARCH_MONTHLY_LIMIT` (1000, the Tavily free plan) with
+  `OWI_SEARCH_RESEARCH_RESERVE` (100) kept for research you start. Automatic searches are paced over the month.
 
 ## Deploy on Railway
 
