@@ -235,6 +235,12 @@
     }
     .source-name { color: var(--ink-2); font-weight: 600; }
     .sources-badge { padding: 0 8px; border-radius: 999px; border: 1px solid var(--line-strong); font-size: 0.75rem; font-weight: 600; color: var(--ink-2); line-height: 1.6; }
+    .focus-badge { padding: 0 8px; border-radius: 999px; background: var(--tag-actor-bg); color: var(--tag-actor-ink); font-size: 0.75rem; font-weight: 600; line-height: 1.6; }
+    .access-badge { padding: 0 8px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--warn); font-size: 0.75rem; font-weight: 600; line-height: 1.6; }
+    .access-badge::before { content: "\1F512\FE0E  "; font-size: 0.7rem; }
+    .access-badge.is-open { color: var(--ok); }
+    .access-badge.is-open::before { content: "\2713  "; }
+    .signal-reasons { margin-top: 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--muted); }
     .story h3 { margin: 6px 0 0; font-size: 1.08rem; line-height: 1.38; font-weight: 650; }
     .story-open {
       margin: 0; padding: 0; border: 0; background: none; box-shadow: none;
@@ -564,9 +570,6 @@
                 <h3 style="margin:20px 0 4px;font-size:0.95rem">Display filters</h3>
                 <div class="form-grid">
                   <label class="field">Source <select id="sourceFilter"><option value="">All sources</option></select></label>
-                  <label class="field">Domain
-                    <select id="domainFilter"><option value="offshore_wind">Offshore wind</option><option value="adjacent_energy">Adjacent energy</option><option value="other_energy">Other energy</option><option value="all" selected>All domains</option></select>
-                  </label>
                 </div>
               </div>
             </div>
@@ -609,9 +612,10 @@
               <select id="interestFilter" hidden aria-hidden="true" tabindex="-1"><option value="all">All topics</option><option value="energy">Offshore wind &amp; energy</option><option value="maritime">Maritime &amp; ports</option><option value="grid">Grid &amp; electrification</option></select>
             </div>
             <div class="filter-row">
+              <select id="domainFilter" class="pill-select" aria-label="Focus"><option value="core" selected>Offshore wind &amp; related</option><option value="offshore_wind">Offshore wind only</option><option value="adjacent_energy">Related areas only</option><option value="other_energy">Other energy</option><option value="all">All energy news</option></select>
               <select id="geographyFilter" class="pill-select" aria-label="Geography"><option value="">All geographies</option></select>
               <select id="companyFilter" class="pill-select" aria-label="Company"><option value="">All companies</option></select>
-              <select id="storySort" class="pill-select" aria-label="Sort by"><option value="latest">Newest first</option><option value="relevance">Most relevant</option></select>
+              <select id="storySort" class="pill-select" aria-label="Sort by"><option value="latest">By day, top signals first</option><option value="relevance">Most relevant</option></select>
               <span class="spacer"></span>
               <label class="toggle-label"><input type="checkbox" id="showDismissed"> Show hidden</label>
               <button type="button" id="showFeedbackHistory" class="btn-ghost" style="margin:0">Saved feedback</button>
@@ -1585,13 +1589,19 @@
           `).join('')
         : '<p class="muted">No source articles loaded for this story.</p>';
 
-      document.getElementById('detailTitle').textContent = master.title || `${readableLabel(collection.primary_theme || 'general_news')} / ${collection.primary_geography || 'Global'}`;
+      document.getElementById('detailTitle').textContent = master.title ? cleanTitle(master.title) : `${readableLabel(collection.primary_theme || 'general_news')} / ${collection.primary_geography || 'Global'}`;
       const articleCount = collection.article_count || items.length || 0;
       document.getElementById('detailMeta').textContent = [
         (master.sources || []).join(', ') || 'Unknown source',
         `${articleCount} ${articleCount === 1 ? 'article' : 'articles'}`,
+        ...(accessStatus(collection) === 'open_copy' ? ['Open version found'] : accessStatus(collection) === 'subscriber' ? ['Subscriber article'] : []),
         `Relevance score ${collection.top_signal_score ?? 'n/a'}`,
       ].join(' · ');
+      const reasons = (collection.signal_reasons || []).filter(Boolean);
+      if (reasons.length) {
+        document.getElementById('detailMeta').insertAdjacentHTML('beforeend',
+          `<div class="signal-reasons"><span>Ranked for:</span>${reasons.map(reason => `<span class="chip-tag">${escapeHtml(reason)}</span>`).join('')}</div>`);
+      }
       document.getElementById('detailContent').innerHTML = `
         ${moreInfoLink(master.title || items[0]?.title)}
         <div class="detail-topline ${imageHtml ? 'has-image' : 'no-image'}">
@@ -1727,7 +1737,7 @@
 
     function currentDomainFilter() {
       const el = document.getElementById("domainFilter");
-      return (el?.value || "all").trim() || "all";
+      return (el?.value || "core").trim() || "core";
     }
 
     function sourceFilterQuery() {
@@ -1870,9 +1880,12 @@
         (!company || (col.master?.actors || []).includes(company)) &&
         visibleArticles((col.items || []).map(item => current.get(Number(item.id)) || item)).length);
       const timestamp = col => Date.parse(col.latest_published_at) || 0;
+      const day = col => dayHeading(col.latest_published_at);
+      const score = col => Number(col.top_signal_score) || 0;
+      // Newest days first; inside a day the strongest signals lead, as in a daily briefing.
       return visible.sort(document.getElementById('storySort')?.value === 'relevance'
-        ? (a,b) => (Number(b.top_signal_score) - Number(a.top_signal_score)) || timestamp(b) - timestamp(a)
-        : (a,b) => timestamp(b) - timestamp(a));
+        ? (a,b) => (score(b) - score(a)) || timestamp(b) - timestamp(a)
+        : (a,b) => (day(a) === day(b) ? (score(b) - score(a)) : 0) || timestamp(b) - timestamp(a));
     }
 
     function updateStoryFilters() {
@@ -1896,6 +1909,19 @@
         brief += (brief ? ' ' : '') + sentence;
       }
       return brief || text;
+    }
+
+    // Paywall status of a story: an open copy found elsewhere beats the lock.
+    function accessStatus(col) {
+      const items = col.items || [];
+      if (items.some(item => item.content_basis?.basis === 'alternative_fulltext')) return 'open_copy';
+      const title = col.master?.title || '';
+      if (/^\[paywalled\]/i.test(title) || items.some(item => item.content_basis?.access === 'restricted')) return 'subscriber';
+      return '';
+    }
+
+    function cleanTitle(title) {
+      return String(title || 'Untitled').replace(/^\[paywalled\]\s*/i, '');
     }
 
     function relativeTime(value) {
@@ -1961,8 +1987,11 @@
               <span aria-hidden="true">·</span>
               <time datetime="${escapeHtml(col.latest_published_at || '')}">${escapeHtml(relativeTime(col.latest_published_at))}</time>
               ${articleCount > 1 ? `<span class="sources-badge">${articleCount} sources</span>` : ''}
+              ${col.domain_bucket === 'offshore_wind' ? '<span class="focus-badge">Offshore wind</span>' : ''}
+              ${accessStatus(col) === 'open_copy' ? '<span class="access-badge is-open" title="An open article about the same story was found and is used as the basis">Open version found</span>'
+                : accessStatus(col) === 'subscriber' ? '<span class="access-badge" title="Subscriber article; OWIS shows the excerpt and looks for open coverage of the same story">Subscriber</span>' : ''}
             </div>
-            <h3><button type="button" class="story-open">${escapeHtml(master.title || 'Untitled')}</button></h3>
+            <h3><button type="button" class="story-open">${escapeHtml(cleanTitle(master.title))}</button></h3>
             <p class="story-description">${escapeHtml(storyBrief(col))}</p>
             ${tags ? `<div class="story-tags">${tags}</div>` : ''}
           </div>

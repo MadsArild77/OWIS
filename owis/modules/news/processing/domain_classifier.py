@@ -3,53 +3,13 @@ from __future__ import annotations
 import re
 
 from owis.core.llm.client import AIClient
+from owis.modules.news.processing.signal import classify_focus
 
 _BUCKETS = {"offshore_wind", "adjacent_energy", "other_energy"}
 
-OFFSHORE_TERMS = {
-    "offshore wind",
-    "offshore",
-    "wind farm",
-    "floating wind",
-    "fixed-bottom",
-    "turbine installation",
-    "cfd auction",
-    "lease round",
-    "subsea cable",
-}
-
-ADJACENT_TERMS = {
-    "grid",
-    "transmission",
-    "interconnector",
-    "hydrogen",
-    "electrolyser",
-    "port",
-    "supply chain",
-    "battery",
-    "renewables",
-    "power market",
-}
-
-OTHER_ENERGY_TERMS = {
-    "oil",
-    "gas",
-    "lng",
-    "upstream",
-    "drilling",
-    "refinery",
-    "petroleum",
-}
-
 
 def _norm(text: str) -> str:
-    return re.sub(r"\s+", " ", str(text or "")).strip().lower()
-
-
-def _hits(text: str, terms: set[str]) -> int:
-    t = _norm(text)
-    return sum(1 for term in terms if term in t)
-
+    return re.sub(r"\s+", " ", str(text or "").replace("_", " ")).strip().lower()
 
 
 def _safe_float(value: object, fallback: float) -> float:
@@ -59,30 +19,9 @@ def _safe_float(value: object, fallback: float) -> float:
         return float(fallback)
 
 def classify_domain_bucket(title: str, summary: str, themes: str) -> tuple[str, float]:
-    blob = _norm(f"{title} {summary} {themes}")
-    if not blob:
-        return "other_energy", 0.4
-
-    offshore_hits = _hits(blob, OFFSHORE_TERMS)
-    adjacent_hits = _hits(blob, ADJACENT_TERMS)
-    other_hits = _hits(blob, OTHER_ENERGY_TERMS)
-
-    if offshore_hits >= 2:
-        return "offshore_wind", 0.92
-    if offshore_hits >= 1 and other_hits == 0:
-        return "offshore_wind", 0.84
-    if other_hits >= 2 and offshore_hits == 0:
-        return "other_energy", 0.9
-    if adjacent_hits >= 1 and offshore_hits == 0:
-        return "adjacent_energy", 0.78
-
-    if offshore_hits > 0:
-        return "offshore_wind", 0.68
-    if adjacent_hits > 0:
-        return "adjacent_energy", 0.66
-    if other_hits > 0:
-        return "other_energy", 0.66
-    return "other_energy", 0.52
+    """Offshore wind first, then related areas (grid, power market, maritime...), then other energy."""
+    focus = classify_focus(_norm(f"{title} {summary} {themes}"))
+    return focus.bucket, focus.confidence
 
 
 def classify_domain_with_ai_fallback(title: str, summary: str, themes: str) -> tuple[str, float]:

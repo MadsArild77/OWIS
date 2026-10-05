@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -38,6 +39,11 @@ def on_startup() -> None:
         if not destination.exists():backup(destination)
         prune_startup_backups(destination.parent)
     init_db()
+    try:
+        from owis.modules.news.processing.rescore import rescore_existing
+        rescore_existing()
+    except Exception:
+        logging.getLogger(__name__).exception('Rescoring stored news failed; keeping existing scores.')
     from owis.modules.news.processing.morning import start_scheduler
     app.state.morning_stop = start_scheduler()
 

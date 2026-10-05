@@ -27,6 +27,7 @@ from owis.modules.news.matching.service import (
 )
 from owis.modules.news.processing.domain_classifier import classify_domain_with_ai_fallback
 from owis.modules.news.processing.pipeline import process_raw_item
+from owis.modules.news.processing.signal import score_signal
 from owis.modules.news.registry.source_discovery import (
     dedupe_sources,
     delete_source,
@@ -50,7 +51,9 @@ _CLUSTER_STOPWORDS = {
     "in", "into", "is", "it", "its", "new", "of", "on", "or", "the",
     "to", "with", "offshore", "wind", "project", "projects",
 }
-VALID_DOMAIN_BUCKETS = {"offshore_wind", "adjacent_energy", "other_energy", "all"}
+# "core" is offshore wind plus related areas (grid, power market, maritime, policy); the default reading view.
+VALID_DOMAIN_BUCKETS = {"offshore_wind", "adjacent_energy", "other_energy", "core", "all"}
+CORE_BUCKETS = {"offshore_wind", "adjacent_energy"}
 
 
 class ImportSourcesRequest(BaseModel):
@@ -443,6 +446,8 @@ def _attach_metadata(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def _filter_domain(items: list[dict[str, Any]], domain_bucket: str) -> list[dict[str, Any]]:
     if domain_bucket == "all":
         return items
+    if domain_bucket == "core":
+        return [x for x in items if str(x.get("domain_bucket") or "other_energy") in CORE_BUCKETS]
     return [x for x in items if str(x.get("domain_bucket") or "other_energy") == domain_bucket]
 
 
@@ -629,7 +634,7 @@ def _build_collections(
                 "is_manual_override": bool(override),
                 "interest_topics": item.get("interest_topics", []),
                 "editorial": item.get("editorial", {}),
-                "content_basis": {"relevance": (item.get("content_basis") or {}).get("relevance")},
+                "content_basis": {key: (item.get("content_basis") or {}).get(key) for key in ("relevance", "access", "basis")},
             }
         )
 
@@ -645,6 +650,11 @@ def _build_collections(
         top_geos = sorted(group["geographies"].items(), key=lambda x: x[1], reverse=True)
         avg_score = round(group["signal_score_sum"] / max(group["article_count"], 1), 1)
         lead_item = group["lead_item"] or {}
+        buckets = {str(row.get("domain_bucket") or "other_energy") for row in group["items"]}
+        focus_bucket = next((b for b in ("offshore_wind", "adjacent_energy") if b in buckets), "other_energy")
+        _, _, reasons = score_signal(str(lead_item.get("title") or ""), str(lead_item.get("cleaned_text") or ""),
+                                     _split_csv(lead_item.get("geography_tags")), _split_csv(lead_item.get("actors")),
+                                     str(lead_item.get("source_name") or ""), lead_item.get("content_basis"))
         stored_master = masters.get(str(group["collection_key"]) or "")
         master_theme_tags = _split_csv(stored_master.get("theme_tags")) if stored_master else []
         master_geo_tags = _split_csv(stored_master.get("geography_tags")) if stored_master else []
@@ -658,6 +668,8 @@ def _build_collections(
                 "article_count": group["article_count"],
                 "top_signal_score": group["top_signal_score"],
                 "avg_signal_score": avg_score,
+                "domain_bucket": focus_bucket,
+                "signal_reasons": reasons,
                 "latest_published_at": group["latest_published_at"],
                 "primary_theme": top_themes[0][0] if top_themes else "general_news",
                 "primary_geography": top_geos[0][0] if top_geos else "Global",
