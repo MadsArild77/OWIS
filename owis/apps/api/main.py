@@ -4,12 +4,14 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
+from owis.apps.api.access import require_login, warn_if_open
 from owis.core.storage.db import init_db
 from owis.modules.news.presentation.api import router as news_router
 from owis.core.sources.api import router as source_config_router
 from owis.modules.opportunities.presentation.api import router as opportunities_router
 
 app = FastAPI(title="Offshore Wind Intelligence API", version="0.1.0")
+app.middleware("http")(require_login)
 app.include_router(news_router)
 app.include_router(source_config_router)
 app.include_router(opportunities_router)
@@ -24,7 +26,8 @@ def on_startup() -> None:
     import os
     from datetime import datetime, timezone
     from owis.core.storage import db
-    from owis.scripts.backup_database import backup
+    from owis.scripts.backup_database import backup, prune_startup_backups
+    warn_if_open()
     database=Path(db.DB_PATH).resolve()
     if os.getenv('RAILWAY_ENVIRONMENT_ID'):
         mount=os.getenv('RAILWAY_VOLUME_MOUNT_PATH')
@@ -33,6 +36,7 @@ def on_startup() -> None:
     if database.exists() and database.stat().st_size:
         destination=database.parent/'backups'/f"startup-{datetime.now(timezone.utc):%Y-%m-%d}.db"
         if not destination.exists():backup(destination)
+        prune_startup_backups(destination.parent)
     init_db()
     from owis.modules.news.processing.morning import start_scheduler
     app.state.morning_stop = start_scheduler()

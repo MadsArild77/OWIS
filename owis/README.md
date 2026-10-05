@@ -117,27 +117,28 @@ In `/news`, paste one source per line, for example:
 
 Importer tries RSS autodiscovery first; if no feed is found, source is added as `scrape`.
 
-## Deploy on the web (Render)
+## Access protection
 
-1. Go to [Render Dashboard](https://dashboard.render.com) and click **New +** -> **Blueprint**.
-2. Connect your GitHub repo `MadsArild77/OWIS`.
-3. Render will detect `render.yaml` automatically.
-4. Click **Apply** to deploy.
-5. When deployment is done, open the public URL from the Render service.
+Set `OWI_ACCESS_PASSWORD` to require a login on every page and API route.
+The browser asks for a username and password; the username is `owis` unless
+`OWI_ACCESS_USER` is set. `/health` stays open for the Railway health check.
+Without `OWI_ACCESS_PASSWORD` the app is open to anyone with the URL, and a
+warning is logged on Railway at startup.
 
-Default public routes:
+## Deploy on Railway
 
-- `/news` (frontend)
-- `/opportunities` (frontend)
-- `/health`
+Railway builds the `Dockerfile` and uses `railway.json` (start command and
+`/health` check). OWIS needs a persistent volume that contains `OWI_DB_PATH`
+(the Dockerfile default is `/data/owi.db`); startup is refused on Railway without it.
 
-Optional after deploy:
+Recommended variables in each Railway environment:
 
-- Add `OPENAI_API_KEY` in Render environment variables.
-- Set `OWI_AI_ENABLED=true` to turn on AI enrichment.
+- `OWI_ACCESS_PASSWORD` (and optionally `OWI_ACCESS_USER`)
+- `OPENAI_API_KEY` and `OWI_AI_ENABLED=true` to turn on AI enrichment
+- `OWI_MORNING_REPORT_ENABLED=true` for the 06:00 Europe/Oslo run
 
-Note: free-tier disk is ephemeral, so SQLite/source-file changes can reset on restart.
+Routes: `/news`, `/opportunities` and `/health`.
 
-## Railway note
-
-Railway deploy uses Dockerfile to ensure Python/pip are always available in build/runtime.
+At startup the app copies the database to `backups/startup-YYYY-MM-DD.db` next
+to the database and keeps the 14 newest copies. These copies live on the same
+volume, so they do not protect against losing the volume itself.

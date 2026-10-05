@@ -1,6 +1,6 @@
 # OWIS – dokumentasjon og beslutninger
 
-Felles inngang til prosjektets dokumentasjon. Oppdatert 4. oktober 2026.
+Felles inngang til prosjektets dokumentasjon. Oppdatert 5. oktober 2026.
 Dokumentene lagres og versjoneres sammen med koden i Git.
 
 ## Start her
