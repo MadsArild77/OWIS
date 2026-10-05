@@ -1,0 +1,138 @@
+/* Shared OWIS theme: colour tokens for light and dark mode, base typography and the theme switch.
+   Light is the default; dark follows the system setting unless the viewer picks a theme (data-theme on <html>). */
+:root {
+  color-scheme: light;
+  --page: #f4f6f9;
+  --surface: #ffffff;
+  --surface-2: #f1f4f8;
+  --ink: #15202d;
+  --muted: #4b5a6b;
+  --line: #d6dee8;
+  --line-strong: #b9c6d4;
+  --brand: #0a649a;
+  --brand-hover: #084f7a;
+  --brand-ink: #ffffff;
+  --accent: #0f6f67;
+  --ok: #0f6f67;
+  --warn: #9a5800;
+  --danger: #b42318;
+  --danger-bg: #fdeceb;
+  --tag-bg: #e5f0f8;
+  --tag-ink: #0b4a70;
+  --tag-actor-bg: #e2f3f0;
+  --tag-actor-ink: #0d5751;
+  --tag-plain-bg: #eef1f5;
+  --tag-plain-ink: #3a4858;
+  --active-bg: #dbeaf6;
+  --active-ink: #0b3f60;
+  --active-line: #7fb2d6;
+  --secondary-bg: #e9eef4;
+  --secondary-ink: #15202d;
+  --overlay: rgba(15, 23, 42, 0.45);
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 6px 18px rgba(15, 23, 42, 0.05);
+  --shadow-strong: 0 18px 48px rgba(15, 23, 42, 0.22);
+  --font: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0c1520;
+    --surface: #13202e;
+    --surface-2: #1a2938;
+    --ink: #e9eff6;
+    --muted: #a8b7c7;
+    --line: #2b3b4e;
+    --line-strong: #3d5168;
+    --brand: #6cc3ef;
+    --brand-hover: #94d4f4;
+    --brand-ink: #06121d;
+    --accent: #5fd6c6;
+    --ok: #5fd6c6;
+    --warn: #f5c04e;
+    --danger: #f58c84;
+    --danger-bg: #3a1d1f;
+    --tag-bg: #17344c;
+    --tag-ink: #c3e4f7;
+    --tag-actor-bg: #133b37;
+    --tag-actor-ink: #b0eee5;
+    --tag-plain-bg: #223243;
+    --tag-plain-ink: #d4dee9;
+    --active-bg: #1c3c58;
+    --active-ink: #ffffff;
+    --active-line: #4fa3d3;
+    --secondary-bg: #233446;
+    --secondary-ink: #e9eff6;
+    --overlay: rgba(2, 6, 12, 0.7);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-strong: 0 18px 48px rgba(0, 0, 0, 0.5);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0c1520;
+  --surface: #13202e;
+  --surface-2: #1a2938;
+  --ink: #e9eff6;
+  --muted: #a8b7c7;
+  --line: #2b3b4e;
+  --line-strong: #3d5168;
+  --brand: #6cc3ef;
+  --brand-hover: #94d4f4;
+  --brand-ink: #06121d;
+  --accent: #5fd6c6;
+  --ok: #5fd6c6;
+  --warn: #f5c04e;
+  --danger: #f58c84;
+  --danger-bg: #3a1d1f;
+  --tag-bg: #17344c;
+  --tag-ink: #c3e4f7;
+  --tag-actor-bg: #133b37;
+  --tag-actor-ink: #b0eee5;
+  --tag-plain-bg: #223243;
+  --tag-plain-ink: #d4dee9;
+  --active-bg: #1c3c58;
+  --active-ink: #ffffff;
+  --active-line: #4fa3d3;
+  --secondary-bg: #233446;
+  --secondary-ink: #e9eff6;
+  --overlay: rgba(2, 6, 12, 0.7);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-strong: 0 18px 48px rgba(0, 0, 0, 0.5);
+}
+
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+h1, h2, h3, h4 { line-height: 1.3; }
+a { color: var(--brand); }
+a:hover { color: var(--brand-hover); }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+.theme-toggle {
+  margin: 0;
+  padding: 6px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: none;
+}
+.theme-toggle:hover { border-color: var(--brand); color: var(--brand); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
