@@ -251,3 +251,9 @@ def test_brief_keeps_only_known_story_ids(monkeypatch):
     assert brief['key_developments'] == [{'headline': 'Award', 'what_happened': 'x', 'why_it_matters': 'y', 'story_ids': [1]}]
     assert brief['policy'] == [] and brief['watch'] == ['Auction']
     assert morning.write_brief([]) is None
+    monkeypatch.setattr(morning.AIClient, '_post_json_prompt', lambda *a, **k: {
+        'headline': 'Odd shape', 'key_developments': 'text', 'watch': 3})
+    assert morning.write_brief(stories)['key_developments'] == []
+    monkeypatch.setattr(morning.AIClient, '_post_json_prompt', lambda *a, **k: {
+        'headline': 'Odd ids', 'key_developments': [{'headline': 'A', 'story_ids': 1}]})
+    assert morning.write_brief(stories)['key_developments'][0]['story_ids'] == []

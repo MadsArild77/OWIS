@@ -225,10 +225,12 @@ def write_brief(stories, events=()):
 
     def lines(value):
         return [text(v) for v in value if text(v)][:4] if isinstance(value, list) else []
+    def items(value):
+        return value if isinstance(value, list) else []  # the model may return any JSON shape
     developments = []
-    for item in data.get('key_developments') or []:
+    for item in items(data.get('key_developments')):
         if isinstance(item, dict) and text(item.get('headline')):
-            ids = [i for i in item.get('story_ids') or [] if isinstance(i, int) and i in known]
+            ids = [i for i in items(item.get('story_ids')) if isinstance(i, int) and i in known]
             developments.append({'headline': text(item['headline']), 'what_happened': text(item.get('what_happened')),
                                  'why_it_matters': text(item.get('why_it_matters')), 'story_ids': ids})
     return {'headline': text(data['headline']), 'overview': text(data.get('overview')),
