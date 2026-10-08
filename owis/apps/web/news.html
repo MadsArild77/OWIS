@@ -73,6 +73,15 @@
     .search svg { position: absolute; left: 11px; top: 50%; width: 17px; height: 17px; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
     .search input { padding-left: 36px; padding-right: 40px; border-radius: 10px; background: var(--surface); }
     .search kbd { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+    .quick-fetch { display: flex; align-items: center; gap: 10px; flex: none; }
+    .quick-fetch .muted { font-size: 0.85rem; max-width: 220px; }
+    .quick-fetch .muted:empty { display: none; }
+    .research-panel.brief { border-left: 4px solid var(--brand); }
+    .brief-headline { font-size: 1.2rem; font-weight: 700; margin: 4px 0 10px; }
+    .brief ol { padding-left: 1.3em; margin: 8px 0; }
+    .brief ol li { margin: 0 0 12px; }
+    .brief ol li p { margin: 2px 0; }
+    .brief .brief-sources { font-size: 0.85rem; color: var(--muted); }
     .content { max-width: 1080px; padding: 22px 32px 64px; }
 
     /* ---------- Controls ---------- */
@@ -505,6 +514,10 @@
           <input id="storySearch" type="search" placeholder="Search stories, companies, places" aria-label="Search stories" autocomplete="off" />
           <kbd aria-hidden="true">/</kbd>
         </label>
+        <div class="quick-fetch">
+          <button id="quickFetchBtn" type="button" title="Fetch and process articles published since the last fetch">Fetch news</button>
+          <span id="quickFetchStatus" class="muted" role="status" aria-live="polite"></span>
+        </div>
       </header>
 
       <div class="content">
@@ -875,8 +888,11 @@
       if (percent) percent.textContent = `${Math.round(runProgressCurrent)}%`;
     }
 
+    let quickFetchActive = false;
+
     function applyJobProgress(job) {
       if (!job) return;
+      if (quickFetchActive && job.status === 'running') document.getElementById('quickFetchStatus').textContent = `${Math.round(job.percent || 0)}% · ${job.step || 'Working…'}`;
       const root = document.getElementById('runProgress');
       const title = document.getElementById('runProgressTitle');
       const step = document.getElementById('runProgressStep');
@@ -1426,21 +1442,55 @@
         + policySection('On the radar · date not confirmed', report.watchlist, region) + coverageHtml(report);
     }
 
+    function osloTime(value) {
+      return escapeHtml(new Date(value).toLocaleString('en-GB', {timeZone:'Europe/Oslo', dateStyle:'short', timeStyle:'short'}));
+    }
+
+    function briefHtml(brief, stories) {
+      const byId = new Map();
+      for (const story of stories || []) for (const source of story.sources) byId.set(source.id, story);
+      const sourcesFor = ids => {
+        const seen = new Set();
+        return ids.map(id => byId.get(id)).filter(Boolean).flatMap(story => story.sources)
+          .filter(source => !seen.has(source.article_url) && seen.add(source.article_url))
+          .map(source => reportSourceLink(source.article_url, source.source_name)).join(' · ');
+      };
+      const list = (title, rows) => rows && rows.length ? `<h4>${title}</h4><ul>${rows.map(row => `<li>${escapeHtml(row)}</li>`).join('')}</ul>` : '';
+      return `<article class="research-panel brief">
+        <p class="brief-headline">${escapeHtml(brief.headline)}</p>
+        ${brief.overview ? `<p>${escapeHtml(brief.overview)}</p>` : ''}
+        ${brief.key_developments.length ? `<h4>Key developments</h4><ol>${brief.key_developments.map(item => `<li>
+          <strong>${escapeHtml(item.headline)}</strong>
+          ${item.what_happened ? `<p>${escapeHtml(item.what_happened)}</p>` : ''}
+          ${item.why_it_matters ? `<p><em>Why it matters:</em> ${escapeHtml(readableText(item.why_it_matters))}</p>` : ''}
+          ${item.story_ids.length ? `<p class="brief-sources">${sourcesFor(item.story_ids)}</p>` : ''}
+        </li>`).join('')}</ol>` : ''}
+        ${list('Policy & regulation', brief.policy)}${list('Watch next', brief.watch)}
+        <p class="muted">${brief.ai ? 'AI-written summary of the collected stories; check the sources before acting.' : 'AI is not enabled: showing the highest-ranked stories without a written summary.'}</p>
+      </article>`;
+    }
+
+    function storyList(stories, title) {
+      if (!stories || !stories.length) return '';
+      return `<details><summary>${escapeHtml(title)}</summary>${stories.map(item => `<article class="research-panel"><h4>${escapeHtml(item.title)}</h4><p>${escapeHtml(item.summary)}</p><p><strong>Why it matters · analysis:</strong> ${escapeHtml(readableText(item.why_it_matters))}</p><p>${item.sources.map(source => reportSourceLink(source.article_url, source.source_name)).join(' · ')}</p></article>`).join('')}</details>`;
+    }
+
     function renderMorning(state) {
       displayedMorningReport = state.result;
       const status = state.status === 'running' ? 'Collecting news and checking official policy sources. You can return later.' : state.error || (state.result ? 'Saved report ready.' : 'No morning report yet.');
       document.getElementById('morningStatus').textContent = status;
       document.getElementById('morningSchedule').textContent = state.schedule.enabled
-        ? 'Automatic run: 06:00 Europe/Oslo. OWIS must be running; a later startup catches up for today.'
+        ? 'Automatic run: 06:00 Europe/Oslo, after fetching news since the last fetch. OWIS must be running; a later startup catches up for today.'
         : 'Automatic 06:00 run is not enabled on this server. Reports can be generated here.';
       document.querySelector('[data-copy-morning]').disabled = !state.result;
       const report = state.result;
       const root = document.getElementById('morningBody');
       if (!report) { root.innerHTML = ''; return; }
-      root.innerHTML = `<p class="muted">${escapeHtml(report.report_date)} · Window ${escapeHtml(new Date(report.window_start).toLocaleString('en-GB', {timeZone:'Europe/Oslo'}))} – ${escapeHtml(new Date(report.window_end).toLocaleString('en-GB', {timeZone:'Europe/Oslo'}))} (Oslo).</p>
+      root.innerHTML = `<p class="muted">${escapeHtml(report.report_date)} · Window ${osloTime(report.window_start)} – ${osloTime(report.window_end)} (Oslo).</p>
         ${state.status !== 'completed' ? '<p>Showing the previous saved result while the new attempt is running or failed.</p>' : ''}
-        <h3>Last 24 hours</h3><p class="muted">${report.news_total} stories in the publication-time window. Showing up to 30, ranked by relevance; manually merged stories are grouped.</p>
-        ${report.news.length ? report.news.map(item => `<article class="research-panel"><h4>${escapeHtml(item.title)}</h4><p>${escapeHtml(item.summary)}</p><p><strong>Why it matters · analysis:</strong> ${escapeHtml(readableText(item.why_it_matters))}</p><p>${item.sources.map(source => reportSourceLink(source.article_url, source.source_name)).join(' · ')}</p></article>`).join('') : '<p>No collected stories with a confirmed publication timestamp in this window.</p>'}`
+        <h3>Summary</h3>
+        ${report.brief ? briefHtml(report.brief, report.news) : report.news.length ? '<p class="muted">This report was saved before written summaries were added.</p>' : '<p>No collected stories with a confirmed publication timestamp in this window.</p>'}
+        ${storyList(report.news, `All stories from the last 24 hours (${report.news.length} of ${report.news_total}, ranked by relevance)`)}`
         + policySection('Today · policy & regulation', report.today)
         + policySection('Next 90 days · policy & regulation', report.upcoming)
         + policySection('On the radar · date not confirmed', report.watchlist) + coverageHtml(report);
@@ -1484,7 +1534,16 @@
     }
 
     function morningCopyText(report) {
-      const lines = [`OWIS morning report · ${report.report_date}`, `Window: ${report.window_start} to ${report.window_end}`, '', 'LAST 24 HOURS'];
+      const lines = [`OWIS morning report · ${report.report_date}`, `Window: ${report.window_start} to ${report.window_end}`];
+      const briefText = (title, brief) => {
+        if (!brief) return;
+        lines.push('', title, brief.headline, brief.overview);
+        brief.key_developments.forEach((item, index) => lines.push('', `${index + 1}. ${item.headline}`, item.what_happened, `Why it matters: ${item.why_it_matters}`));
+        if (brief.policy.length) lines.push('', 'Policy & regulation:', ...brief.policy.map(row => `- ${row}`));
+        if (brief.watch.length) lines.push('', 'Watch next:', ...brief.watch.map(row => `- ${row}`));
+      };
+      briefText('SUMMARY', report.brief);
+      lines.push('', 'LAST 24 HOURS');
       for (const item of report.news) lines.push('', item.title, item.summary, `Analysis: ${item.why_it_matters}`, ...item.sources.map(source => `${source.source_name}: ${source.article_url}`));
       for (const [title, key] of [['TODAY','today'],['NEXT 90 DAYS','upcoming'],['ON THE RADAR — DATE NOT CONFIRMED','watchlist']]) {
         lines.push('', title);
@@ -2866,14 +2925,19 @@
       }
     }
 
-    async function runPipeline() {
+    // quick: the header button fetches only what is new since the last fetch, with a short status next to it.
+    async function runPipeline(quick = false) {
       const daysInput = Number(document.getElementById('fetchDaysBack')?.value || 7);
-      const days_back = Number.isFinite(daysInput) ? Math.max(1, Math.min(90, Math.trunc(daysInput))) : 7;
-      const since_last = (document.getElementById('fetchSinceLast')?.value || 'false') === 'true';
+      const days_back = quick ? 2 : Number.isFinite(daysInput) ? Math.max(1, Math.min(90, Math.trunc(daysInput))) : 7;
+      const since_last = quick || (document.getElementById('fetchSinceLast')?.value || 'false') === 'true';
+      const quickStatus = document.getElementById('quickFetchStatus');
+      quickFetchActive = quick;
 
       setButtonBusy('runPipelineBtn', true, 'Running fetch + processing...');
+      setButtonBusy('quickFetchBtn', true, 'Fetching…');
+      quickStatus.textContent = quick ? 'Starting…' : '';
       startRunProgress(days_back, since_last);
-      setStatus(`Running fetch + processing (days_back=${days_back}, since_last=${since_last}) ...`);
+      if (!quick) setStatus(`Running fetch + processing (days_back=${days_back}, since_last=${since_last}) ...`);
       try {
         setRunProgressStep('Contacting backend and preparing fetch pipeline...', 18);
         const result = await startBackendJob('fetch_process', { days_back, since_last }, {
@@ -2899,7 +2963,10 @@
           msg += ` | sources => ${summary}`;
         }
 
-        setStatus(msg, (result.fetched_candidates || 0) === 0);
+        if (quick) {
+          const fresh = result.processed_new_items || 0;
+          quickStatus.textContent = `${fresh} new ${fresh === 1 ? 'article' : 'articles'}${result.processing_errors ? ` · ${result.processing_errors} errors` : ''}`;
+        } else setStatus(msg, (result.fetched_candidates || 0) === 0);
         await refreshSignals();
         setRunProgressStep('Signals refreshed. Updating collections...', 88);
         await refreshCollections();
@@ -2911,9 +2978,12 @@
       } catch (err) {
         console.error(err);
         stopRunProgress(false, 'Run failed before the pipeline returned a complete result.', 'Fetch + processing failed');
-        setStatus('Fetch + processing failed: ' + (err?.message || 'Unknown error'), true);
+        if (quick) quickStatus.textContent = 'Fetch failed: ' + (err?.message || 'Unknown error');
+        else setStatus('Fetch + processing failed: ' + (err?.message || 'Unknown error'), true);
       } finally {
+        quickFetchActive = false;
         setButtonBusy('runPipelineBtn', false);
+        setButtonBusy('quickFetchBtn', false);
       }
     }
 
@@ -2923,7 +2993,8 @@
       document.getElementById('dedupeBtn').addEventListener('click', dedupeSources);
       document.getElementById('rediscoverBtn').addEventListener('click', rediscoverRSS);
       document.getElementById('healthBtn').addEventListener('click', sourceHealth);
-      document.getElementById('runPipelineBtn').addEventListener('click', runPipeline);
+      document.getElementById('runPipelineBtn').addEventListener('click', () => runPipeline(false));
+      document.getElementById('quickFetchBtn').addEventListener('click', () => runPipeline(true));
       document.getElementById('checkAiBtn').addEventListener('click', async () => {
         setButtonBusy('checkAiBtn', true, 'Checking AI...');
         try {

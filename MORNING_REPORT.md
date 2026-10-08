@@ -10,7 +10,11 @@ med kilder. Politikkfanen bruker nyeste rapport og har regionfilter.
 
 Rapporten inneholder:
 
-- Siste 24 timer: publiseringstidspunkt i intervallet `[start − 24 timer, start)`.
+- Sammendrag øverst: én hovedoverskrift, et kort overblikk, de viktigste
+  utviklingene (hva skjedde, hvorfor det betyr noe, kilder), politikk og hva man
+  bør følge med på. Skrives av AI ut fra de innsamlede sakene; uten AI vises de
+  høyest rangerte sakene uten skrevet sammendrag.
+- Siste 24 timer (sammenfoldet liste): publiseringstidspunkt i intervallet `[start − 24 timer, start)`.
   Artikler uten tidssone eller med bare en dato utelates med synlig dekningstall.
   Inntil 30 saker vises, rangert etter eksisterende relevansscore. Manuelle
   sammenslåinger grupperes; full automatisk hendelsesdeduplisering er ikke innført.
@@ -37,6 +41,11 @@ Den innebygde bakgrunnstråden sjekker hvert minutt og starter én rapport per d
 kl. 06:00 **Europe/Oslo**, med automatisk sommer-/vintertid. Ved oppstart senere
 samme dag kjøres dagens rapport. Tidligere tapte dager etterfylles ikke.
 Rapporten blir tilgjengelig etter at innhenting og analyse er ferdig.
+
+Rapporten henter bare artikler publisert etter nyeste lagrede artikkel
+(«siden sist») og oppsummerer deretter hele døgnet fra databasen. Den vanlige
+nyhetsinnhentingen kjører «siden sist» kl. 08, 12, 15, 18 og 21 (`OWI_FETCH_HOURS`)
+og oppdaterer nyhetsstrømmen, ikke rapporten.
 
 En databasebasert reservasjon hindrer samtidige kjøringer for samme dato på tvers
 av prosesser. En reservasjon regnes som avbrutt etter to timer. Feilede kjøringer
