@@ -127,8 +127,8 @@ warning is logged on Railway at startup.
 
 ## Automatic collection, matching and coverage search
 
-- `OWI_SCHEDULED_FETCH_ENABLED=true` (default): fetch every `OWI_FETCH_INTERVAL_HOURS` (3) hours between
-  `OWI_FETCH_FIRST_HOUR` (7) and `OWI_FETCH_LAST_HOUR` (22), Europe/Oslo. Set `false` to fetch only manually.
+- `OWI_SCHEDULED_FETCH_ENABLED=true` (default): fetch news published since the last fetch at the hours in
+  `OWI_FETCH_HOURS` (`8,12,15,18,21`), Europe/Oslo. Set `false` to fetch only manually.
 - After each fetch: event cards (`OWI_EVENT_CARDS_PER_RUN`, 150), story matching (`OWI_MATCH_MAX_PAIRS`, 300;
   auto-merge at `OWI_MATCH_AUTO_MERGE_CONFIDENCE`, 0.85), coverage search for important single-source stories
   (`OWI_GAP_SEARCHES_PER_RUN`, 5; `OWI_GAP_SEARCHES_PER_DAY`, 25; needs `TAVILY_API_KEY` or `BRAVE_SEARCH_API_KEY`)

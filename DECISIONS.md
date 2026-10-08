@@ -241,3 +241,17 @@ begrenset til 25 per dag for hullfylling.
 Legg til neste D-nummer med dato, vedtatt/forslag/erstattet, selve valget,
 begrunnelse, implementeringsstatus og kilde/PR. Ved omvalg beholdes den gamle
 beslutningen med lenke til den nye.
+
+## D18 – Morgenrapport som sammendrag, og innhenting på faste klokkeslett
+
+**Vedtatt og implementert 9. oktober 2026. Erstatter intervallinnhentingen i D16.**
+- **Rapport, ikke liste:** morgenrapporten åpner med et AI-skrevet sammendrag
+  (hovedoverskrift, overblikk, de viktigste utviklingene med kilder, politikk,
+  hva man bør følge). Den fulle sakslisten er sammenfoldet under. Ett ekstra
+  AI-kall per rapport.
+- **Rapport kl. 06, nyheter ellers:** rapporten lages én gang, kl. 06. Kl. 08, 12,
+  15, 18 og 21 hentes bare nyheter; rapporten oppdateres ikke.
+- **«Siden sist» i alle planlagte kjøringer:** både rapporten og de faste
+  innhentingene henter bare artikler nyere enn siste lagrede.
+- **Fetch-knapp i toppfeltet** på alle sider, med «siden sist». Full kontroll
+  (dager tilbake osv.) ligger fortsatt i Settings.

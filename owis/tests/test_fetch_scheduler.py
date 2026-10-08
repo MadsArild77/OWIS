@@ -17,12 +17,21 @@ def jobs(tmp_path, monkeypatch):
     return created
 
 
-def test_fetches_every_interval_during_the_day(jobs):
-    morning = datetime(2026, 10, 6, 6, 0, tzinfo=timezone.utc)      # 08:00 in Oslo
-    assert scheduler.tick(morning)
-    assert not scheduler.tick(morning.replace(hour=7))              # within three hours: already claimed
-    assert scheduler.tick(morning.replace(hour=9))
-    assert jobs == [("fetch_process", {"days_back": 2, "since_last": False})] * 2
+def test_fetches_since_last_at_fixed_hours(jobs):
+    day = datetime(2026, 10, 6, tzinfo=timezone.utc)                # Oslo is UTC+2
+    assert not scheduler.tick(day.replace(hour=5, minute=59))       # 07:59: no slot yet
+    assert scheduler.tick(day.replace(hour=6))                      # 08:00
+    assert not scheduler.tick(day.replace(hour=7))                  # 09:00: 08 slot already taken
+    assert scheduler.tick(day.replace(hour=10, minute=30))          # 12:30
+    assert not scheduler.tick(day.replace(hour=11))
+    assert jobs == [("fetch_process", {"days_back": 2, "since_last": True})] * 2
+
+
+def test_only_the_latest_missed_hour_is_caught_up(jobs, monkeypatch):
+    monkeypatch.setenv("OWI_FETCH_HOURS", "8,12,15")
+    assert scheduler.tick(datetime(2026, 10, 6, 14, tzinfo=timezone.utc))   # 16:00, server was down since morning
+    assert not scheduler.tick(datetime(2026, 10, 6, 14, 1, tzinfo=timezone.utc))
+    assert len(jobs) == 1
 
 
 def test_no_fetch_at_night_while_running_or_when_disabled(jobs, monkeypatch):

@@ -85,7 +85,7 @@ def test_failed_refresh_keeps_saved_report_and_old_worker_cannot_overwrite(monke
     with db.get_conn() as c:
         c.execute('INSERT INTO news_morning_reports VALUES(?,?,?,?,?,?,?)',
                   ('2026-10-02', 'running', NOW.isoformat(), None, 'new', '{"news":[]}', None))
-    monkeypatch.setattr(morning, 'refresh_news', lambda: (_ for _ in ()).throw(RuntimeError('fail')))
+    monkeypatch.setattr(morning, 'refresh_news', lambda **k: (_ for _ in ()).throw(RuntimeError('fail')))
     morning.run('2026-10-02', 'old', NOW)
     assert morning.read()['status'] == 'running'
     morning.run('2026-10-02', 'new', NOW)
@@ -202,7 +202,7 @@ def test_collect_continues_after_failure_and_rejects_external_redirect(monkeypat
 def test_api_persistence_history_and_date_validation(monkeypatch):
     from owis.apps.api.main import app
     monkeypatch.setattr(morning.EXECUTOR, 'submit', lambda fn, *args: fn(*args))
-    monkeypatch.setattr(morning, 'refresh_news', lambda: ([], ['Test coverage']))
+    monkeypatch.setattr(morning, 'refresh_news', lambda **k: ([], ['Test coverage']))
     monkeypatch.setattr(governance, 'collect', lambda today: {'events': [], 'coverage': [], 'warnings': []})
     with TestClient(app) as client:
         assert client.get('/api/news/morning-report').json()['status'] == 'not_started'
@@ -236,3 +236,24 @@ def test_blank_quote_is_not_evidence(monkeypatch):
     event = model_event()
     event['evidence_quote'] = '   '
     assert extract_event(monkeypatch, event) == ([], 1)
+
+
+def test_brief_keeps_only_known_story_ids(monkeypatch):
+    stories = [{'id': 1, 'title': 'A', 'summary': 's', 'why_it_matters': 'w', 'signal_score': 9, 'sources': [{'source_name': 'X'}]}]
+    monkeypatch.setattr(morning.AIClient, 'enabled', True, raising=False)
+    monkeypatch.setattr(morning.AIClient, '__init__', lambda self: None)
+    monkeypatch.setattr(morning.AIClient, '_post_json_prompt', lambda *a, **k: {
+        'headline': 'Big award', 'overview': 'Busy day.', 'watch': ['Auction'], 'policy': 'not a list',
+        'key_developments': [{'headline': 'Award', 'what_happened': 'x', 'why_it_matters': 'y', 'story_ids': [1, 99, '1']},
+                             {'what_happened': 'no headline'}]})
+    brief = morning.write_brief(stories)
+    assert brief['headline'] == 'Big award' and brief['ai'] is True
+    assert brief['key_developments'] == [{'headline': 'Award', 'what_happened': 'x', 'why_it_matters': 'y', 'story_ids': [1]}]
+    assert brief['policy'] == [] and brief['watch'] == ['Auction']
+    assert morning.write_brief([]) is None
+    monkeypatch.setattr(morning.AIClient, '_post_json_prompt', lambda *a, **k: {
+        'headline': 'Odd shape', 'key_developments': 'text', 'watch': 3})
+    assert morning.write_brief(stories)['key_developments'] == []
+    monkeypatch.setattr(morning.AIClient, '_post_json_prompt', lambda *a, **k: {
+        'headline': 'Odd ids', 'key_developments': [{'headline': 'A', 'story_ids': 1}]})
+    assert morning.write_brief(stories)['key_developments'][0]['story_ids'] == []
