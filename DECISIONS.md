@@ -255,3 +255,18 @@ beslutningen med lenke til den nye.
   innhentingene henter bare artikler nyere enn siste lagrede.
 - **Fetch-knapp i toppfeltet** på alle sider, med «siden sist». Full kontroll
   (dager tilbake osv.) ligger fortsatt i Settings.
+
+## D20 – Samme hendelse fra to kilder er ikke en oppfølging, og appen sover ikke
+
+**Vedtatt og implementert 10. oktober 2026. Justerer D14 og D18.**
+- **Måling 10. okt:** AI-en kalte mange åpenbare par «oppfølging» (f.eks. «RWE
+  sells stake» / «RWE confirms stake sale») med 0,90 sikkerhet, så de ble bare
+  koblet, ikke slått sammen. Terskelen 0,85 var ikke problemet.
+- **Skarpere regel:** samme handling meldt av to kilder er samme hendelse selv
+  om ordlyd, vinkel eller dag er ulik. Oppfølging krever en ny handling etter
+  den første. Gamle AI-vurderinger kjøres på nytt.
+- **Automatiske oppfølgingskoblinger vurderes på nytt** og slås sammen hvis AI-en
+  nå er sikker på samme hendelse. Koblinger du har gjort selv, røres ikke.
+- **Railway-dvale av:** appen sov når ingen brukte den, så verken innhenting
+  eller morgenrapport kjørte på faste tider (rapporten kom 09–23, 4. og 6. okt
+  ikke i det hele tatt). `sleepApplication` er nå `false` i `railway.json`.

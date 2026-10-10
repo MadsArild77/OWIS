@@ -858,6 +858,18 @@ class NewsRepository:
                                (a, b)).fetchone()
         return int(row["id"]) if row else None
 
+    def reopen_auto_update_link(self, item_a_id: int, item_b_id: int) -> bool:
+        """Undo an automatic update link so the pair can be merged; human decisions are never reopened."""
+        a, b = sorted([int(item_a_id), int(item_b_id)])
+        with get_conn() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            cursor = conn.execute("""UPDATE news_match_review_pairs SET status='pending', decided_by=NULL, decided_at=NULL
+                WHERE item_a_id=? AND item_b_id=? AND status='accepted' AND decided_by='auto' AND relationship='update'""",
+                                  (a, b))
+            if cursor.rowcount:
+                conn.execute("DELETE FROM news_story_links WHERE item_a_id=? AND item_b_id=?", (a, b))
+            return cursor.rowcount > 0
+
     def apply_match_decision(self, pair_id: int, decision: str, actor: str | None = None):
         """Apply a review once, atomically, including every existing group member."""
         from uuid import uuid4

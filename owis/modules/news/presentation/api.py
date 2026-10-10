@@ -1093,8 +1093,13 @@ def _run_match_review(payload: MatchRunRequest, job_id: str | None = None) -> di
         embeddings=embeddings,
     )
     with get_conn() as conn:
-        decided = {(r[0], r[1]) for r in conn.execute("SELECT item_a_id, item_b_id FROM news_match_review_pairs WHERE status != 'pending'")}
-    candidates = [p for p in candidates if tuple(sorted((int(p[0]["id"]), int(p[1]["id"])))) not in decided]
+        decided = {(r[0], r[1]): bool(r[2]) for r in conn.execute(
+            """SELECT item_a_id, item_b_id, status = 'accepted' AND decided_by = 'auto' AND relationship = 'update'
+               FROM news_match_review_pairs WHERE status != 'pending'""")}
+    # Automatic update links stay open to re-judging, so a same-event pair once judged as a follow-up can still merge.
+    auto_links = {pair for pair, is_auto_link in decided.items() if is_auto_link}
+    candidates = [p for p in candidates
+                  if decided.get(tuple(sorted((int(p[0]["id"]), int(p[1]["id"])))), True)]
     # Unjudged pairs first; coverage from different outlets before same-outlet pairs; then most similar.
     candidates.sort(key=lambda p: (read_cache(judgement_cache_key(p[0], p[1])) is not None,
                                    p[0].get("source_name") == p[1].get("source_name"), -p[2]))
@@ -1118,6 +1123,11 @@ def _run_match_review(payload: MatchRunRequest, job_id: str | None = None) -> di
         if judgement.get("fallback"):
             fallback_count += 1
 
+        pair_ids = tuple(sorted((int(left["id"]), int(right["id"]))))
+        if pair_ids in auto_links:
+            if not (payload.auto_apply and auto_decision(judgement, threshold) == "accept"):
+                continue
+            repo.reopen_auto_update_link(*pair_ids)
         if not should_enqueue_review(judgement):
             continue
 
