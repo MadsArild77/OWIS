@@ -46,7 +46,7 @@ samme dag kjøres dagens rapport. Tidligere tapte dager etterfylles ikke.
 Rapporten blir tilgjengelig etter at innhenting og analyse er ferdig.
 
 Rapporten henter ingenting selv. Den bruker nyhetene den vanlige innhentingen
-har lagret, «siden sist» kl. 05, 08, 12, 15, 18 og 21 (`OWI_FETCH_HOURS`).
+har lagret kl. 05, 08, 12, 15, 18 og 21 (`OWI_FETCH_HOURS`).
 Rapporten venter til en pågående innhenting er ferdig, slik at 05-hentingen er
 med. Er siste innhenting eldre enn seks timer, står det i rapporten.
 

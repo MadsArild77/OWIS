@@ -127,7 +127,7 @@ warning is logged on Railway at startup.
 
 ## Automatic collection, matching and coverage search
 
-- `OWI_SCHEDULED_FETCH_ENABLED=true` (default): fetch news published since the last fetch at the hours in
+- `OWI_SCHEDULED_FETCH_ENABLED=true` (default): fetch new articles (not seen before, by URL) at the hours in
   `OWI_FETCH_HOURS` (`5,8,12,15,18,21`; the 06:00 morning report uses what the 05 fetch stored), Europe/Oslo. Set `false` to fetch only manually.
 - After each fetch: event cards (`OWI_EVENT_CARDS_PER_RUN`, 150), story matching (`OWI_MATCH_MAX_PAIRS`, 300;
   auto-merge at `OWI_MATCH_AUTO_MERGE_CONFIDENCE`, 0.85), coverage search for important single-source stories

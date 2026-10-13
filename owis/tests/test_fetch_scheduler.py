@@ -17,14 +17,14 @@ def jobs(tmp_path, monkeypatch):
     return created
 
 
-def test_fetches_since_last_at_fixed_hours(jobs):
+def test_fetches_at_fixed_hours(jobs):
     day = datetime(2026, 10, 6, tzinfo=timezone.utc)                # Oslo is UTC+2
     assert not scheduler.tick(day.replace(hour=2, minute=59))       # 04:59: no slot yet
     assert scheduler.tick(day.replace(hour=6))                      # 08:00
     assert not scheduler.tick(day.replace(hour=7))                  # 09:00: 08 slot already taken
     assert scheduler.tick(day.replace(hour=10, minute=30))          # 12:30
     assert not scheduler.tick(day.replace(hour=11))
-    assert jobs == [("fetch_process", {"days_back": 2, "since_last": True})] * 2
+    assert jobs == [("fetch_process", {"days_back": 2})] * 2
 
 
 def test_only_the_latest_missed_hour_is_caught_up(jobs, monkeypatch):
