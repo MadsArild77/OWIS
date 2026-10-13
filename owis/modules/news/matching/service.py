@@ -106,7 +106,8 @@ def build_candidate_pairs(
 
 def judgement_cache_key(item_a, item_b):
     ordered = sorted([item_a, item_b], key=lambda item: int(item["id"]))
-    return cache_key("judgement", [(article_text(item), item.get("published_at")) for item in ordered])
+    # v2: the same action reported by two outlets is same_event, not update; older judgements are redone.
+    return cache_key("judgement-v2", [(article_text(item), item.get("published_at")) for item in ordered])
 
 
 def judge_pair(ai: AIClient, item_a: dict[str, Any], item_b: dict[str, Any], heuristic_score: float) -> dict[str, Any]:

@@ -178,3 +178,45 @@ def test_confident_same_event_is_merged_automatically(repo, monkeypatch):
     # A second run neither re-judges nor re-merges the decided pair.
     again=api._run_match_review(api.MatchRunRequest(domain_bucket="all"))
     assert again["checked_pairs"]==0 and again["auto_merged_pairs"]==0
+
+
+def _mock_match_run(api, monkeypatch, relationship):
+    monkeypatch.setattr(api,"AIClient",lambda:SimpleNamespace(enabled=True,judge_news_match=lambda **kw:dict(relationship=relationship,same_story="no",confidence=0.95,reason_short="Rejudged")))
+    monkeypatch.setattr(api,"embed_articles",lambda rows:{int(r["id"]):[1,0] for r in rows})
+    monkeypatch.setattr(api,"window_start_iso",lambda days:"2020-01-01T00:00:00Z")
+
+
+def test_auto_update_link_is_merged_when_rejudged_as_same_event(repo, monkeypatch):
+    from owis.modules.news.presentation import api
+    ids=[seed(repo,i) for i in range(2)]
+    repo.apply_match_decision(pair(repo,*ids,relation="update"),"link_update","auto")
+    _mock_match_run(api,monkeypatch,"same_event")
+    result=api._run_match_review(api.MatchRunRequest(domain_bucket="all"))
+    assert result["auto_merged_pairs"]==1
+    assert set(repo.list_collection_overrides())==set(ids) and repo.list_story_links()==[]
+
+
+def test_auto_update_link_stays_when_still_an_update(repo, monkeypatch):
+    from owis.modules.news.presentation import api
+    ids=[seed(repo,i) for i in range(2)]
+    repo.apply_match_decision(pair(repo,*ids,relation="update"),"link_update","auto")
+    _mock_match_run(api,monkeypatch,"update")
+    result=api._run_match_review(api.MatchRunRequest(domain_bucket="all"))
+    assert result["auto_merged_pairs"]==0 and result["auto_linked_pairs"]==0
+    assert len(repo.list_story_links())==1 and repo.list_collection_overrides()=={}
+
+
+def test_human_update_link_is_never_reopened(repo, monkeypatch):
+    from owis.modules.news.presentation import api
+    ids=[seed(repo,i) for i in range(2)]
+    repo.apply_match_decision(pair(repo,*ids,relation="update"),"link_update","mads")
+    _mock_match_run(api,monkeypatch,"same_event")
+    result=api._run_match_review(api.MatchRunRequest(domain_bucket="all"))
+    assert result["checked_pairs"]==0 and repo.list_collection_overrides()=={}
+
+
+def test_judge_prompt_treats_rewordings_as_same_event(monkeypatch):
+    captured={}
+    monkeypatch.setattr(AIClient,"_post_json_prompt",lambda self,**kw:captured.update(kw) or dict(relationship="same_event",confidence=0.9))
+    AIClient().judge_news_match(article(1),article(2))
+    assert "'sells stake' vs 'confirms stake sale'" in captured["system_prompt"]
