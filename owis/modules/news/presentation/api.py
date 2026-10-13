@@ -931,6 +931,14 @@ def editorial_draft(item_id: int):
     return {'body':body,'saved':True}
 
 
+@router.get('/item/{item_id}/thread')
+def article_thread(item_id: int):
+    """Other stories about the same project (from event cards), newest first."""
+    from owis.modules.news.processing.threads import thread_for
+    if not repo.get_item(item_id):raise HTTPException(404,'Article not found')
+    return thread_for(item_id)
+
+
 @router.get('/item/{item_id}/sources')
 def article_sources(item_id: int):
     found=repo.get_item(item_id)
@@ -1079,6 +1087,7 @@ def _run_match_review(payload: MatchRunRequest, job_id: str | None = None, deadl
     if job_id:
         _update_job(job_id, percent=14, step="Describing each story as an event card...")
     from owis.modules.news.processing.event_cards import attach_cards, ensure_cards
+    from owis.modules.news.processing.threads import same_action_reported_twice
     cards_made = ensure_cards(items, deadline=deadline)
     attach_cards(items)
     if job_id:
@@ -1131,6 +1140,9 @@ def _run_match_review(payload: MatchRunRequest, job_id: str | None = None, deadl
             pct = 24 + min(62, int((reviewed / total) * 62))
             _update_job(job_id, percent=pct, step=f"Reviewing match pair {reviewed + 1}/{len(candidates)}...")
         judgement = judge_pair(ai=ai, item_a=left, item_b=right, heuristic_score=heuristic_score)
+        if judgement.get("relationship") == "update" and same_action_reported_twice(left, right):
+            judgement = {**judgement, "relationship": "same_event", "same_story": "yes",
+                         "reason_short": "Same project, party and kind of event within two days. " + str(judgement.get("reason_short") or "")}
         reviewed += 1
         if judgement.get("fallback"):
             fallback_count += 1

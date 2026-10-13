@@ -1722,6 +1722,7 @@
         `Relevance score ${collection.top_signal_score ?? 'n/a'}`,
       ].join(' · ');
       showAlsoCoveredBy(collection);
+      showProjectThread(items.map(item => item.id), () => String(activeDetailCollectionKey || '') === String(collection.collection_key || ''));
       const reasons = (collection.signal_reasons || []).filter(Boolean);
       if (reasons.length) {
         document.getElementById('detailMeta').insertAdjacentHTML('beforeend',
@@ -1830,6 +1831,7 @@
         bindInlineActions(document.getElementById('detailContent'));
         mountResearch(itemId);
         mountStoryCopy(item);
+        showProjectThread([itemId], () => activeDetailItemId === itemId);
       } catch (error) {
         if (activeDetailItemId !== itemId) return;
         document.getElementById('detailContent').innerHTML = '<p class="muted">Failed to load detail for this item.</p>';
@@ -2048,6 +2050,30 @@
 
     function cleanTitle(title) {
       return String(title || 'Untitled').replace(/^\[paywalled\]\s*/i, '');
+    }
+
+    // Other stories about the same project (separate events, e.g. two stake sales), from the stored event cards.
+    async function showProjectThread(itemIds, isCurrent) {
+      const seen = new Set(itemIds.map(Number));
+      const rows = [];
+      for (const id of [...seen].slice(0, 5)) {
+        try {
+          for (const row of await getJson(`/api/news/item/${id}/thread`)) {
+            if (!seen.has(row.id) && !rows.some(r => r.title === row.title)) rows.push(row);
+          }
+        } catch (error) { /* the thread is optional */ }
+      }
+      if (!rows.length || !isCurrent()) return;
+      rows.sort((a, b) => String(b.published_at || '').localeCompare(String(a.published_at || '')));
+      const content = document.getElementById('detailContent');
+      content.insertAdjacentHTML('beforeend', `<div class="detail-why project-thread">
+        <strong>Same project</strong>
+        <ul>${rows.slice(0, 8).map(row => `<li><button type="button" class="btn-ghost" style="margin:0;padding:0;text-align:left" data-thread-item="${Number(row.id)}">${escapeHtml(cleanTitle(row.title))}</button>
+          <span class="muted"> · ${escapeHtml(row.source_name || '')} · ${escapeHtml(relativeTime(row.published_at))}</span></li>`).join('')}</ul>
+      </div>`);
+      content.querySelectorAll('[data-thread-item]').forEach(button => {
+        button.onclick = () => showItemDetails(Number(button.dataset.threadItem));
+      });
     }
 
     // Other outlets' verified coverage of the same story, found by search (not collected articles).
