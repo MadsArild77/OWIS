@@ -14,7 +14,8 @@ from datetime import datetime, timedelta, timezone
 from owis.core.storage.db import get_conn
 
 THREAD_DAYS = 90
-_GENERIC = re.compile(r"\b(offshore|onshore|wind|farm|park|project|prosjekt|vindpark|havvind|zone|area|site|phase|the)\b")
+_GENERIC = re.compile(r"\b(offshore|onshore|wind|farm|park|project|prosjekt|vindpark|havvind|zone|area|site|phase|the|"
+                      r"floating|flytende|solar|hybrid|battery|storage|portfolio|pipeline|tender|auction|round)\b")
 
 
 def project_key(name: str | None) -> str:

@@ -37,6 +37,7 @@ def card(project, companies, event_type="financing_or_deal"):
 def test_project_names_are_compared_without_generic_words():
     assert threads.project_key("Five Estuaries offshore wind farm") == threads.project_key("Five Estuaries")
     assert threads.project_key("Offshore wind project") == ""
+    assert threads.project_key("Floating") == "" and threads.project_key("solar hybrid") == ""
 
 
 def test_teaser_and_full_report_of_one_deal_are_the_same_event():
