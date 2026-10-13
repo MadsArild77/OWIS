@@ -3,7 +3,8 @@
 Priorities when the month's searches run short:
 1. research the reader starts (may use the whole quota),
 2. the morning report's policy outlook (stops at the reserve kept for research),
-3. automatic searches - open versions of paywalled stories and extra coverage - paced
+3. automatic searches - open versions of paywalled stories, page extracts for
+   sources that block OWIS, and extra coverage - paced
    evenly over the rest of the month so the quota is not spent in the first week.
 
 Counts are OWIS's own; searches made with the same key elsewhere are not seen.
@@ -17,7 +18,7 @@ from datetime import datetime, timedelta, timezone
 
 from owis.core.storage.db import get_conn
 
-AUTOMATIC = {"alternative", "coverage"}
+AUTOMATIC = {"alternative", "coverage", "extract"}
 PURPOSES = {"research", "policy", *AUTOMATIC}
 
 

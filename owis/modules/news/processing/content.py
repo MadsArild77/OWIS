@@ -108,6 +108,16 @@ def enrichment_eligible(raw):
     return bool(positive) or (score>=threshold and bool(topics_for(text))), bool(positive)
 
 
+def _thin_search_allowed():
+    """Relevant stories with only a teaser get an open-version search whatever their score:
+    a teaser scores low because it is short, so a score bar would keep them short."""
+    try:limit=max(0,int(os.getenv('OWI_OPEN_SEARCHES_PER_DAY','15')))
+    except ValueError:limit=15
+    today=datetime.now(timezone.utc).replace(hour=0,minute=0,second=0,microsecond=0).isoformat()
+    with get_conn() as c:
+        return c.execute('SELECT COUNT(*) FROM news_open_search_attempts WHERE checked_at>=?',(today,)).fetchone()[0]<limit
+
+
 def prepare(raw, refresh=False):
     from owis.modules.news.storage.evidence import save
     eligible,positive=enrichment_eligible(raw)
@@ -124,11 +134,11 @@ def prepare(raw, refresh=False):
              'unknown','feed_text' if len(feed)>=800 else 'feed_excerpt',feed)
         meta=dict(raw_id=raw['id'],relevance=decision,reason=reason,access='unknown',basis='feed_text' if len(feed)>=800 else 'feed_excerpt',text=feed,source_url=raw['article_url'],alternatives='[]',checked_at=datetime.now(timezone.utc).isoformat())
         if decision!='excluded' and (len(feed)<800 or refresh) and os.getenv('OWI_FULLTEXT_ENABLED','true').lower()=='true':
-            try:
-                access,text,url=fetch_public(raw['article_url'])
-                meta['access']=access
-                if access=='open':meta.update(text=text,source_url=url,basis='fulltext')
-            except Exception as exc:meta['reason']+=f'; Fulltekst ikke tilgjengelig ({type(exc).__name__})'
+            from owis.modules.news.processing.fulltext import fetch_fulltext
+            access,text,url=fetch_fulltext(raw.get('source_name',''),raw['article_url'],fetch_public)
+            meta['access']=access if access in {'open','restricted','blocked'} else 'unknown'
+            if access=='open':meta.update(text=text,source_url=url,basis='fulltext')
+            elif access=='error':meta['reason']+='; Fulltekst ikke tilgjengelig'
         if meta['access']=='unknown' and is_subscriber_title(raw.get('title_raw','')):meta['access']='restricted'
         save(raw['id'],raw['article_url'],raw['title_raw'],raw.get('source_name',''),meta['access'],meta['basis'],meta['text'])
     if saved and saved['basis']=='alternative_fulltext' and meta['basis']!='fulltext':
@@ -136,7 +146,9 @@ def prepare(raw, refresh=False):
     if positive:meta.update(relevance='relevant',reason='Manuelt vurdert som interessant')
     thin=len(BeautifulSoup(meta['text'],'html.parser').get_text(' ',strip=True))<800
     needs_more=meta['basis']!='alternative_fulltext' and (thin or meta['access'] in {'restricted','blocked'})
-    if eligible and meta['relevance']!='excluded' and needs_more and os.getenv('OWI_FULLTEXT_ENABLED','true').lower()=='true':
+    # Paywalled stories often arrive as a bare headline, which the relevance check can only call "uncertain".
+    thin_search=needs_more and meta['relevance'] in {'relevant','uncertain'} and _thin_search_allowed()
+    if (eligible or thin_search) and meta['relevance']!='excluded' and needs_more and os.getenv('OWI_FULLTEXT_ENABLED','true').lower()=='true':
         # Atomically reserve one search per story per week, including failed/no-result searches.
         now=datetime.now(timezone.utc)
         with get_conn() as c:

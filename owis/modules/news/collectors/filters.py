@@ -123,6 +123,11 @@ def _is_probable_article_path(url: str) -> bool:
     if any(marker in path for marker in STATIC_PATH_MARKERS) and depth <= 2 and not (has_date or has_slug or has_long_id):
         return False
 
+    # Short slugs near the root are sections and site pages ("/energy-storage/",
+    # "/privacy-policy/", "/magazine/energy-global/"); article slugs are headlines.
+    if has_slug and depth <= 2 and last.count("-") < 3 and not (has_date or has_long_id or has_article_query):
+        return False
+
     if has_date or has_slug or has_long_id or has_article_query:
         return True
 

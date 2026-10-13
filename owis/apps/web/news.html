@@ -748,6 +748,12 @@
                 <tbody id="adviceDecisions"></tbody>
               </table></div></div>
             </div>
+            <h3 class="subhead">Full text per source</h3>
+            <p class="muted" style="margin-top:0">How each source's full article text is usually had. Methods that keep failing are skipped, with one retry in ten so changes are noticed. Paywalled stories go on to a search for an open version elsewhere.</p>
+            <div class="panel" style="padding:8px 12px"><div class="table-wrap"><table class="sources-table">
+              <thead><tr><th>Source</th><th>Usually works</th><th>Direct</th><th>Via Tavily</th><th>Last result</th></tr></thead>
+              <tbody id="adviceFulltext"></tbody>
+            </table></div></div>
             <h3 class="subhead">All sources</h3>
             <p class="muted" style="margin-top:0" id="adviceWindow"></p>
             <div class="panel" style="padding:8px 12px"><div class="table-wrap"><table class="sources-table">
@@ -3238,6 +3244,14 @@
       document.getElementById('adviceWindow').textContent =
         `Last ${data.window_days} days. The ranking weight starts from the source's trade-press credibility and moves toward what it actually delivers as articles accumulate.`;
       const pct = value => `${Math.round((Number(value) || 0) * 100)} %`;
+      const strategyLabels = {direct: 'Direct', extract: 'Via Tavily', closed: 'Paywalled or blocked', learning: 'Still learning'};
+      const rate = (ok, tries) => tries ? `${ok} of ${tries}` : '–';
+      const fulltext = data.fulltext || [];
+      document.getElementById('adviceFulltext').innerHTML = fulltext.length ? fulltext.map(row => `<tr>
+          <td>${escapeHtml(row.source)}</td><td>${escapeHtml(strategyLabels[row.strategy] || row.strategy)}</td>
+          <td>${rate(row.direct_successes, row.direct_attempts)}</td><td>${rate(row.extract_successes, row.extract_attempts)}</td>
+          <td>${escapeHtml(row.extract_last_at > (row.direct_last_at || '') ? row.extract_last_result : row.direct_last_result || '')}</td></tr>`).join('')
+        : '<tr><td colspan="5" class="muted">Filled in as new articles are fetched.</td></tr>';
       const bar = value => `<span class="share-bar"><span style="width:${Math.round((Number(value) || 0) * 100)}%"></span></span>${pct(value)}`;
 
       const add = document.getElementById('adviceAdd');

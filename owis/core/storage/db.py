@@ -51,6 +51,11 @@ def init_db() -> None:
             CREATE TABLE IF NOT EXISTS news_coverage_searches (
                 raw_id INTEGER PRIMARY KEY, searched_at TEXT NOT NULL, found INTEGER NOT NULL DEFAULT 0
             );
+            CREATE TABLE IF NOT EXISTS news_fulltext_methods (
+                source_name TEXT NOT NULL, method TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0,
+                successes INTEGER NOT NULL DEFAULT 0, last_result TEXT, last_at TEXT,
+                PRIMARY KEY(source_name, method)
+            );
             CREATE TABLE IF NOT EXISTS news_event_cards (
                 processed_id INTEGER PRIMARY KEY, card_json TEXT NOT NULL, created_at TEXT NOT NULL
             );

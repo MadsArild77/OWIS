@@ -283,3 +283,21 @@ beslutningen med lenke til den nye.
 - **Railway-dvale av:** appen sov når ingen brukte den, så verken innhenting
   eller morgenrapport kjørte på faste tider (rapporten kom 09–23, 4. og 6. okt
   ikke i det hele tatt). `sleepApplication` er nå `false` i `railway.json`.
+
+## D21 – Fulltekst lært per kilde, og tidsgrense på innhenting
+
+**Vedtatt og implementert 14. oktober 2026. Bygger på måling i produksjon samme dag.**
+- **Måling:** 37 % av alle saker hadde bare ingress (30–180 tegn). Søk etter åpen
+  versjon krevde poengsum ≥ 70, men en ingress gir lav poengsum, så søket hadde
+  kjørt 2 ganger totalt. Renews, Renewables Now og Windpower Monthly sperrer
+  OWIS (Cloudflare); Recharge og Europower har betalingsmur.
+- **Fulltekst per kilde:** egen henting først, deretter Tavily Extract. Metoder
+  som stadig feiler for en kilde hoppes over, med ett nytt forsøk av ti.
+  Betalingsmurer respekteres; vi omgår ingen sperrer selv.
+- **Tynne, relevante saker** får søk etter åpen versjon uansett poengsum, inntil
+  15 per dag.
+- **AI-filteret** regner landstrøm, elektrifisering av sokkelen, CCS, hydrogen,
+  tidevann og kraftmarked som relevant. Seksjonssider fra skraping filtreres bort.
+- **Tidsgrense:** en innhenting stopper etter 10 minutter; det som ikke rekkes,
+  tas i neste kjøring. Tid per steg logges.
+

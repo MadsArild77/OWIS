@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from itertools import combinations
 import logging
+import time
 import os
 import re
 from threading import Lock
@@ -954,8 +955,9 @@ def search_budget_status():
 @router.get('/source-advisor')
 def source_advisor():
     from owis.modules.news.registry.source_advisor import advice
+    from owis.modules.news.processing.fulltext import summary
     init_db()
-    return advice()
+    return {**advice(), 'fulltext': summary()}
 
 
 @router.post('/source-advisor/decision')
@@ -1064,7 +1066,8 @@ def unmerge_collections(payload: UnmergeCollectionRequest):
         "message": "Selected items reverted to automatic grouping.",
     }
 
-def _run_match_review(payload: MatchRunRequest, job_id: str | None = None) -> dict[str, Any]:
+def _run_match_review(payload: MatchRunRequest, job_id: str | None = None, deadline: float | None = None) -> dict[str, Any]:
+    """deadline (time.monotonic) stops card making and pair review; the rest waits for the next run."""
     init_db()
     bucket = _normalize_domain_bucket(payload.domain_bucket)
     since_iso = window_start_iso(payload.days_window)
@@ -1076,7 +1079,7 @@ def _run_match_review(payload: MatchRunRequest, job_id: str | None = None) -> di
     if job_id:
         _update_job(job_id, percent=14, step="Describing each story as an event card...")
     from owis.modules.news.processing.event_cards import attach_cards, ensure_cards
-    cards_made = ensure_cards(items)
+    cards_made = ensure_cards(items, deadline=deadline)
     attach_cards(items)
     if job_id:
         _update_job(job_id, percent=20, step=f"Building candidate pairs from {len(items)} articles...")
@@ -1122,6 +1125,8 @@ def _run_match_review(payload: MatchRunRequest, job_id: str | None = None) -> di
 
     total = max(len(candidates), 1)
     for left, right, heuristic_score in candidates:
+        if deadline and time.monotonic() > deadline:
+            break
         if job_id:
             pct = 24 + min(62, int((reviewed / total) * 62))
             _update_job(job_id, percent=pct, step=f"Reviewing match pair {reviewed + 1}/{len(candidates)}...")
@@ -1167,7 +1172,7 @@ def _run_match_review(payload: MatchRunRequest, job_id: str | None = None) -> di
         raise HTTPException(status_code=502, detail="OpenAI could not assess the candidate pairs. No negative matches were recorded. Check quota and model access.")
     result = {
         "candidate_pairs": candidate_count,
-        "deferred_pairs": max(0, candidate_count - len(candidates)),
+        "deferred_pairs": max(0, candidate_count - reviewed),
         "checked_pairs": reviewed,
         "enqueued_pairs": enqueued,
         "auto_merged_pairs": auto_merged,
@@ -1182,22 +1187,22 @@ def _run_match_review(payload: MatchRunRequest, job_id: str | None = None) -> di
     return result
 
 
-def run_coverage_after_fetch() -> dict[str, Any]:
+def run_coverage_after_fetch(deadline: float | None = None) -> dict[str, Any]:
     """Search for extra coverage of important single-source stories; never breaks a fetch."""
     try:
         from owis.modules.news.processing.coverage import fill_coverage_gaps
-        return fill_coverage_gaps()
+        return fill_coverage_gaps(deadline=deadline)
     except Exception:
         logging.getLogger(__name__).exception("Coverage search failed")
         return {"skipped": "coverage search failed"}
 
 
-def run_matching_after_fetch() -> dict[str, Any]:
+def run_matching_after_fetch(deadline: float | None = None) -> dict[str, Any]:
     """Group new coverage automatically; failures never break a fetch."""
     if not AIClient().enabled:
         return {"skipped": "AI is not enabled"}
     try:
-        return _run_match_review(MatchRunRequest(days_window=14))
+        return _run_match_review(MatchRunRequest(days_window=14), deadline=deadline)
     except HTTPException as exc:
         return {"skipped": str(exc.detail)}
     except Exception:
@@ -1378,8 +1383,35 @@ def retention_summary():
     days, cutoff = _retention_cutoff()
     return {**repo.archive_summary(), "retention_days": days, "cutoff": cutoff}
 
+def _clock() -> float:
+    return time.monotonic()
+
+
+def _fetch_minutes() -> float:
+    try:
+        return max(1.0, float(os.getenv("OWI_FETCH_MAX_MINUTES", "10")))
+    except ValueError:
+        return 10.0
+
+
 def _run_fetch_process(payload: RunFetchProcessRequest, job_id: str | None = None) -> dict[str, Any]:
+    """Fetch, process, group and search coverage within OWI_FETCH_MAX_MINUTES.
+
+    Processing gets the first half of the time, grouping until 85 % and coverage
+    search the rest. Whatever is not reached waits for the next run instead of
+    keeping this one going.
+    """
     init_db()
+    started = _clock()
+    budget = _fetch_minutes() * 60
+    timings: dict[str, float] = {}
+    phase_start = started
+
+    def lap(name: str) -> None:
+        nonlocal phase_start
+        now = _clock()
+        timings[name] = round(now - phase_start, 1)
+        phase_start = now
 
     days_back = max(1, int(payload.days_back or 7))
     threshold = datetime.now(timezone.utc) - timedelta(days=days_back)
@@ -1394,6 +1426,7 @@ def _run_fetch_process(payload: RunFetchProcessRequest, job_id: str | None = Non
 
     if job_id:
         _update_job(job_id, percent=14, step="Fetching RSS sources...")
+    phase_start = _clock()
     rss_items, rss_report = fetch_rss_items_with_report()
     if job_id:
         _update_job(
@@ -1432,6 +1465,7 @@ def _run_fetch_process(payload: RunFetchProcessRequest, job_id: str | None = Non
     if job_id:
         _update_job(job_id, percent=64, step=f"Stored {inserted} new raw items. Loading processing queue...")
 
+    lap("collect")
     inserted_id_set = {int(x) for x in inserted_raw_ids}
     raws_new = repo.list_unprocessed_raw_by_ids(inserted_raw_ids)
     backlog_candidates = repo.list_unprocessed_raw(limit=200)
@@ -1445,7 +1479,11 @@ def _run_fetch_process(payload: RunFetchProcessRequest, job_id: str | None = Non
     processing_errors = 0
     processing_error_samples: list[str] = []
     total_raws = max(len(raws), 1)
-    for raw in raws:
+    deferred_items = 0
+    for index, raw in enumerate(raws):
+        if _clock() > started + budget * 0.5:
+            deferred_items = len(raws) - index  # left unprocessed; the next run picks them up
+            break
         if job_id:
             pct = 66 + min(20, int((processed / total_raws) * 20))
             _update_job(job_id, percent=pct, step=f"AI processing item {processed + processing_errors + 1}/{len(raws)}...")
@@ -1493,10 +1531,13 @@ def _run_fetch_process(payload: RunFetchProcessRequest, job_id: str | None = Non
 
     if job_id:
         _update_job(job_id, percent=92, step="Grouping coverage of the same story across sources...")
-    matching_result = run_matching_after_fetch()
+    lap("process")
+    matching_result = run_matching_after_fetch(deadline=started + budget * 0.85)
+    lap("matching")
     if job_id:
         _update_job(job_id, percent=93, step="Looking for other outlets' coverage of important single-source stories...")
-    coverage_result = run_coverage_after_fetch()
+    coverage_result = run_coverage_after_fetch(deadline=started + budget)
+    lap("coverage")
     try:
         from owis.modules.news.registry.source_advisor import refresh_learned_weights
         refresh_learned_weights()
@@ -1530,6 +1571,8 @@ def _run_fetch_process(payload: RunFetchProcessRequest, job_id: str | None = Non
         "processed_backlog_items": processed_backlog_items,
         "processing_errors": processing_errors,
         "processing_error_samples": processing_error_samples,
+        "deferred_items": deferred_items,
+        "timings_seconds": {**timings, "total": round(_clock() - started, 1)},
         "source_report": source_report,
         "source_health": health_rows,
         "collection_preview": collections,
@@ -1537,8 +1580,14 @@ def _run_fetch_process(payload: RunFetchProcessRequest, job_id: str | None = Non
         "matching": matching_result,
         "coverage": coverage_result,
     }
+    logging.getLogger(__name__).info(
+        "Fetch finished: new=%s processed=%s deferred=%s errors=%s timings=%s",
+        inserted, processed, deferred_items, processing_errors, result["timings_seconds"])
     if job_id:
-        _update_job(job_id, status="completed", percent=100, step="Fetch, processing and UI refresh completed.", result=result)
+        step = "Fetch, processing and UI refresh completed."
+        if deferred_items or (matching_result or {}).get("deferred_pairs"):
+            step = "Time limit reached; the rest continues in the next fetch."
+        _update_job(job_id, status="completed", percent=100, step=step, result=result)
     return result
 
 
