@@ -85,7 +85,7 @@ def test_failed_refresh_keeps_saved_report_and_old_worker_cannot_overwrite(monke
     with db.get_conn() as c:
         c.execute('INSERT INTO news_morning_reports VALUES(?,?,?,?,?,?,?)',
                   ('2026-10-02', 'running', NOW.isoformat(), None, 'new', '{"news":[]}', None))
-    monkeypatch.setattr(morning, 'refresh_news', lambda **k: (_ for _ in ()).throw(RuntimeError('fail')))
+    monkeypatch.setattr(morning, 'collection_state', lambda as_of: (_ for _ in ()).throw(RuntimeError('fail')))
     morning.run('2026-10-02', 'old', NOW)
     assert morning.read()['status'] == 'running'
     morning.run('2026-10-02', 'new', NOW)
@@ -202,7 +202,7 @@ def test_collect_continues_after_failure_and_rejects_external_redirect(monkeypat
 def test_api_persistence_history_and_date_validation(monkeypatch):
     from owis.apps.api.main import app
     monkeypatch.setattr(morning.EXECUTOR, 'submit', lambda fn, *args: fn(*args))
-    monkeypatch.setattr(morning, 'refresh_news', lambda **k: ([], ['Test coverage']))
+    monkeypatch.setattr(morning, 'collection_state', lambda as_of: ([], ['Test coverage']))
     monkeypatch.setattr(governance, 'collect', lambda today: {'events': [], 'coverage': [], 'warnings': []})
     with TestClient(app) as client:
         assert client.get('/api/news/morning-report').json()['status'] == 'not_started'
@@ -257,3 +257,41 @@ def test_brief_keeps_only_known_story_ids(monkeypatch):
     monkeypatch.setattr(morning.AIClient, '_post_json_prompt', lambda *a, **k: {
         'headline': 'Odd ids', 'key_developments': [{'headline': 'A', 'story_ids': 1}]})
     assert morning.write_brief(stories)['key_developments'][0]['story_ids'] == []
+
+
+def test_report_waits_for_the_morning_fetch(monkeypatch):
+    from owis.modules.news.processing import fetch_scheduler
+    monkeypatch.setenv('OWI_MORNING_REPORT_ENABLED', 'true')
+    calls = []
+    monkeypatch.setattr(morning, 'start', lambda **kw: calls.append(kw))
+    monkeypatch.setattr(fetch_scheduler, '_fetch_running', lambda: True)
+    morning.tick(NOW)
+    assert calls == []
+    monkeypatch.setattr(fetch_scheduler, '_fetch_running', lambda: False)
+    morning.tick(NOW)
+    assert len(calls) == 1
+
+
+def test_report_uses_stored_news_and_flags_a_stale_fetch():
+    article('https://example.org/a', (NOW - timedelta(hours=1)).isoformat(), fetched=(NOW - timedelta(hours=7)).isoformat())
+    report, warnings = morning.collection_state(NOW)
+    assert any('latest fetch' in w for w in warnings)
+    article('https://example.org/b', (NOW - timedelta(hours=1)).isoformat(), fetched=(NOW - timedelta(hours=1)).isoformat())
+    assert not any('latest fetch' in w for w in morning.collection_state(NOW)[1])
+
+
+def test_trends_use_earlier_days_and_are_cited(monkeypatch):
+    old = article('https://example.org/old', (NOW - timedelta(days=3)).isoformat())
+    new = article('https://example.org/new', (NOW - timedelta(hours=2)).isoformat())
+    seen = {}
+    def answer(self, prompt, text, **kw):
+        seen['prompt'], seen['input'] = prompt, json.loads(text)
+        return {'headline': 'H', 'key_developments': [],
+                'trends': [{'headline': 'Grid policy keeps moving', 'detail': 'd', 'story_ids': [old, new, 999]}]}
+    monkeypatch.setattr(morning.AIClient, '__init__', lambda self: None)
+    monkeypatch.setattr(morning.AIClient, 'enabled', True, raising=False)
+    monkeypatch.setattr(morning.AIClient, '_post_json_prompt', answer)
+    result = morning.build(NOW, [], [], {'events': [], 'coverage': [], 'warnings': []})
+    assert 'earlier_stories' in seen['prompt'] and [s['id'] for s in seen['input']['earlier_stories']] == [old]
+    assert result['brief']['trends'][0]['story_ids'] == [old, new]
+    assert [s['id'] for s in result['trend_stories']] == [old]

@@ -2,8 +2,8 @@
 
 Many feeds list only their latest 10-20 items, so collecting only when someone
 presses the button loses stories. This fetches at fixed hours of the day
-(Europe/Oslo), by default 08, 12, 15, 18 and 21, after the 06:00 morning
-report. Each run fetches only what is new since the last fetch. A database
+(Europe/Oslo), by default 05, 08, 12, 15, 18 and 21; the 06:00 morning report
+fetches nothing and summarises what these runs stored. Each run fetches only what is new since the last fetch. A database
 claim per hour prevents duplicate runs across restarts and workers; if the
 server was down, only the latest missed hour of the day is caught up.
 """
@@ -19,7 +19,7 @@ from owis.core.storage.db import get_conn
 
 logger = logging.getLogger(__name__)
 OSLO = ZoneInfo("Europe/Oslo")
-DEFAULT_HOURS = "8,12,15,18,21"
+DEFAULT_HOURS = "5,8,12,15,18,21"
 
 
 def schedule_info() -> dict:

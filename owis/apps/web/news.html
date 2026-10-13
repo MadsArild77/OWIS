@@ -1465,6 +1465,10 @@
           ${item.why_it_matters ? `<p><em>Why it matters:</em> ${escapeHtml(readableText(item.why_it_matters))}</p>` : ''}
           ${item.story_ids.length ? `<p class="brief-sources">${sourcesFor(item.story_ids)}</p>` : ''}
         </li>`).join('')}</ol>` : ''}
+        ${brief.trends && brief.trends.length ? `<h4>Trends from the past days</h4><ul>${brief.trends.map(item => `<li>
+          <strong>${escapeHtml(item.headline)}</strong>${item.detail ? ` — ${escapeHtml(item.detail)}` : ''}
+          ${item.story_ids.length ? `<p class="brief-sources">${sourcesFor(item.story_ids)}</p>` : ''}
+        </li>`).join('')}</ul>` : ''}
         ${list('Policy & regulation', brief.policy)}${list('Watch next', brief.watch)}
         <p class="muted">${brief.ai ? 'AI-written summary of the collected stories; check the sources before acting.' : 'AI is not enabled: showing the highest-ranked stories without a written summary.'}</p>
       </article>`;
@@ -1480,7 +1484,7 @@
       const status = state.status === 'running' ? 'Collecting news and checking official policy sources. You can return later.' : state.error || (state.result ? 'Saved report ready.' : 'No morning report yet.');
       document.getElementById('morningStatus').textContent = status;
       document.getElementById('morningSchedule').textContent = state.schedule.enabled
-        ? 'Automatic run: 06:00 Europe/Oslo, after fetching news since the last fetch. OWIS must be running; a later startup catches up for today.'
+        ? 'Automatic run: 06:00 Europe/Oslo, after the 05:00 news fetch has finished. The report summarises the news already fetched and uses earlier days for trends. OWIS must be running; a later startup catches up for today.'
         : 'Automatic 06:00 run is not enabled on this server. Reports can be generated here.';
       document.querySelector('[data-copy-morning]').disabled = !state.result;
       const report = state.result;
@@ -1489,7 +1493,7 @@
       root.innerHTML = `<p class="muted">${escapeHtml(report.report_date)} · Window ${osloTime(report.window_start)} – ${osloTime(report.window_end)} (Oslo).</p>
         ${state.status !== 'completed' ? '<p>Showing the previous saved result while the new attempt is running or failed.</p>' : ''}
         <h3>Summary</h3>
-        ${report.brief ? briefHtml(report.brief, report.news) : report.news.length ? '<p class="muted">This report was saved before written summaries were added.</p>' : '<p>No collected stories with a confirmed publication timestamp in this window.</p>'}
+        ${report.brief ? briefHtml(report.brief, [...report.news, ...(report.trend_stories || [])]) : report.news.length ? '<p class="muted">This report was saved before written summaries were added.</p>' : '<p>No collected stories with a confirmed publication timestamp in this window.</p>'}
         ${storyList(report.news, `All stories from the last 24 hours (${report.news.length} of ${report.news_total}, ranked by relevance)`)}`
         + policySection('Today · policy & regulation', report.today)
         + policySection('Next 90 days · policy & regulation', report.upcoming)
@@ -1539,6 +1543,7 @@
         if (!brief) return;
         lines.push('', title, brief.headline, brief.overview);
         brief.key_developments.forEach((item, index) => lines.push('', `${index + 1}. ${item.headline}`, item.what_happened, `Why it matters: ${item.why_it_matters}`));
+        if (brief.trends?.length) lines.push('', 'Trends from the past days:', ...brief.trends.map(row => `- ${row.headline}: ${row.detail}`));
         if (brief.policy.length) lines.push('', 'Policy & regulation:', ...brief.policy.map(row => `- ${row}`));
         if (brief.watch.length) lines.push('', 'Watch next:', ...brief.watch.map(row => `- ${row}`));
       };

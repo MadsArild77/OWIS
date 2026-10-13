@@ -5,7 +5,7 @@ import re
 from typing import Any
 
 from owis.core.llm.client import AIClient
-from owis.modules.news.matching.semantic import cosine, cache_key, read_cache, write_cache, article_text
+from owis.modules.news.matching.semantic import cosine, cache_key, read_cache, write_cache, link_cache, article_text
 
 
 def _parse_dt(value: Any) -> datetime | None:
@@ -117,7 +117,9 @@ def judge_pair(ai: AIClient, item_a: dict[str, Any], item_b: dict[str, Any], heu
     if ai_result is None:
         ai_result = ai.judge_news_match(item_a=ordered[0], item_b=ordered[1])
         if ai_result is not None:
-            write_cache(key, ai_result)
+            write_cache(key, ai_result, [item_a["id"], item_b["id"]])
+    else:
+        link_cache(key, [item_a["id"], item_b["id"]])  # also links results cached before links existed
     if ai_result is None:
         return {
             "relationship": "uncertain",

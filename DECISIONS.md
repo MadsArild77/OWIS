@@ -256,6 +256,19 @@ beslutningen med lenke til den nye.
 - **Fetch-knapp i toppfeltet** på alle sider, med «siden sist». Full kontroll
   (dager tilbake osv.) ligger fortsatt i Settings.
 
+## D19 – Morgenrapporten leser fra databasen og viser trender
+
+**Vedtatt og implementert 9. oktober 2026. Justerer D18.**
+- **Ingen egen innhenting:** rapporten kl. 06 bruker nyhetene som allerede er
+  hentet. Ny fast innhenting kl. 05, og rapporten venter til den er ferdig.
+- **Trender:** saker fra opptil sju dager før siste døgn sendes med (titler og
+  datoer) i samme AI-kall, som kan peke ut inntil tre trender med kilder.
+- **Lagring:** fulltekst beholdes i 90 dager, saker med poengsum ≥ 70 i 365 dager.
+  Deretter arkiveres saken (tittel, lenke, stikkord), og AI-sammendrag,
+  hendelseskort, lagrede AI-vektorer og -vurderinger og kildetekster slettes sammen
+  med den. Saker du har researchet eller kuratert, slettes aldri. Morgenrapporter
+  beholdes.
+
 ## D20 – Samme hendelse fra to kilder er ikke en oppfølging, og appen sover ikke
 
 **Vedtatt og implementert 10. oktober 2026. Justerer D14 og D18.**

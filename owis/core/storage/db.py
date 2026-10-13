@@ -286,6 +286,11 @@ def init_db() -> None:
         conn.execute("""CREATE TABLE IF NOT EXISTS news_ai_cache (
             cache_key TEXT PRIMARY KEY, value_json TEXT NOT NULL
         )""")
+        # Which articles a cached AI result belongs to, so it is deleted when they are archived.
+        conn.execute("""CREATE TABLE IF NOT EXISTS news_ai_cache_items (
+            cache_key TEXT NOT NULL, processed_id INTEGER NOT NULL, PRIMARY KEY(cache_key, processed_id)
+        )""")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_ai_cache_items_processed ON news_ai_cache_items(processed_id)")
         pair_columns = {row["name"] for row in conn.execute("PRAGMA table_info(news_match_review_pairs)")}
         if "relationship" not in pair_columns:
             conn.execute("ALTER TABLE news_match_review_pairs ADD COLUMN relationship TEXT NOT NULL DEFAULT 'uncertain'")

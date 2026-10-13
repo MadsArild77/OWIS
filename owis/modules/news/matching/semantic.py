@@ -29,9 +29,15 @@ def read_cache(key):
         row = conn.execute("SELECT value_json FROM news_ai_cache WHERE cache_key=?", (key,)).fetchone()
     return json.loads(row[0]) if row else None
 
-def write_cache(key, value):
+def write_cache(key, value, item_ids=()):
     with get_conn() as conn:
         conn.execute("INSERT OR REPLACE INTO news_ai_cache VALUES (?, ?)", (key, json.dumps(value)))
+    link_cache(key, item_ids)
+
+def link_cache(key, item_ids):
+    """Tie a cached result to its articles; archiving an article deletes it."""
+    with get_conn() as conn:
+        conn.executemany("INSERT OR IGNORE INTO news_ai_cache_items VALUES (?, ?)", [(key, int(i)) for i in item_ids])
 
 def cosine(a, b):
     if not a or len(a) != len(b): return 0.0
@@ -44,7 +50,9 @@ def embed_articles(items):
         text = embedding_text(item)
         key = cache_key("embedding", text)
         value = read_cache(key)
-        if value is not None: vectors[int(item["id"])] = value
+        if value is not None:
+            vectors[int(item["id"])] = value
+            link_cache(key, [item["id"]])  # also links results cached before links existed
         else: missing.append((item, text, key))
     if missing and not (settings.AI_ENABLED and settings.AI_API_KEY):
         raise RuntimeError("OpenAI matching requires OWI_AI_ENABLED=true and OPENAI_API_KEY in the server environment.")
@@ -63,5 +71,5 @@ def embed_articles(items):
                 if not vector or not all(isinstance(x, (int,float)) and math.isfinite(x) for x in vector):
                     raise ValueError("Invalid embedding vector")
                 vectors[int(item["id"])] = vector
-                write_cache(key, vector)
+                write_cache(key, vector, [item["id"]])
     return vectors
