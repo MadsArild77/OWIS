@@ -17,7 +17,7 @@ def pipeline(tmp_path, monkeypatch):
     monkeypatch.setattr(db, "DB_PATH", str(tmp_path / "fetch.db"))
     db.init_db()
     for name in ("run_matching_after_fetch", "run_coverage_after_fetch"):
-        monkeypatch.setattr(api, name, lambda: {})
+        monkeypatch.setattr(api, name, lambda deadline=None: {})
     monkeypatch.setattr(api, "process_raw_item", lambda item: {**item, "raw_item_id": item["id"]})
     monkeypatch.setattr(api.repo, "save_processed_item", lambda item: 1)
     monkeypatch.setattr(api, "_run_retention_archive", lambda *a, **k: {})
@@ -38,3 +38,22 @@ def test_date_only_and_late_listed_articles_are_not_dropped(pipeline):
     pipeline["scrape"] = [raw("https://c.example/dated", now.date().isoformat())]
     result = api._run_fetch_process(api.RunFetchProcessRequest(days_back=2, since_last=True))
     assert result["new_raw_items"] == 2   # the already stored article is skipped by URL
+
+
+def test_time_limit_defers_the_rest_to_the_next_fetch(pipeline, monkeypatch):
+    clock = [1000.0]
+    monkeypatch.setattr(api, "_clock", lambda: clock[0])
+    monkeypatch.setenv("OWI_FETCH_MAX_MINUTES", "1")
+    def slow(item):
+        clock[0] += 40          # each article takes 40 s; processing gets half of the minute
+        return {**item, "raw_item_id": item["id"]}
+    monkeypatch.setattr(api, "process_raw_item", slow)
+    deadlines = {}
+    monkeypatch.setattr(api, "run_matching_after_fetch", lambda deadline=None: deadlines.setdefault("matching", deadline) and {})
+    monkeypatch.setattr(api, "run_coverage_after_fetch", lambda deadline=None: deadlines.setdefault("coverage", deadline) and {})
+    now = datetime.now(timezone.utc)
+    pipeline["rss"] = [raw(f"https://a.example/{i}", now.isoformat()) for i in range(3)]
+    result = api._run_fetch_process(api.RunFetchProcessRequest(days_back=2))
+    assert result["processed_items"] == 1 and result["deferred_items"] == 2
+    assert deadlines == {"matching": 1000 + 60 * 0.85, "coverage": 1060}
+    assert result["timings_seconds"]["process"] == 40

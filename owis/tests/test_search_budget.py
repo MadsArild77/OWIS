@@ -32,7 +32,7 @@ def test_reserve_is_kept_for_own_research(monkeypatch):
         budget.spend("coverage", DAY)
     use("research", 3)
     assert not budget.allowed("research", DAY)
-    assert budget.status(DAY)["by_purpose"] == {"alternative": 0, "coverage": 0, "policy": 7, "research": 3}
+    assert budget.status(DAY)["by_purpose"] == {"alternative": 0, "coverage": 0, "extract": 0, "policy": 7, "research": 3}
 
 
 def test_new_month_resets(monkeypatch):

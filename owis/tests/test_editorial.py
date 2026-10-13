@@ -169,6 +169,7 @@ def test_positive_vote_releases_cached_exclusion(setup,monkeypatch):
 def test_alternative_threshold_cache_and_positive_override(setup,monkeypatch,access):
     _,raw,item=setup
     with db.get_conn() as c:c.execute('UPDATE news_processed_items SET signal_score=69 WHERE id=?',(item,))
+    monkeypatch.setenv('OWI_OPEN_SEARCHES_PER_DAY','0')  # below the score bar, only the daily allowance opens a search
     calls=[]
     monkeypatch.setattr(content,'fetch_public',lambda url:(access,'',url))
     monkeypatch.setattr(content,'alternative_sources',lambda *a:(calls.append(1) or []))
@@ -207,3 +208,15 @@ def test_alternative_candidates_bounded_and_deduplicated(setup,monkeypatch):
     monkeypatch.setattr(content,'fetch_public',lambda url:(calls.append(url) or ('open','Evidence '*200,url)))
     assert content.alternative_sources(raw,object())==[]
     assert len(calls)<=3 and len(calls)==len(set(calls))
+
+
+def test_thin_relevant_story_is_searched_whatever_its_score(setup,monkeypatch):
+    _,raw,item=setup
+    with db.get_conn() as c:c.execute('UPDATE news_processed_items SET signal_score=30 WHERE id=?',(item,))
+    monkeypatch.setenv('OWI_OPEN_SEARCHES_PER_DAY','1')
+    monkeypatch.setattr(content,'fetch_public',lambda url:('restricted','',url))
+    calls=[]
+    monkeypatch.setattr(content,'alternative_sources',lambda *a:(calls.append(1) or []))
+    content.prepare(raw)
+    assert calls==[1]
+

@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import time
 import re
 from datetime import datetime, timezone
 
@@ -85,8 +86,9 @@ def stored_cards(ids) -> dict[int, dict]:
     return {int(r["processed_id"]): json.loads(r["card_json"]) for r in rows}
 
 
-def ensure_cards(items: list[dict], limit: int | None = None) -> int:
-    """Create missing cards for the given articles (newest first), at most `limit` per call."""
+def ensure_cards(items: list[dict], limit: int | None = None, deadline: float | None = None) -> int:
+    """Create missing cards for the given articles (newest first), at most `limit` per call
+    and until `deadline` (time.monotonic); the rest are made next time."""
     limit = int(os.getenv("OWI_EVENT_CARDS_PER_RUN", "150")) if limit is None else limit
     ai = AIClient()
     if not ai.enabled or limit <= 0:
@@ -95,6 +97,8 @@ def ensure_cards(items: list[dict], limit: int | None = None) -> int:
     missing = [i for i in items if int(i["id"]) not in have][:limit]
     made = 0
     for item in missing:
+        if deadline and time.monotonic() > deadline:
+            break
         try:
             card = make_card(ai, str(item.get("title") or ""), str(item.get("cleaned_text") or item.get("summary") or ""))
         except Exception:

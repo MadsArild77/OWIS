@@ -136,6 +136,18 @@ warning is logged on Railway at startup.
 - All web searches share one monthly budget: `OWI_SEARCH_MONTHLY_LIMIT` (1000, the Tavily free plan) with
   `OWI_SEARCH_RESEARCH_RESERVE` (100) kept for research you start. Automatic searches are paced over the month.
 
+## Full text and time limits
+
+- Full text is fetched per source in the way that has worked: OWIS's own request first, then
+  Tavily Extract for sources that block it (needs `TAVILY_API_KEY`; 1 credit per page, counted
+  as an automatic search). A method that keeps failing for a source is skipped, with one retry
+  in ten. Paywalls are respected; the Source advisor shows the result per source.
+- Relevant stories that still have only a teaser get a search for an open version elsewhere,
+  whatever their score, up to `OWI_OPEN_SEARCHES_PER_DAY` (15).
+- A fetch run stops after `OWI_FETCH_MAX_MINUTES` (10): processing gets the first half, story
+  grouping until 85 % and coverage search the rest. What is not reached waits for the next run.
+  Each run logs its timings (`Fetch finished: ... timings=...`).
+
 ## Retention
 
 After each fetch, articles older than `OWI_NEWS_RETENTION_DAYS` (90) are archived:

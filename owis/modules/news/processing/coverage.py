@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 import re
 from datetime import datetime, timedelta, timezone
 
@@ -47,7 +48,8 @@ def gap_candidates(days: int = 3) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-def fill_coverage_gaps() -> dict:
+def fill_coverage_gaps(deadline: float | None = None) -> dict:
+    """deadline (time.monotonic) stops the run; the rest is searched next time."""
     if not (os.getenv("TAVILY_API_KEY") or os.getenv("BRAVE_SEARCH_API_KEY")):
         return {"skipped": "no search provider configured"}
     ai = AIClient()
@@ -67,6 +69,8 @@ def fill_coverage_gaps() -> dict:
     searched = found = 0
     from owis.modules.news.processing.search_budget import allowed
     for item in attach_cards(gap_candidates())[:max(budget, 0)]:
+        if deadline and time.monotonic() > deadline:
+            break
         if not allowed("coverage"):
             break  # paced share of the monthly search quota is used for today
         now = datetime.now(timezone.utc).isoformat()
