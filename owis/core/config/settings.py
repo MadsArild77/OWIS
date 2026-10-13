@@ -32,7 +32,10 @@ OPPORTUNITIES_ACTIVE_PROFILES = [
 ]
 OPPORTUNITIES_DAYS_BACK = int(os.getenv("OWI_OPP_DAYS_BACK", "30"))
 TED_API_KEY = os.getenv("TED_API_KEY", "")
-NEWS_RETENTION_DAYS = int(os.getenv("OWI_NEWS_RETENTION_DAYS", "30"))
+NEWS_RETENTION_DAYS = int(os.getenv("OWI_NEWS_RETENTION_DAYS", "90"))
+# High-signal stories (the same "important" bar as coverage search) keep full text longer.
+NEWS_HIGH_SIGNAL_RETENTION_DAYS = int(os.getenv("OWI_NEWS_HIGH_SIGNAL_RETENTION_DAYS", "365"))
+NEWS_HIGH_SIGNAL_MIN_SCORE = int(os.getenv("OWI_NEWS_HIGH_SIGNAL_MIN_SCORE", "70"))
 
 NOTION_API_KEY = os.getenv("NOTION_API_KEY", "")
 NOTION_OPPORTUNITIES_DB_ID = os.getenv(

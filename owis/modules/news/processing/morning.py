@@ -1,8 +1,8 @@
 """Persisted morning briefs and a once-per-Oslo-day background runner.
 
-The 06:00 report fetches only what is new since the last fetch (the regular
-fetches at 08, 12, 15, 18 and 21 collect the rest of the day) and then
-summarises the last 24 hours and the policy outlook.
+The 06:00 report fetches nothing itself. It runs after the morning news fetch
+(05:00 by default) has finished, summarises the stories the regular fetches
+stored, and uses the previous days in the database to point out trends.
 """
 import json
 import logging
@@ -20,6 +20,8 @@ from owis.modules.news.processing import governance
 OSLO = ZoneInfo('Europe/Oslo')
 EXECUTOR = ThreadPoolExecutor(max_workers=1, thread_name_prefix='owis-morning')
 LEASE = timedelta(hours=2)
+TREND_DAYS = 7
+STALE_AFTER = timedelta(hours=6)
 logger = logging.getLogger(__name__)
 
 
@@ -84,63 +86,29 @@ def start(refresh=False, now=None, synchronous=False):
     return read(day)
 
 
-def refresh_news(since_last=False):
-    """Use existing collectors, but bound processing and avoid retention side effects.
-
-    With since_last, only items published after the newest stored item are kept,
-    like the "Only since last run" fetch option.
-    """
-    from owis.modules.news.collectors.rss_fetcher import fetch_rss_items_with_report
-    from owis.modules.news.collectors.scrape_fetcher import fetch_scrape_items_with_report
+def collection_state(as_of):
+    """Source health and freshness from the regular fetches; the report itself fetches nothing."""
     from owis.modules.news.storage.repository import NewsRepository
-    from owis.modules.news.processing.content import prepare
-    from owis.modules.news.processing.pipeline import process_raw_item
     repo = NewsRepository()
-    source_report, warnings = [], []
-    cutoff = utcnow() - timedelta(days=2)
-    checkpoint = timestamp(repo.latest_raw_checkpoint()) if since_last else None
-    for collector in (fetch_rss_items_with_report, fetch_scrape_items_with_report):
-        try:
-            items, health = collector()
-            source_report.extend(health)
-            for item in items:
-                published = timestamp(item.get('published_at'))
-                if published and (published < cutoff or (checkpoint and published <= checkpoint)):
-                    continue
-                repo.upsert_raw_item(item)
-        except Exception:
-            logger.exception('Morning news collection failed')
-            warnings.append('A news collector failed; the last 24 hours may be incomplete.')
-    errors = 0
-    for raw in repo.list_unprocessed_raw(limit=100):
-        try:
-            repo.save_processed_item(process_raw_item(prepare(raw)))
-            repo.mark_raw_processed(raw['id'])
-        except Exception:
-            errors += 1
-    if errors:
-        warnings.append(f'{errors} articles could not be processed.')
+    source_report = [{'source': row['source_name'], 'items': row['last_items'], 'error': row['last_error'],
+                      'checked_at': row['updated_at']} for row in repo.list_source_health_states()]
+    warnings = []
+    with get_conn() as conn:
+        last = timestamp(conn.execute('SELECT MAX(fetched_at) FROM news_raw_items').fetchone()[0])
+    if not last:
+        warnings.append('No news has been fetched yet.')
+    elif last < as_of - STALE_AFTER:
+        warnings.append(f'The latest fetch was at {last.astimezone(OSLO):%d.%m %H:%M} (Oslo); stories published after that are not included.')
     if repo.list_unprocessed_raw(limit=1):
-        warnings.append('Unprocessed articles remain; this report may be incomplete (100-article processing limit).')
-    if not source_report:
-        warnings.append('No news-source health reports available.')
-    if any(row.get('error') for row in source_report):
-        warnings.append('Some news sources failed; see source coverage.')
-    from owis.modules.news.presentation.api import run_coverage_after_fetch, run_matching_after_fetch
-    matching = run_matching_after_fetch()  # group coverage of the same story before the report is built
-    run_coverage_after_fetch()
-    try:
-        from owis.modules.news.registry.source_advisor import refresh_learned_weights
-        refresh_learned_weights()
-    except Exception:
-        logger.exception('Updating learned source weights failed')
-    if matching.get('skipped') and matching['skipped'] != 'AI is not enabled':
-        warnings.append('Stories from different sources could not be grouped automatically this time.')
+        warnings.append('Some fetched articles are still waiting for processing and are not included.')
+    if any(row['error'] for row in source_report):
+        warnings.append('Some news sources failed at their last fetch; see source coverage.')
     return source_report, warnings
 
 
-def recent_news(as_of):
-    lower = as_of - timedelta(hours=24)
+def recent_news(as_of, lower=None):
+    """Stories published in [lower, as_of), by default the 24 hours before as_of."""
+    lower = lower or as_of - timedelta(hours=24)
     with get_conn() as conn:
         rows = conn.execute('''SELECT p.id,p.title,p.summary,p.why_it_matters,p.signal_score,
             r.source_name,r.article_url,r.published_at,r.fetched_at,o.collection_key
@@ -183,6 +151,13 @@ BRIEF_PROMPT = (
     "story_ids (ids from the input)), policy (0-4 short sentences on the policy events, empty if none) and "
     "watch (0-3 short sentences on what to follow next)."
 )
+TREND_PROMPT = (
+    " The input also has earlier_stories from the previous days (id, title, date, score). Compare them with "
+    "the last 24 hours and add trends: 0-3 items, each with headline, detail (1-2 sentences on how the "
+    "development has built up over the days and what it points to) and story_ids (ids from stories or "
+    "earlier_stories). Only name a trend that several stories on different days support; return an empty "
+    "list rather than a weak trend."
+)
 
 
 def _story_input(stories):
@@ -196,13 +171,13 @@ def _fallback_brief(stories, max_items):
     """Without AI the brief lists the highest-ranked stories as they are."""
     if not stories:
         return None
-    return {'headline': stories[0]['title'], 'overview': '', 'policy': [], 'watch': [], 'ai': False,
+    return {'headline': stories[0]['title'], 'overview': '', 'trends': [], 'policy': [], 'watch': [], 'ai': False,
             'key_developments': [{'headline': s['title'], 'what_happened': s.get('summary') or '',
                                   'why_it_matters': s.get('why_it_matters') or '', 'story_ids': [s['id']]}
                                  for s in stories[:max_items]]}
 
 
-def write_brief(stories, events=()):
+def write_brief(stories, events=(), earlier=()):
     """An editorial summary of the stories: the important developments, not a list of everything."""
     max_items = 6
     if not stories and not events:
@@ -210,15 +185,18 @@ def write_brief(stories, events=()):
     ai = AIClient()
     data = None
     if ai.enabled:
-        prompt = BRIEF_PROMPT.format(max_items=max_items)
+        prompt = BRIEF_PROMPT.format(max_items=max_items) + (TREND_PROMPT if earlier else '')
         payload = {'stories': _story_input(stories)}
+        if earlier:
+            payload['earlier_stories'] = [{'id': s['id'], 'title': s['title'], 'date': (s['published_at'] or '')[:10],
+                                           'score': s.get('signal_score')} for s in earlier]
         if events:
             payload['policy_events'] = [{k: e.get(k) for k in ('title', 'jurisdiction', 'event_date', 'kind', 'legal_status', 'summary')}
                                         for e in events]
         data = ai._post_json_prompt(prompt, json.dumps(payload, ensure_ascii=False), max_tokens=1600, input_max_chars=24000)
     if not isinstance(data, dict) or not str(data.get('headline') or '').strip():
         return _fallback_brief(stories, max_items)
-    known = {s['id'] for s in stories}
+    known = {s['id'] for s in [*stories, *earlier]}
 
     def text(value):
         return str(value or '').strip()
@@ -233,8 +211,11 @@ def write_brief(stories, events=()):
             ids = [i for i in items(item.get('story_ids')) if isinstance(i, int) and i in known]
             developments.append({'headline': text(item['headline']), 'what_happened': text(item.get('what_happened')),
                                  'why_it_matters': text(item.get('why_it_matters')), 'story_ids': ids})
+    trends = [{'headline': text(item['headline']), 'detail': text(item.get('detail')),
+               'story_ids': [i for i in items(item.get('story_ids')) if isinstance(i, int) and i in known]}
+              for item in items(data.get('trends')) if earlier and isinstance(item, dict) and text(item.get('headline'))]
     return {'headline': text(data['headline']), 'overview': text(data.get('overview')),
-            'key_developments': developments[:max_items], 'policy': lines(data.get('policy')),
+            'key_developments': developments[:max_items], 'trends': trends[:3], 'policy': lines(data.get('policy')),
             'watch': lines(data.get('watch')), 'ai': True}
 
 
@@ -248,10 +229,15 @@ def build(as_of, source_report, warnings, policy):
         e['event_date'] or '9999', e['title']))
     today = [e for e in events if e['event_date'] == day]
     upcoming = [e for e in events if e['event_date'] and e['event_date'] > day]
+    # Earlier days in the database, when there are any, let the brief point out trends.
+    earlier = recent_news(as_of - timedelta(hours=24), lower=as_of - timedelta(days=TREND_DAYS))[0][:60]
+    brief = write_brief(stories[:30], [*today, *upcoming[:10]], earlier)
+    cited = {i for trend in (brief or {}).get('trends', []) for i in trend['story_ids']}
     return {'report_date': day, 'window_start': (as_of - timedelta(hours=24)).isoformat(),
             'window_end': as_of.isoformat(), 'generated_at': utcnow().isoformat(),
-            'timezone': 'Europe/Oslo', 'brief': write_brief(stories[:30], [*today, *upcoming[:10]]),
+            'timezone': 'Europe/Oslo', 'brief': brief,
             'news': stories[:30], 'news_total': len(stories),
+            'trend_stories': [{k: s[k] for k in ('id', 'title', 'published_at', 'sources')} for s in earlier if s['id'] in cited],
             'today': today, 'upcoming': upcoming,
             'watchlist': [e for e in events if not e['event_date']],
             'policy_coverage': policy['coverage'], 'news_coverage': source_report,
@@ -261,8 +247,7 @@ def build(as_of, source_report, warnings, policy):
 
 def run(day, run_id, as_of):
     try:
-        # Evening fetches already stored the rest of the day; the report still covers 24 hours.
-        source_report, warnings = refresh_news(since_last=True)
+        source_report, warnings = collection_state(as_of)
         policy = governance.collect(as_of.astimezone(OSLO).date())
         result = build(as_of, source_report, warnings, policy)
         with get_conn() as conn:
@@ -277,9 +262,13 @@ def run(day, run_id, as_of):
 
 def tick(now=None):
     now = now or utcnow()
-    if schedule_info()['enabled'] and now.astimezone(OSLO).hour >= 6:
-        # The database claim prevents duplicate runs across app workers/restarts.
-        start(now=now)
+    if not schedule_info()['enabled'] or now.astimezone(OSLO).hour < 6:
+        return
+    from owis.modules.news.processing.fetch_scheduler import _fetch_running
+    if _fetch_running():
+        return  # wait for the morning fetch to finish so the report includes it
+    # The database claim prevents duplicate runs across app workers/restarts.
+    start(now=now)
 
 
 def start_scheduler():

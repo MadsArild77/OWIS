@@ -338,13 +338,18 @@ class NewsRepository:
             ).fetchall()
             return [dict(row) for row in rows]
 
-    def archive_old_unprotected_items(self, cutoff_iso: str, limit: int = 1000) -> dict[str, int]:
+    def archive_old_unprotected_items(self, cutoff_iso: str, limit: int = 1000,
+                                      high_signal_cutoff_iso: str | None = None,
+                                      high_signal_min_score: int = 70) -> dict[str, int]:
         """
         Move old, non-curated articles into a lightweight archive and remove full text.
 
         Curated items are deliberately retained in the main tables because they can
         back manual merges, relevance decisions, match-review history, or pair learning.
+        With high_signal_cutoff_iso, stories scoring at least high_signal_min_score
+        are kept until that older cutoff instead.
         """
+        high_cutoff = high_signal_cutoff_iso or cutoff_iso
         with get_conn() as conn:
             rows = conn.execute(
                 """
@@ -366,6 +371,7 @@ class NewsRepository:
                 JOIN news_raw_items r ON r.id = p.raw_item_id
                 LEFT JOIN news_domain_classification d ON d.processed_id = p.id
                 WHERE julianday(COALESCE(r.published_at, p.processed_at)) < julianday(?)
+                  AND (p.signal_score < ? OR julianday(COALESCE(r.published_at, p.processed_at)) < julianday(?))
                   AND NOT EXISTS (SELECT 1 FROM news_collection_overrides o WHERE o.processed_id = p.id)
                   AND NOT EXISTS (SELECT 1 FROM news_item_relevance rel WHERE rel.processed_id = p.id)
                   AND NOT EXISTS (SELECT 1 FROM news_match_review_pairs mr WHERE mr.item_a_id = p.id OR mr.item_b_id = p.id)
@@ -378,7 +384,7 @@ class NewsRepository:
                 ORDER BY COALESCE(r.published_at, p.processed_at) ASC
                 LIMIT ?
                 """,
-                (cutoff_iso, int(limit)),
+                (cutoff_iso, int(high_signal_min_score), high_cutoff, int(limit)),
             ).fetchall()
             items = [dict(row) for row in rows]
             if not items:
@@ -436,6 +442,21 @@ class NewsRepository:
                 f"DELETE FROM news_domain_classification WHERE processed_id IN ({processed_placeholders})",
                 tuple(processed_ids),
             )
+            # AI results and source texts belong to the article and go with its full text.
+            conn.execute(
+                f"""DELETE FROM news_ai_cache WHERE cache_key IN (
+                    SELECT cache_key FROM news_ai_cache_items WHERE processed_id IN ({processed_placeholders}))""",
+                tuple(processed_ids),
+            )
+            conn.execute(
+                f"""DELETE FROM news_ai_cache_items WHERE cache_key IN (
+                    SELECT cache_key FROM news_ai_cache_items WHERE processed_id IN ({processed_placeholders}))""",
+                tuple(processed_ids),
+            )
+            for table in ("news_event_cards", "news_case_versions", "news_draft_provenance"):
+                conn.execute(f"DELETE FROM {table} WHERE processed_id IN ({processed_placeholders})", tuple(processed_ids))
+            for table in ("news_content_basis", "news_source_evidence", "news_open_search_attempts", "news_coverage_searches"):
+                conn.execute(f"DELETE FROM {table} WHERE raw_id IN ({raw_placeholders})", tuple(raw_ids))
             processed_cur = conn.execute(
                 f"DELETE FROM news_processed_items WHERE id IN ({processed_placeholders})",
                 tuple(processed_ids),

@@ -19,7 +19,7 @@ def jobs(tmp_path, monkeypatch):
 
 def test_fetches_since_last_at_fixed_hours(jobs):
     day = datetime(2026, 10, 6, tzinfo=timezone.utc)                # Oslo is UTC+2
-    assert not scheduler.tick(day.replace(hour=5, minute=59))       # 07:59: no slot yet
+    assert not scheduler.tick(day.replace(hour=2, minute=59))       # 04:59: no slot yet
     assert scheduler.tick(day.replace(hour=6))                      # 08:00
     assert not scheduler.tick(day.replace(hour=7))                  # 09:00: 08 slot already taken
     assert scheduler.tick(day.replace(hour=10, minute=30))          # 12:30

@@ -68,3 +68,31 @@ def test_database_connection_closes_after_context(repo):
     with db.get_conn() as conn:
         conn.execute("SELECT 1")
     with pytest.raises(sqlite3.ProgrammingError): conn.execute("SELECT 1")
+
+def test_high_signal_stories_are_kept_until_the_longer_cutoff(repo):
+    _, low = add(repo, "low", "2026-05-01T00:00:00Z")
+    _, high = add(repo, "high", "2026-05-01T00:00:00Z")
+    with db.get_conn() as conn:
+        conn.execute("UPDATE news_processed_items SET signal_score = CASE id WHEN ? THEN 40 ELSE 80 END", (low,))
+    assert repo.archive_old_unprotected_items("2026-08-24T00:00:00Z", high_signal_cutoff_iso="2025-09-01T00:00:00Z")["archived"] == 1
+    assert repo.get_item(high) and not repo.get_item(low)
+    assert repo.archive_old_unprotected_items("2026-08-24T00:00:00Z", high_signal_cutoff_iso="2026-06-01T00:00:00Z")["archived"] == 1
+
+def test_ai_results_and_source_texts_go_with_the_article(repo):
+    from owis.modules.news.matching.semantic import write_cache, read_cache
+    raw, old = add(repo, "old", "2026-05-01T00:00:00Z")
+    _, new = add(repo, "new", "2026-09-22T00:00:00Z")
+    write_cache("emb-old", [0.1], [old])
+    write_cache("pair", {"same": False}, [old, new])
+    write_cache("emb-new", [0.2], [new])
+    with db.get_conn() as conn:
+        conn.execute("INSERT INTO news_event_cards VALUES(?,?,?)", (old, "{}", "2026-05-01"))
+        conn.execute("INSERT INTO news_content_basis(raw_id,relevance,reason,access,basis,text,source_url,checked_at) VALUES(?,?,?,?,?,?,?,?)",
+                     (conn.execute("SELECT raw_item_id FROM news_processed_items WHERE id=?", (old,)).fetchone()[0], "relevant", "", "open", "fulltext", "long text", "u", "2026-05-01"))
+    repo.archive_old_unprotected_items("2026-08-24T00:00:00Z")
+    assert read_cache("emb-old") is None and read_cache("pair") is None
+    assert read_cache("emb-new") == [0.2]
+    with db.get_conn() as conn:
+        assert conn.execute("SELECT COUNT(*) FROM news_event_cards").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM news_content_basis").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM news_ai_cache_items").fetchone()[0] == 1

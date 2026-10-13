@@ -14,6 +14,9 @@ Rapporten inneholder:
   utviklingene (hva skjedde, hvorfor det betyr noe, kilder), politikk og hva man
   bør følge med på. Skrives av AI ut fra de innsamlede sakene; uten AI vises de
   høyest rangerte sakene uten skrevet sammendrag.
+- Trender: når databasen har saker fra dagene før (inntil sju dager), sammenlignes
+  de med siste døgn, og inntil tre trender som flere saker på ulike dager støtter,
+  vises med kilder.
 - Siste 24 timer (sammenfoldet liste): publiseringstidspunkt i intervallet `[start − 24 timer, start)`.
   Artikler uten tidssone eller med bare en dato utelates med synlig dekningstall.
   Inntil 30 saker vises, rangert etter eksisterende relevansscore. Manuelle
@@ -42,10 +45,10 @@ kl. 06:00 **Europe/Oslo**, med automatisk sommer-/vintertid. Ved oppstart senere
 samme dag kjøres dagens rapport. Tidligere tapte dager etterfylles ikke.
 Rapporten blir tilgjengelig etter at innhenting og analyse er ferdig.
 
-Rapporten henter bare artikler publisert etter nyeste lagrede artikkel
-(«siden sist») og oppsummerer deretter hele døgnet fra databasen. Den vanlige
-nyhetsinnhentingen kjører «siden sist» kl. 08, 12, 15, 18 og 21 (`OWI_FETCH_HOURS`)
-og oppdaterer nyhetsstrømmen, ikke rapporten.
+Rapporten henter ingenting selv. Den bruker nyhetene den vanlige innhentingen
+har lagret, «siden sist» kl. 05, 08, 12, 15, 18 og 21 (`OWI_FETCH_HOURS`).
+Rapporten venter til en pågående innhenting er ferdig, slik at 05-hentingen er
+med. Er siste innhenting eldre enn seks timer, står det i rapporten.
 
 En databasebasert reservasjon hindrer samtidige kjøringer for samme dato på tvers
 av prosesser. En reservasjon regnes som avbrutt etter to timer. Feilede kjøringer
@@ -63,9 +66,9 @@ og gir feilkode ved feil. Bruk samme konfigurasjon og database som webappen.
 
 ## Innhenting, forbruk og begrensninger
 
-Nyhetsdelen bruker eksisterende RSS-/nettsidekilder og behandler høyst 100
-ubehandlede artikler per kjøring. Kø, feil og ukjente datoer merkes i rapporten.
-Ingen arkivering utløses av morgenjobben.
+Nyhetsdelen leser bare fra databasen. Ubehandlede artikler, kildefeil fra siste
+innhenting og ukjente datoer merkes i rapporten. Ingen arkivering utløses av
+morgenjobben.
 
 Politikkdelen krever eksisterende AI-oppsett og `TAVILY_API_KEY` eller
 `BRAVE_SEARCH_API_KEY`. Uten disse lagres nyhetsrapporten med beskjed om at

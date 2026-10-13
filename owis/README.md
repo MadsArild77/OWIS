@@ -128,13 +128,23 @@ warning is logged on Railway at startup.
 ## Automatic collection, matching and coverage search
 
 - `OWI_SCHEDULED_FETCH_ENABLED=true` (default): fetch news published since the last fetch at the hours in
-  `OWI_FETCH_HOURS` (`8,12,15,18,21`), Europe/Oslo. Set `false` to fetch only manually.
+  `OWI_FETCH_HOURS` (`5,8,12,15,18,21`; the 06:00 morning report uses what the 05 fetch stored), Europe/Oslo. Set `false` to fetch only manually.
 - After each fetch: event cards (`OWI_EVENT_CARDS_PER_RUN`, 150), story matching (`OWI_MATCH_MAX_PAIRS`, 300;
   auto-merge at `OWI_MATCH_AUTO_MERGE_CONFIDENCE`, 0.85), coverage search for important single-source stories
   (`OWI_GAP_SEARCHES_PER_RUN`, 5; `OWI_GAP_SEARCHES_PER_DAY`, 25; needs `TAVILY_API_KEY` or `BRAVE_SEARCH_API_KEY`)
   and learned source weights for the Source advisor.
 - All web searches share one monthly budget: `OWI_SEARCH_MONTHLY_LIMIT` (1000, the Tavily free plan) with
   `OWI_SEARCH_RESEARCH_RESERVE` (100) kept for research you start. Automatic searches are paced over the month.
+
+## Retention
+
+After each fetch, articles older than `OWI_NEWS_RETENTION_DAYS` (90) are archived:
+title, link, tags and score stay in `news_article_archive`, while the full text, AI
+summary, event card, cached embeddings and match judgements, and saved source texts
+are deleted. Stories scoring at least `OWI_NEWS_HIGH_SIGNAL_MIN_SCORE` (70) are kept
+until `OWI_NEWS_HIGH_SIGNAL_RETENTION_DAYS` (365). Stories you have researched,
+merged, rated, drafted or reviewed are never archived. Morning reports are saved
+copies and are kept.
 
 ## Deploy on Railway
 
