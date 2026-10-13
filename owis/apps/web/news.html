@@ -515,7 +515,7 @@
           <kbd aria-hidden="true">/</kbd>
         </label>
         <div class="quick-fetch">
-          <button id="quickFetchBtn" type="button" title="Fetch and process articles published since the last fetch">Fetch news</button>
+          <button id="quickFetchBtn" type="button" title="Fetch and process new articles from the last two days">Fetch news</button>
           <span id="quickFetchStatus" class="muted" role="status" aria-live="polite"></span>
         </div>
       </header>
@@ -534,9 +534,6 @@
                 <p class="muted">Collect and process new articles from all active sources.</p>
                 <div class="form-grid">
                   <label class="field">Days back <input id="fetchDaysBack" type="number" min="1" max="90" value="7" /></label>
-                  <label class="field">Only since last run
-                    <select id="fetchSinceLast"><option value="false" selected>No</option><option value="true">Yes</option></select>
-                  </label>
                 </div>
                 <div class="actions">
                   <button id="runPipelineBtn" type="button">Fetch and process now</button>
@@ -1098,10 +1095,10 @@
       }, 1000);
     }
 
-    function startRunProgress(daysBack, sinceLast) {
+    function startRunProgress(daysBack) {
       startOperationProgress({
         title: 'Fetch + processing running',
-        step: `Starting run (days_back=${daysBack}, since_last=${sinceLast})`,
+        step: `Starting run (days_back=${daysBack})`,
         initialPercent: 4,
         targetPercent: 12,
         sourceRows: sourceProgressRowsForCurrentSources('pending', 'Queued for fetch'),
@@ -2930,22 +2927,21 @@
       }
     }
 
-    // quick: the header button fetches only what is new since the last fetch, with a short status next to it.
+    // quick: the header button fetches the last two days (already stored articles are skipped), with a short status next to it.
     async function runPipeline(quick = false) {
       const daysInput = Number(document.getElementById('fetchDaysBack')?.value || 7);
       const days_back = quick ? 2 : Number.isFinite(daysInput) ? Math.max(1, Math.min(90, Math.trunc(daysInput))) : 7;
-      const since_last = quick || (document.getElementById('fetchSinceLast')?.value || 'false') === 'true';
       const quickStatus = document.getElementById('quickFetchStatus');
       quickFetchActive = quick;
 
       setButtonBusy('runPipelineBtn', true, 'Running fetch + processing...');
       setButtonBusy('quickFetchBtn', true, 'Fetching…');
       quickStatus.textContent = quick ? 'Starting…' : '';
-      startRunProgress(days_back, since_last);
-      if (!quick) setStatus(`Running fetch + processing (days_back=${days_back}, since_last=${since_last}) ...`);
+      startRunProgress(days_back);
+      if (!quick) setStatus(`Running fetch + processing (days_back=${days_back}) ...`);
       try {
         setRunProgressStep('Contacting backend and preparing fetch pipeline...', 18);
-        const result = await startBackendJob('fetch_process', { days_back, since_last }, {
+        const result = await startBackendJob('fetch_process', { days_back }, {
           title: 'Fetch + processing running',
           step: 'Starting backend fetch/process job...',
           sourceRows: sourceProgressRowsForCurrentSources('pending', 'Queued for fetch'),

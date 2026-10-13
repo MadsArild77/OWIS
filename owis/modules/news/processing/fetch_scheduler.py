@@ -3,7 +3,7 @@
 Many feeds list only their latest 10-20 items, so collecting only when someone
 presses the button loses stories. This fetches at fixed hours of the day
 (Europe/Oslo), by default 05, 08, 12, 15, 18 and 21; the 06:00 morning report
-fetches nothing and summarises what these runs stored. Each run fetches only what is new since the last fetch. A database
+fetches nothing and summarises what these runs stored. Each run stores only articles not seen before (by URL). A database
 claim per hour prevents duplicate runs across restarts and workers; if the
 server was down, only the latest missed hour of the day is caught up.
 """
@@ -58,7 +58,7 @@ def tick(now: datetime | None = None) -> bool:
     if not claim(local.date().isoformat(), passed[-1], now):
         return False
     from owis.modules.news.presentation import api
-    api._create_job("fetch_process", {"days_back": 2, "since_last": True})
+    api._create_job("fetch_process", {"days_back": 2})
     logger.info("Scheduled news fetch started")
     return True
 

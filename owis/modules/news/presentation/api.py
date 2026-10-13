@@ -88,6 +88,8 @@ class SourceHealthRequest(BaseModel):
 
 class RunFetchProcessRequest(BaseModel):
     days_back: int = 7
+    # Ignored: articles already stored are always skipped (by URL). A global "newest
+    # article" cut-off dropped date-only and late-listed stories from slower sources.
     since_last: bool = False
 
 
@@ -1386,15 +1388,9 @@ def _run_fetch_process(payload: RunFetchProcessRequest, job_id: str | None = Non
             job_id,
             status="running",
             percent=5,
-            step=f"Preparing fetch pipeline (days_back={days_back}, since_last={bool(payload.since_last)})...",
+            step=f"Preparing fetch pipeline (days_back={days_back})...",
             source_progress=_source_progress_from_registry("Queued for fetch"),
         )
-
-    since_last = bool(payload.since_last)
-    checkpoint_dt: datetime | None = None
-    if since_last:
-        checkpoint = repo.latest_raw_checkpoint()
-        checkpoint_dt = _parse_iso_datetime(checkpoint) if checkpoint else None
 
     if job_id:
         _update_job(job_id, percent=14, step="Fetching RSS sources...")
@@ -1422,9 +1418,6 @@ def _run_fetch_process(payload: RunFetchProcessRequest, job_id: str | None = Non
     for item in fetched_items_all:
         published = _parse_iso_datetime(item.get("published_at"))
         if published and published < threshold:
-            dropped_old += 1
-            continue
-        if since_last and checkpoint_dt and published and published <= checkpoint_dt:
             dropped_old += 1
             continue
         fetched_items.append(item)
@@ -1530,7 +1523,6 @@ def _run_fetch_process(payload: RunFetchProcessRequest, job_id: str | None = Non
         "fetched_candidates": len(fetched_items),
         "dropped_old_items": dropped_old,
         "days_back": days_back,
-        "since_last": since_last,
         "new_raw_items": inserted,
         "queued_for_processing": queued_for_processing,
         "processed_items": processed,
