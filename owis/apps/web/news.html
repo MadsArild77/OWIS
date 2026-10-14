@@ -244,6 +244,14 @@
     }
     .source-name { color: var(--ink-2); font-weight: 600; }
     .sources-badge { padding: 0 8px; border-radius: 999px; border: 1px solid var(--line-strong); font-size: 0.75rem; font-weight: 600; color: var(--ink-2); line-height: 1.6; }
+    .case-name { display: block; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--brand); margin-bottom: 2px; }
+    .case-timeline { list-style: none; padding: 0; margin: 8px 0 0; border-left: 2px solid var(--line-strong); }
+    .case-timeline li { position: relative; padding: 0 0 16px 16px; }
+    .case-timeline li::before { content: ""; position: absolute; left: -6px; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: var(--brand); }
+    .case-timeline time { font-size: 0.8rem; color: var(--muted); }
+    .case-timeline button { display: block; margin: 2px 0 4px; padding: 0; border: 0; background: none; color: var(--ink); font-weight: 700; font-size: 1rem; text-align: left; cursor: pointer; box-shadow: none; }
+    .case-timeline button:hover { text-decoration: underline; }
+    .case-timeline p { margin: 0 0 4px; }
     .focus-badge { padding: 0 8px; border-radius: 999px; background: var(--tag-actor-bg); color: var(--tag-actor-ink); font-size: 0.75rem; font-weight: 600; line-height: 1.6; }
     .access-badge { padding: 0 8px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--warn); font-size: 0.75rem; font-weight: 600; line-height: 1.6; }
     .access-badge::before { content: "\1F512\FE0E  "; font-size: 0.7rem; }
@@ -1688,6 +1696,50 @@
       load();
     }
 
+    // A case: its developments (merged events) on a timeline, newest first.
+    function showCaseDetails(group) {
+      const developments = [...group].sort((a, b) => String(b.latest_published_at || '').localeCompare(String(a.latest_published_at || '')));
+      const latest = developments[0];
+      activeDetailCollectionKey = String(latest.collection_key || '');
+      activeDetailItemId = null;
+      updateDetailCollectionNavButtons(activeDetailCollectionKey);
+      openDetailOverlay();
+      const articles = developments.reduce((sum, c) => sum + Number(c.article_count || 1), 0);
+      const day = value => value ? new Date(value).toLocaleDateString('en-GB', {day: 'numeric', month: 'short'}) : '';
+      document.getElementById('detailTitle').textContent = latest.case?.name || cleanTitle(latest.master?.title);
+      document.getElementById('detailMeta').textContent = [`${developments.length} developments`, `${articles} articles`,
+        `${day(developments[developments.length - 1].latest_published_at)} – ${day(latest.latest_published_at)}`].join(' · ');
+      const account = latest.case?.account;
+      if (account?.title) document.getElementById('detailTitle').textContent = account.title;
+      document.getElementById('detailContent').innerHTML = `
+        ${account ? `<div class="detail-summary">
+          <strong>The case so far</strong>
+          <div>${textBlockHtml(account.summary)}</div>
+          ${account.complete ? '' : '<p class="muted">A newer development is not yet included; the account is rewritten at the next fetch.</p>'}
+        </div>
+        <div class="detail-why">
+          <strong>Why it matters</strong>
+          <div>${textBlockHtml(account.why_it_matters || 'n/a')}</div>
+          ${account.next_steps ? `<p><strong>What to watch:</strong> ${escapeHtml(account.next_steps)}</p>` : ''}
+        </div>` : `<div class="detail-why">
+          <strong>Latest development · why it matters</strong>
+          <div>${textBlockHtml(readableText(latest.master?.why_it_matters) || 'n/a')}</div>
+          <p class="muted">A written account of the whole case is made at the next fetch.</p>
+        </div>`}
+        <div class="detail-summary">
+          <strong>Developments</strong>
+          <ol class="case-timeline">${developments.map(c => `<li>
+            <time datetime="${escapeHtml(c.latest_published_at || '')}">${escapeHtml(day(c.latest_published_at))}</time>
+            <button type="button" data-case-development="${escapeHtml(c.collection_key)}">${escapeHtml(cleanTitle(c.master?.title))}</button>
+            <p>${escapeHtml(shortText(c.master?.summary || '', 320))}</p>
+            <div class="muted">${escapeHtml((c.master?.sources || []).join(', '))}</div>
+          </li>`).join('')}</ol>
+        </div>`;
+      document.getElementById('detailContent').querySelectorAll('[data-case-development]').forEach(button => {
+        button.addEventListener('click', () => showCollectionDetails(button.dataset.caseDevelopment));
+      });
+    }
+
     function showCollectionDetails(collectionKey) {
       const collection = findCollectionByKey(collectionKey);
       if (!collection) return;
@@ -1978,8 +2030,19 @@
       return items.filter(item => (scope==='all' || (item.interest_topics||[]).includes(scope)) &&
         (hidden || (item.editorial?.[scope]?.value!=='non_relevant' && item.content_basis?.relevance!=='excluded')));
     }
+    // Stories (merged events) on the same case - one project, or linked follow-ups - are shown as one row.
+    function groupIntoCases(items) {
+      const order = [], byKey = new Map();
+      for (const col of items) {
+        const key = col.case?.size > 1 ? col.case.key : `story:${col.collection_key}`;
+        if (!byKey.has(key)) { byKey.set(key, []); order.push(key); }
+        byKey.get(key).push(col);
+      }
+      return order.map(key => byKey.get(key));
+    }
+
     function renderReadingPage() {
-      const visible=visibleCollections();
+      const visible=groupIntoCases(visibleCollections());
       const {pageItems}=getPageSlice('reading',visible);
       const root=document.getElementById('readingStories');
       if(root){root.classList.toggle('grid',readingLayout==='cards');root.classList.toggle('story-list',readingLayout==='list');}
@@ -2131,8 +2194,12 @@
       }
       const groupByDay = document.getElementById('storySort')?.value !== 'relevance';
       let lastDay = null;
-      for (const col of items) {
+      for (const group of items) {
+        const col = group[0];
+        const isCase = group.length > 1;
         const master = col.master || {};
+        const days = new Set(group.map(c => String(c.latest_published_at || '').slice(0, 10)).filter(Boolean));
+        const updated = days.size > 1;
         if (groupByDay) {
           const day = dayHeading(col.latest_published_at);
           if (day !== lastDay) {
@@ -2145,7 +2212,7 @@
         }
         const sources = master.sources || [];
         const sourceName = sources[0] || 'Unknown source';
-        const articleCount = Number(col.article_count || (col.items || []).length || 1);
+        const articleCount = group.reduce((sum, c) => sum + Number(c.article_count || (c.items || []).length || 1), 0);
         const imageUrl = cssImageUrl(master.image_url);
         const tags = [
           ...(master.geographies || []).filter(tag => tag !== 'Global').slice(0, 2).map(tag => `<span class="chip-tag is-geo">${escapeHtml(tag)}</span>`),
@@ -2160,17 +2227,19 @@
               <span class="source-name">${escapeHtml(sourceName)}</span>
               <span aria-hidden="true">·</span>
               <time datetime="${escapeHtml(col.latest_published_at || '')}">${escapeHtml(relativeTime(col.latest_published_at))}</time>
-              ${articleCount > 1 ? `<span class="sources-badge">${articleCount} sources</span>` : ''}
+              ${updated ? '<span class="focus-badge" title="This case has developed over more than one day">Updated</span>' : ''}
+              ${isCase ? `<span class="sources-badge">${group.length} developments · ${articleCount} articles</span>`
+                : articleCount > 1 ? `<span class="sources-badge">${articleCount} sources</span>` : ''}
               ${col.domain_bucket === 'offshore_wind' ? '<span class="focus-badge">Offshore wind</span>' : ''}
               ${accessStatus(col) === 'open_copy' ? '<span class="access-badge is-open" title="An open article about the same story was found and is used as the basis">Open version found</span>'
                 : accessStatus(col) === 'subscriber' ? '<span class="access-badge" title="Subscriber article; OWIS shows the excerpt and looks for open coverage of the same story">Subscriber</span>' : ''}
             </div>
-            <h3><button type="button" class="story-open">${escapeHtml(cleanTitle(master.title))}</button></h3>
-            <p class="story-description">${escapeHtml(storyBrief(col))}</p>
+            <h3>${isCase && col.case.name ? `<span class="case-name">${escapeHtml(col.case.name)}</span>` : ''}<button type="button" class="story-open">${escapeHtml(cleanTitle(master.title))}</button></h3>
+            <p class="story-description">${escapeHtml(isCase && col.case.account ? shortText(col.case.account.summary, 340) : storyBrief(col))}</p>
             ${tags ? `<div class="story-tags">${tags}</div>` : ''}
           </div>
           ${imageUrl ? `<div class="story-image" style="background-image:url('${imageUrl}')" aria-hidden="true"></div>` : ''}`;
-        row.querySelector('.story-open').addEventListener('click', () => showCollectionDetails(col.collection_key));
+        row.querySelector('.story-open').addEventListener('click', () => isCase ? showCaseDetails(group) : showCollectionDetails(col.collection_key));
         root.appendChild(row);
       }
       markActiveStory();

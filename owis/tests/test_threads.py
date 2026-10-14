@@ -62,3 +62,55 @@ def test_thread_lists_other_stories_on_the_project_once_per_merged_story():
     rows = threads.thread_for(cip)
     assert len(rows) == 1 and rows[0]["title"] in {"RWE confirms Five Estuaries stake sale", "EDF buys RWE stake"}
     assert [r["id"] for r in threads.thread_for(sale)] == [cip]
+
+
+def event(key, day, ids, project="", topic="", title="t"):
+    return {"collection_key": key, "latest_published_at": (NOW + timedelta(days=day)).isoformat(),
+            "items": [{"id": i} for i in ids], "master": {"title": title, "summary": "s", "sources": ["X"]},
+            "_card": {"project": project, "topic": topic, "companies": [], "event_type": "other"}}
+
+
+def store_cards(events):
+    with db.get_conn() as c:
+        for e in events:
+            for i in e["items"]:
+                c.execute("INSERT OR REPLACE INTO news_event_cards VALUES(?,?,?)", (i["id"], json.dumps(e["_card"]), NOW.isoformat()))
+
+
+def test_same_project_or_topic_within_a_week_is_one_case():
+    events = [event("a", 0, [1, 2], project="Five Estuaries offshore wind farm", topic="Five Estuaries ownership"),
+              event("b", 4, [3], project="Five Estuaries", topic="Five Estuaries stake sale"),
+              event("c", 1, [4], topic="German offshore wind tender reform"),
+              event("d", 6, [5], topic="German tender changes"),
+              event("e", 20, [6], topic="German tender reform"),      # more than a week after the last development
+              event("f", 2, [7], topic="Equinor"),                    # a company is not a topic
+              event("g", 3, [8])]
+    store_cards(events)
+    by_key = {e["collection_key"]: e["case"] for e in threads.assign_cases(events)}
+    assert by_key["a"]["key"] == by_key["b"]["key"] and by_key["a"]["name"] == "Five Estuaries"
+    assert by_key["c"]["key"] == by_key["d"]["key"] != by_key["e"]["key"]
+    assert by_key["a"]["signature"] == "1,2,3"
+    assert by_key["f"]["size"] == by_key["g"]["size"] == 1
+
+
+def test_case_account_is_written_once_and_kept_until_rewritten(monkeypatch):
+    from owis.modules.news.processing import cases
+    events = [event("a", 0, [1], project="Utsira Nord"), event("b", 2, [2], project="Utsira Nord")]
+    store_cards(events)
+    threads.assign_cases(events)
+    calls = []
+    monkeypatch.setattr(cases.AIClient, "__init__", lambda self: None)
+    monkeypatch.setattr(cases.AIClient, "enabled", True, raising=False)
+    monkeypatch.setattr(cases.AIClient, "_post_json_prompt",
+                        lambda self, prompt, text, **k: calls.append(json.loads(text)) or
+                        {"title": "Utsira Nord subsidy", "summary": "First this, then that.", "why_it_matters": "w", "next_steps": ""})
+    assert cases.write_accounts(events)["written"] == 1
+    assert [d["date"] for d in calls[0]["developments"]] == sorted(d["date"] for d in calls[0]["developments"])
+    assert cases.write_accounts(events)["written"] == 0           # nothing new, nothing rewritten
+    cases.attach(events)
+    assert events[0]["case"]["account"]["title"] == "Utsira Nord subsidy" and events[0]["case"]["account"]["complete"]
+    grown = events + [event("c", 3, [3], project="Utsira Nord")]
+    store_cards(grown)
+    threads.assign_cases(grown)
+    cases.attach(grown)
+    assert grown[0]["case"]["account"]["complete"] is False       # previous account shown until rewritten
