@@ -89,3 +89,102 @@ def thread_for(item_id: int) -> list[dict]:
         seen.add(story)
         out.append({k: row[k] for k in ("id", "title", "source_name", "article_url", "published_at")})
     return out
+
+
+CASE_GAP_DAYS = 7
+# Unlike project names, a topic's "tender" or "auction" carries meaning; only filler goes.
+_STOP = {"of", "and", "for", "in", "on", "to", "a", "an", "the", "news", "update", "plans", "plan",
+         "offshore", "onshore", "wind", "farm", "project"}
+
+
+def topic_tokens(topic: str | None) -> set[str]:
+    """Content words of an event card's topic."""
+    return {w for w in re.sub(r"[^\w\s]", " ", str(topic or "").lower()).split() if w not in _STOP and len(w) > 2}
+
+
+def same_topic(a: str | None, b: str | None) -> bool:
+    """'German offshore wind tender reform' and 'German tender changes' share the matter."""
+    ta, tb = topic_tokens(a), topic_tokens(b)
+    shared = ta & tb
+    return len(shared) >= 2 and len(shared) / len(ta | tb) >= 0.4
+
+
+def _common(values: list[str]) -> str:
+    values = [v.strip() for v in values if v and v.strip()]
+    return max(set(values), key=lambda v: (values.count(v), -len(v))) if values else ""
+
+
+def assign_cases(collections: list[dict]) -> list[dict]:
+    """Give each story (merged event) a case: stories on the same project or topic, or linked as
+    follow-ups, belong together while each new development comes within CASE_GAP_DAYS of the
+    previous one. Adds collection["case"] = {key, name, size, signature}; a story that shares
+    nothing keeps a case of its own (size 1)."""
+    from owis.modules.news.processing.event_cards import stored_cards
+    item_ids = [int(i["id"]) for col in collections for i in col.get("items") or []]
+    cards = stored_cards(item_ids)
+    with get_conn() as conn:
+        links = [(r[0], r[1]) for r in conn.execute("SELECT item_a_id, item_b_id FROM news_story_links")]
+    owner = {int(i["id"]): col["collection_key"] for col in collections for i in col.get("items") or []}
+    parent = {col["collection_key"]: col["collection_key"] for col in collections}
+
+    def find(key):
+        while parent[key] != key:
+            parent[key] = parent[parent[key]]
+            key = parent[key]
+        return key
+
+    def union(a, b):
+        parent[find(a)] = find(b)
+
+    for a, b in links:
+        if a in owner and b in owner:
+            union(owner[a], owner[b])
+
+    facts = {}
+    for col in collections:
+        col_cards = [cards[int(i["id"])] for i in col.get("items") or [] if int(i["id"]) in cards]
+        projects = [str(c.get("project") or "") for c in col_cards]
+        facts[col["collection_key"]] = {
+            "project": _common([project_key(p) for p in projects if project_key(p)]),
+            "project_names": [p for p in projects if project_key(p)],
+            "topic": _common([str(c.get("topic") or "") for c in col_cards]),
+            "when": col.get("latest_published_at"),
+        }
+    ordered = sorted(collections, key=lambda c: str(c.get("latest_published_at") or ""))
+    for i, left in enumerate(ordered):
+        fl = facts[left["collection_key"]]
+        if not (fl["project"] or fl["topic"]):
+            continue
+        for right in ordered[i + 1:]:
+            gap = _gap_days(fl["when"], right.get("latest_published_at"))
+            if gap is None or gap > CASE_GAP_DAYS:
+                break
+            fr = facts[right["collection_key"]]
+            if (fl["project"] and fl["project"] == fr["project"]) or same_topic(fl["topic"], fr["topic"]):
+                union(left["collection_key"], right["collection_key"])
+
+    members: dict[str, list[dict]] = {}
+    for col in collections:
+        members.setdefault(find(col["collection_key"]), []).append(col)
+    for root, group in members.items():
+        group_facts = [facts[c["collection_key"]] for c in group]
+        names = [n for f in group_facts for n in f["project_names"]]
+        name = (min(names, key=len) if names else _common([f["topic"] for f in group_facts])) if len(group) > 1 else ""
+        ids = sorted(int(i["id"]) for c in group for i in c.get("items") or [])
+        for col in group:
+            col["case"] = {"key": f"case:{root}", "size": len(group), "name": name,
+                           "signature": ",".join(map(str, ids))}
+    return collections
+
+
+def _gap_days(a, b) -> float | None:
+    try:
+        first = datetime.fromisoformat(str(a).replace("Z", "+00:00"))
+        second = datetime.fromisoformat(str(b).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if not first.tzinfo:
+        first = first.replace(tzinfo=timezone.utc)
+    if not second.tzinfo:
+        second = second.replace(tzinfo=timezone.utc)
+    return abs((second - first).total_seconds()) / 86400

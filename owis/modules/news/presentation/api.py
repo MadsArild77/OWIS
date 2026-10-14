@@ -1021,7 +1021,9 @@ def list_collections(
         items_per_collection=items_per_collection,
         masters=repo.list_collection_masters(),
     )
-    return {"items": collections}
+    from owis.modules.news.processing import cases
+    from owis.modules.news.processing.threads import assign_cases
+    return {"items": cases.attach(assign_cases(collections))}
 
 
 @router.post("/collections/merge")
@@ -1197,6 +1199,20 @@ def _run_match_review(payload: MatchRunRequest, job_id: str | None = None, deadl
     if job_id:
         _update_job(job_id, percent=100, step="Match review completed.", status="completed", result=result)
     return result
+
+
+def run_case_accounts_after_fetch(deadline: float | None = None) -> dict[str, Any]:
+    """Write accounts for cases that gained a development; never breaks a fetch."""
+    try:
+        from owis.modules.news.processing import cases
+        from owis.modules.news.processing.threads import assign_cases
+        items = _filter_domain(_attach_metadata(repo.latest(limit=400)), "core")
+        collections = _build_collections(items, repo.list_collection_overrides(), limit=120,
+                                         items_per_collection=400, masters=repo.list_collection_masters())
+        return cases.write_accounts(assign_cases(collections), deadline=deadline)
+    except Exception:
+        logging.getLogger(__name__).exception("Case accounts failed")
+        return {"skipped": "case accounts failed"}
 
 
 def run_coverage_after_fetch(deadline: float | None = None) -> dict[str, Any]:
@@ -1544,8 +1560,10 @@ def _run_fetch_process(payload: RunFetchProcessRequest, job_id: str | None = Non
     if job_id:
         _update_job(job_id, percent=92, step="Grouping coverage of the same story across sources...")
     lap("process")
-    matching_result = run_matching_after_fetch(deadline=started + budget * 0.85)
+    matching_result = run_matching_after_fetch(deadline=started + budget * 0.8)
     lap("matching")
+    case_result = run_case_accounts_after_fetch(deadline=started + budget * 0.9)
+    lap("cases")
     if job_id:
         _update_job(job_id, percent=93, step="Looking for other outlets' coverage of important single-source stories...")
     coverage_result = run_coverage_after_fetch(deadline=started + budget)
@@ -1591,6 +1609,7 @@ def _run_fetch_process(payload: RunFetchProcessRequest, job_id: str | None = Non
         "retention": retention_result,
         "matching": matching_result,
         "coverage": coverage_result,
+        "cases": case_result,
     }
     logging.getLogger(__name__).info(
         "Fetch finished: new=%s processed=%s deferred=%s errors=%s timings=%s",

@@ -301,3 +301,18 @@ beslutningen med lenke til den nye.
 - **Tidsgrense:** en innhenting stopper etter 10 minutter; det som ikke rekkes,
   tas i neste kjøring. Tid per steg logges.
 
+
+## D22 – Saker: samme prosjekt eller tema innenfor en uke
+
+**Vedtatt og implementert 14. oktober 2026.**
+- **Tre nivåer:** artikkel → hendelse (samme handling, slått sammen) → **sak**.
+  Hendelser med samme prosjekt eller tema, eller koblet som oppfølging, hører
+  til samme sak så lenge det går under sju dager mellom utviklingene.
+- **Tema** settes av AI i hendelseskortet (f.eks. «Five Estuaries ownership»);
+  eldre kort lages på nytt gradvis innenfor taket per kjøring.
+- **Nyhetsstrømmen** viser én rad per sak, merket «Updated» når saken strekker
+  seg over mer enn én dag. Saken åpnes som en tidslinje.
+- **Samlet omtale:** saker med flere utviklinger får en AI-skrevet omtale av
+  saken så langt, hvorfor den betyr noe og hva som skjer videre. Den skrives på
+  nytt når saken får en ny utvikling (inntil 10 per kjøring); til da vises
+  forrige omtale med en merknad.

@@ -16,7 +16,7 @@ def raw(url, published):
 def pipeline(tmp_path, monkeypatch):
     monkeypatch.setattr(db, "DB_PATH", str(tmp_path / "fetch.db"))
     db.init_db()
-    for name in ("run_matching_after_fetch", "run_coverage_after_fetch"):
+    for name in ("run_matching_after_fetch", "run_coverage_after_fetch", "run_case_accounts_after_fetch"):
         monkeypatch.setattr(api, name, lambda deadline=None: {})
     monkeypatch.setattr(api, "process_raw_item", lambda item: {**item, "raw_item_id": item["id"]})
     monkeypatch.setattr(api.repo, "save_processed_item", lambda item: 1)
@@ -55,5 +55,5 @@ def test_time_limit_defers_the_rest_to_the_next_fetch(pipeline, monkeypatch):
     pipeline["rss"] = [raw(f"https://a.example/{i}", now.isoformat()) for i in range(3)]
     result = api._run_fetch_process(api.RunFetchProcessRequest(days_back=2))
     assert result["processed_items"] == 1 and result["deferred_items"] == 2
-    assert deadlines == {"matching": 1000 + 60 * 0.85, "coverage": 1060}
+    assert deadlines == {"matching": 1000 + 60 * 0.8, "coverage": 1060}
     assert result["timings_seconds"]["process"] == 40
