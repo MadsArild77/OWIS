@@ -47,6 +47,7 @@ STATIC_PATH_MARKERS = {
 }
 
 SECTION_SEGMENTS = {
+    "blog",
     "news",
     "latest-news",
     "about",

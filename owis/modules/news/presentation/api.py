@@ -1010,20 +1010,41 @@ def list_collections(
     domain_bucket: str = "offshore_wind",
 ):
     init_db()
-    bucket = _normalize_domain_bucket(domain_bucket)
-    items = repo.latest(limit=max(lookback_items, 1), source_name=_clean_source_filter(source_name))
-    items = _filter_domain(_attach_metadata(items), bucket)
-    overrides = repo.list_collection_overrides()
-    collections = _build_collections(
-        items,
-        overrides,
-        limit=limit,
-        items_per_collection=items_per_collection,
-        masters=repo.list_collection_masters(),
-    )
     from owis.modules.news.processing import cases
+    collections = _cased_collections(domain_bucket, limit, items_per_collection, lookback_items, source_name)
+    return {"items": cases.attach(collections)}
+
+
+def _cased_collections(domain_bucket: str = "core", limit: int = 120, items_per_collection: int = 400,
+                       lookback_items: int = 400, source_name: str | None = None) -> list[dict]:
+    """The feed's stories with their cases, built the same way wherever cases are needed."""
     from owis.modules.news.processing.threads import assign_cases
-    return {"items": cases.attach(assign_cases(collections))}
+    items = repo.latest(limit=max(lookback_items, 1), source_name=_clean_source_filter(source_name))
+    items = _filter_domain(_attach_metadata(items), _normalize_domain_bucket(domain_bucket))
+    collections = _build_collections(items, repo.list_collection_overrides(), limit=limit,
+                                     items_per_collection=items_per_collection, masters=repo.list_collection_masters())
+    return assign_cases(collections)
+
+
+class CaseAccountRequest(BaseModel):
+    signature: str
+    domain_bucket: str = "core"
+
+
+@router.post("/cases/account")
+def case_account(payload: CaseAccountRequest):
+    """Write a case's account now, when it is opened without one (otherwise it waits for the next fetch)."""
+    from owis.modules.news.processing import cases
+    init_db()
+    group = [c for c in _cased_collections(payload.domain_bucket) if c["case"]["signature"] == payload.signature]
+    if not group:
+        raise HTTPException(404, "This story has changed; reload the feed.")
+    cases.write_accounts(group, limit=1)
+    cases.attach(group)
+    account = group[0]["case"].get("account")
+    if not account or not account.get("complete"):
+        raise HTTPException(503, "The story could not be written now; it will be written at the next fetch.")
+    return account
 
 
 @router.post("/collections/merge")
@@ -1205,11 +1226,7 @@ def run_case_accounts_after_fetch(deadline: float | None = None) -> dict[str, An
     """Write accounts for cases that gained a development; never breaks a fetch."""
     try:
         from owis.modules.news.processing import cases
-        from owis.modules.news.processing.threads import assign_cases
-        items = _filter_domain(_attach_metadata(repo.latest(limit=400)), "core")
-        collections = _build_collections(items, repo.list_collection_overrides(), limit=120,
-                                         items_per_collection=400, masters=repo.list_collection_masters())
-        return cases.write_accounts(assign_cases(collections), deadline=deadline)
+        return cases.write_accounts(_cased_collections("core"), deadline=deadline)
     except Exception:
         logging.getLogger(__name__).exception("Case accounts failed")
         return {"skipped": "case accounts failed"}
@@ -1474,6 +1491,12 @@ def _run_fetch_process(payload: RunFetchProcessRequest, job_id: str | None = Non
             source_progress=_complete_sources_from_report(source_report),
         )
 
+    # Scraped articles come without a publication time; read it from the article page once.
+    from owis.modules.news.collectors.dates import backfill, fill_new
+    from owis.modules.news.collectors.scrape_fetcher import fetch_article_preview
+    dated_new = fill_new(fetched_items_all, fetch_article_preview)
+    dated_old = backfill(fetch_article_preview)
+
     fetched_items: list[dict[str, Any]] = []
     dropped_old = 0
     for item in fetched_items_all:
@@ -1602,6 +1625,7 @@ def _run_fetch_process(payload: RunFetchProcessRequest, job_id: str | None = Non
         "processing_errors": processing_errors,
         "processing_error_samples": processing_error_samples,
         "deferred_items": deferred_items,
+        "dated_articles": dated_new + dated_old,
         "timings_seconds": {**timings, "total": round(_clock() - started, 1)},
         "source_report": source_report,
         "source_health": health_rows,
