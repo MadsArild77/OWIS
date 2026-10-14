@@ -1491,6 +1491,12 @@ def _run_fetch_process(payload: RunFetchProcessRequest, job_id: str | None = Non
             source_progress=_complete_sources_from_report(source_report),
         )
 
+    # Scraped articles come without a publication time; read it from the article page once.
+    from owis.modules.news.collectors.dates import backfill, fill_new
+    from owis.modules.news.collectors.scrape_fetcher import fetch_article_preview
+    dated_new = fill_new(fetched_items_all, fetch_article_preview)
+    dated_old = backfill(fetch_article_preview)
+
     fetched_items: list[dict[str, Any]] = []
     dropped_old = 0
     for item in fetched_items_all:
@@ -1619,6 +1625,7 @@ def _run_fetch_process(payload: RunFetchProcessRequest, job_id: str | None = Non
         "processing_errors": processing_errors,
         "processing_error_samples": processing_error_samples,
         "deferred_items": deferred_items,
+        "dated_articles": dated_new + dated_old,
         "timings_seconds": {**timings, "total": round(_clock() - started, 1)},
         "source_report": source_report,
         "source_health": health_rows,
