@@ -114,3 +114,19 @@ def test_case_account_is_written_once_and_kept_until_rewritten(monkeypatch):
     threads.assign_cases(grown)
     cases.attach(grown)
     assert grown[0]["case"]["account"]["complete"] is False       # previous account shown until rewritten
+
+
+def test_opening_a_story_writes_its_account(monkeypatch):
+    from owis.modules.news.presentation import api
+    from owis.modules.news.processing import cases
+    events = [event("a", 0, [1], project="Utsira Nord"), event("b", 2, [2], project="Utsira Nord")]
+    store_cards(events)
+    threads.assign_cases(events)
+    monkeypatch.setattr(api, "_cased_collections", lambda bucket="core": events)
+    monkeypatch.setattr(cases.AIClient, "__init__", lambda self: None)
+    monkeypatch.setattr(cases.AIClient, "enabled", True, raising=False)
+    monkeypatch.setattr(cases.AIClient, "_post_json_prompt", lambda *a, **k: {"title": "Utsira Nord subsidy improved", "summary": "Story.", "why_it_matters": "w", "next_steps": ""})
+    account = api.case_account(api.CaseAccountRequest(signature="1,2"))
+    assert account["title"] == "Utsira Nord subsidy improved" and account["complete"]
+    with pytest.raises(api.HTTPException):
+        api.case_account(api.CaseAccountRequest(signature="9"))

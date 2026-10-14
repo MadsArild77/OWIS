@@ -1736,21 +1736,17 @@
         `${day(developments[developments.length - 1].latest_published_at)} – ${day(latest.latest_published_at)}`].join(' · ');
       const account = latest.case?.account;
       document.getElementById('detailTitle').textContent = caseHeadline(developments);
+      // The story comes first: the written account, or until it exists the latest development in full.
       document.getElementById('detailContent').innerHTML = `
-        ${account ? `<div class="detail-summary">
-          <strong>The case so far</strong>
-          <div>${textBlockHtml(account.summary)}</div>
-          ${account.complete ? '' : '<p class="muted">A newer development is not yet included; the account is rewritten at the next fetch.</p>'}
+        <div id="caseStory">${account ? caseAccountHtml(account) : `<div class="detail-summary">
+          <strong>Latest development</strong>
+          <div>${textBlockHtml(latest.master?.summary || 'n/a')}</div>
         </div>
         <div class="detail-why">
           <strong>Why it matters</strong>
-          <div>${textBlockHtml(account.why_it_matters || 'n/a')}</div>
-          ${account.next_steps ? `<p><strong>What to watch:</strong> ${escapeHtml(account.next_steps)}</p>` : ''}
-        </div>` : `<div class="detail-why">
-          <strong>Latest development · why it matters</strong>
           <div>${textBlockHtml(readableText(latest.master?.why_it_matters) || 'n/a')}</div>
-          <p class="muted">A written account of the whole case is made at the next fetch.</p>
-        </div>`}
+        </div>`}</div>
+        <p id="caseStoryStatus" class="muted" role="status" aria-live="polite"></p>
         <div class="detail-summary">
           <strong>Developments</strong>
           <ol class="case-timeline">${developments.map(c => `<li>
@@ -1763,6 +1759,38 @@
       document.getElementById('detailContent').querySelectorAll('[data-case-development]').forEach(button => {
         button.addEventListener('click', () => showCollectionDetails(button.dataset.caseDevelopment));
       });
+      if (!account?.complete) writeCaseStory(latest);
+    }
+
+    function caseAccountHtml(account) {
+      return `<div class="detail-summary">
+          <strong>The story so far</strong>
+          <div>${textBlockHtml(account.summary)}</div>
+        </div>
+        <div class="detail-why">
+          <strong>Why it matters</strong>
+          <div>${textBlockHtml(account.why_it_matters || 'n/a')}</div>
+          ${account.next_steps ? `<p><strong>What to watch:</strong> ${escapeHtml(account.next_steps)}</p>` : ''}
+        </div>`;
+    }
+
+    // Opening a story without an up-to-date account writes it now (a few seconds) and keeps it.
+    async function writeCaseStory(latest) {
+      const key = String(latest.collection_key || '');
+      const status = document.getElementById('caseStoryStatus');
+      status.textContent = 'Writing the story from all developments…';
+      try {
+        const account = await postJson('/api/news/cases/account',
+          {signature: latest.case.signature, domain_bucket: document.getElementById('domainFilter')?.value || 'core'});
+        if (String(activeDetailCollectionKey || '') !== key) return;
+        for (const col of mergedItems) if (col.case?.signature === latest.case.signature) col.case.account = account;
+        document.getElementById('caseStory').innerHTML = caseAccountHtml(account);
+        document.getElementById('detailTitle').textContent = account.title || document.getElementById('detailTitle').textContent;
+        status.textContent = '';
+        renderReadingPage();
+      } catch (error) {
+        if (String(activeDetailCollectionKey || '') === key) status.textContent = 'The full story is written at the next fetch.';
+      }
     }
 
     function showCollectionDetails(collectionKey) {
