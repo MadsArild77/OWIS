@@ -1706,6 +1706,21 @@
       load();
     }
 
+    // A case is written as one story: the AI account's title and summary once written,
+    // until then the case name and its developments - never just the newest article's headline.
+    function caseHeadline(group) {
+      const c = group[0].case || {};
+      return c.account?.title || (c.name ? `${c.name}: ${group.length} developments` : `${group.length} developments in this story`);
+    }
+
+    function caseBrief(group) {
+      const account = group[0].case?.account;
+      if (account?.summary) return shortText(account.summary, 340);
+      const day = value => value ? new Date(value).toLocaleDateString('en-GB', {day: 'numeric', month: 'short'}) : '';
+      return [...group].sort((a, b) => String(b.latest_published_at || '').localeCompare(String(a.latest_published_at || '')))
+        .map(c => `${day(c.latest_published_at)}: ${cleanTitle(c.master?.title)}`).join(' · ');
+    }
+
     // A case: its developments (merged events) on a timeline, newest first.
     function showCaseDetails(group) {
       const developments = [...group].sort((a, b) => String(b.latest_published_at || '').localeCompare(String(a.latest_published_at || '')));
@@ -1720,7 +1735,7 @@
       document.getElementById('detailMeta').textContent = [`${developments.length} developments`, `${articles} articles`,
         `${day(developments[developments.length - 1].latest_published_at)} – ${day(latest.latest_published_at)}`].join(' · ');
       const account = latest.case?.account;
-      if (account?.title) document.getElementById('detailTitle').textContent = account.title;
+      document.getElementById('detailTitle').textContent = caseHeadline(developments);
       document.getElementById('detailContent').innerHTML = `
         ${account ? `<div class="detail-summary">
           <strong>The case so far</strong>
@@ -2241,7 +2256,10 @@
           }
         }
         const sources = master.sources || [];
-        const sourceName = sources[0] || 'Unknown source';
+        const caseSources = isCase ? [...new Set(group.flatMap(c => c.master?.sources || []))] : [];
+        const sourceName = isCase
+          ? caseSources.slice(0, 3).join(', ') + (caseSources.length > 3 ? ` +${caseSources.length - 3}` : '')
+          : sources[0] || 'Unknown source';
         const articleCount = group.reduce((sum, c) => sum + Number(c.article_count || (c.items || []).length || 1), 0);
         const imageUrl = cssImageUrl(master.image_url);
         const tags = [
@@ -2265,8 +2283,8 @@
               ${accessStatus(col) === 'open_copy' ? '<span class="access-badge is-open" title="An open article about the same story was found and is used as the basis">Open version found</span>'
                 : accessStatus(col) === 'subscriber' ? '<span class="access-badge" title="Subscriber article; OWIS shows the excerpt and looks for open coverage of the same story">Subscriber</span>' : ''}
             </div>
-            <h3>${isCase && col.case.name ? `<span class="case-name">${escapeHtml(col.case.name)}</span>` : ''}<button type="button" class="story-open">${escapeHtml(cleanTitle(master.title))}</button></h3>
-            <p class="story-description">${escapeHtml(isCase && col.case.account ? shortText(col.case.account.summary, 340) : storyBrief(col))}</p>
+            <h3>${isCase && col.case.name ? `<span class="case-name">${escapeHtml(col.case.name)}</span>` : ''}<button type="button" class="story-open">${escapeHtml(isCase ? caseHeadline(group) : cleanTitle(master.title))}</button></h3>
+            <p class="story-description">${escapeHtml(isCase ? caseBrief(group) : storyBrief(col))}</p>
             ${tags ? `<div class="story-tags">${tags}</div>` : ''}
           </div>
           ${imageUrl ? `<div class="story-image" style="background-image:url('${imageUrl}')" aria-hidden="true"></div>` : ''}`;
