@@ -244,6 +244,8 @@
     }
     .source-name { color: var(--ink-2); font-weight: 600; }
     .sources-badge { padding: 0 8px; border-radius: 999px; border: 1px solid var(--line-strong); font-size: 0.75rem; font-weight: 600; color: var(--ink-2); line-height: 1.6; }
+    .case-link { background: none; cursor: pointer; margin: 0; box-shadow: none; color: var(--brand); border-color: var(--brand); }
+    .case-link:hover { background: var(--brand-soft); }
     .case-name { display: block; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--brand); margin-bottom: 2px; }
     .case-timeline { list-style: none; padding: 0; margin: 8px 0 0; border-left: 2px solid var(--line-strong); }
     .case-timeline li { position: relative; padding: 0 0 16px 16px; }
@@ -701,9 +703,15 @@
           <div id="tab-reading" class="tab-panel active">
             <div class="view-head" style="margin-bottom:12px">
               <p id="readingSummary" class="muted" style="margin:0" aria-live="polite"></p>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <div class="view-toggle" role="group" aria-label="Show stories or every news item">
+                <button type="button" data-reading-unit="stories" title="One row per story: developments on the same project or topic within a week">Stories</button>
+                <button type="button" data-reading-unit="news" title="Every news item as it came in, newest first">News</button>
+              </div>
               <div class="view-toggle" role="group" aria-label="Layout">
                 <button id="readingListViewBtn" class="active" type="button" data-reading-layout="list">List</button>
                 <button id="readingCardViewBtn" type="button" data-reading-layout="cards">Cards</button>
+              </div>
               </div>
             </div>
             <div id="readingStories" class="story-list" aria-busy="true">
@@ -846,6 +854,8 @@
     let activeJobPollTimer = null;
     let latestSourceReportBySource = {};
     let readingLayout = localStorage.getItem('owisReadingLayout') === 'cards' ? 'cards' : 'list';
+    let readingUnit = localStorage.getItem('owisReadingUnit') === 'news' ? 'news' : 'stories';
+    let caseGroups = new Map();
 
     function relevanceLabel(status) {
       if (status === 'relevant') return 'Relevant';
@@ -1973,8 +1983,22 @@
       document.querySelectorAll('[data-reading-layout]').forEach(btn => {
         btn.addEventListener('click', () => setReadingLayout(btn.getAttribute('data-reading-layout') || 'list'));
       });
+      document.querySelectorAll('[data-reading-unit]').forEach(btn => {
+        btn.addEventListener('click', () => setReadingUnit(btn.getAttribute('data-reading-unit')));
+      });
+      setReadingUnit(readingUnit, false);
       setReadingLayout(readingLayout);
       setActiveTab('reading');
+    }
+
+    function setReadingUnit(unit, render = true) {
+      readingUnit = unit === 'news' ? 'news' : 'stories';
+      localStorage.setItem('owisReadingUnit', readingUnit);
+      document.querySelectorAll('[data-reading-unit]').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-reading-unit') === readingUnit);
+      });
+      pageState.reading = 1;
+      if (render) renderReadingPage();
     }
 
     function setReadingLayout(layout) {
@@ -2042,7 +2066,12 @@
     }
 
     function renderReadingPage() {
-      const visible=groupIntoCases(visibleCollections());
+      const cases=groupIntoCases(visibleCollections());
+      caseGroups=new Map(cases.filter(group=>group.length>1).map(group=>[group[0].case.key,group]));
+      // News: every item on its own, newest first; Stories: one row per case.
+      const visible=readingUnit==='news'
+        ? visibleCollections().slice().sort((a,b)=>String(b.latest_published_at||'').localeCompare(String(a.latest_published_at||''))).map(col=>[col])
+        : cases;
       const {pageItems}=getPageSlice('reading',visible);
       const root=document.getElementById('readingStories');
       if(root){root.classList.toggle('grid',readingLayout==='cards');root.classList.toggle('story-list',readingLayout==='list');}
@@ -2055,7 +2084,8 @@
       const summary=document.getElementById('readingSummary');
       if(summary){
         const query=(document.getElementById('storySearch')?.value||'').trim();
-        summary.textContent=`${visible.length} ${visible.length===1?'story':'stories'}${query?` matching “${query}”`:''}`;
+        const unit=readingUnit==='news'?(visible.length===1?'news item':'news items'):(visible.length===1?'story':'stories');
+        summary.textContent=`${visible.length} ${unit}${query?` matching “${query}”`:''}`;
       }
     }
 
@@ -2228,6 +2258,7 @@
               <span aria-hidden="true">·</span>
               <time datetime="${escapeHtml(col.latest_published_at || '')}">${escapeHtml(relativeTime(col.latest_published_at))}</time>
               ${updated ? '<span class="focus-badge" title="This case has developed over more than one day">Updated</span>' : ''}
+              ${!isCase && caseGroups.has(col.case?.key) ? `<button type="button" class="sources-badge case-link" title="Open the whole story">${escapeHtml(col.case.name || 'Story')} · ${caseGroups.get(col.case.key).length} developments</button>` : ''}
               ${isCase ? `<span class="sources-badge">${group.length} developments · ${articleCount} articles</span>`
                 : articleCount > 1 ? `<span class="sources-badge">${articleCount} sources</span>` : ''}
               ${col.domain_bucket === 'offshore_wind' ? '<span class="focus-badge">Offshore wind</span>' : ''}
@@ -2240,6 +2271,7 @@
           </div>
           ${imageUrl ? `<div class="story-image" style="background-image:url('${imageUrl}')" aria-hidden="true"></div>` : ''}`;
         row.querySelector('.story-open').addEventListener('click', () => isCase ? showCaseDetails(group) : showCollectionDetails(col.collection_key));
+        row.querySelector('.case-link')?.addEventListener('click', () => showCaseDetails(caseGroups.get(col.case.key)));
         root.appendChild(row);
       }
       markActiveStory();
