@@ -126,6 +126,27 @@ synlig og omstart ikke gir dobbeltkjøring.
 
 PR: ikke opprettet. Validering: ikke utført.
 
+## Overvåking (forslag, D23)
+
+Foreslått 15. oktober 2026, ikke startet. Se [D23](DECISIONS.md). Rekkefølge:
+
+1. [ ] **eInnsyn** (eget repo): bytt til nytt API på `api.einnsyn.no` og slå på
+   søkeprofilene igjen. Ferdig når nye journalposter for fulgte saker og
+   søkeprofiler havner i Notion.
+2. [ ] **Varslingssøk i OWIS:** lagrede søk med valg av kilder, varsling og
+   leveranse. Google Alerts-RSS som kilde, med egen regel for eget navn.
+   Ferdig når et søk på «NorthernBlue» gir treff fra minst to kilder og vises
+   i morgenrapporten.
+3. [ ] **Britiske anbud:** Find a Tender og Contracts Finder i Opportunities, med
+   samme profiler og filtrering som TED.
+4. [ ] **Bevegelser:** ny hendelsestype for lederskifter/ansettelser, visning per
+   selskap og uke, seksjon i morgenrapporten, og Brønnøysundregistrene for
+   organisasjonene i registeret.
+5. [ ] **Beslutning:** skal eInnsyn og DealEngine flyttes helt inn i OWIS, og
+   hvordan håndteres profiler utenfor havvind?
+
+PR: ikke opprettet. Validering: ikke utført.
+
 ## Senere utvidelser
 
 - Flere land og EU-adaptere etter at Norge-piloten fungerer, med hvert land

@@ -316,3 +316,30 @@ beslutningen med lenke til den nye.
   saken så langt, hvorfor den betyr noe og hva som skjer videre. Den skrives på
   nytt når saken får en ny utvikling (inntil 10 per kjøring); til da vises
   forrige omtale med en merknad.
+
+## D23 – Overvåking samlet i OWIS: varslingssøk, bevegelser, eInnsyn og anbud
+
+**Forslag 15. oktober 2026. Ikke vedtatt eller implementert.** Plan i
+[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md#overvåking-forslag-d23).
+- **Varslingssøk:** brukeren lagrer søk (eget navn, selskaper, personer, prosjekter)
+  som kjøres mot alle kilder: nyheter, eInnsyn, anbud og Brønnøysundregistrene.
+  Per søk velges kilder, varsling (straks eller i morgenrapporten) og leveranse
+  (OWIS, e-post, Notion). Dette er den konkrete formen på tema-/personreglene i
+  [D05](#d05--prioriter-roller-og-organisasjoner-med-personoverstyring).
+- **Google Alerts som kilde, ikke som verktøy:** varsler leveres som RSS og legges
+  inn som kilde. Treff for eget navn får egen regel, så havvind-relevansen (D13)
+  ikke sorterer dem bort.
+- **Bevegelser:** hendelseskortene (D14) får en egen type for lederskifter og
+  ansettelser (i dag havner de under `corporate`), og en visning per selskap og uke.
+  Brønnøysundregistrene (åpent API) gir rolleendringer og nye selskaper for
+  organisasjonene i registeret. LinkedIn-jobbytter fanges ikke; vi skraper ikke LinkedIn.
+- **eInnsyn:** det separate eInnsyn-repoet bruker `einnsyn.no/api/v2`, som svarte
+  404 den 15. oktober. Nytt API på `api.einnsyn.no` svarte med ferske treff uten
+  nøkkel. Søkeprofilene er avslått i koden. Fikses først i eget repo, flyttes
+  eventuelt inn som regulatorisk kilde senere.
+- **Anbud:** TED, Doffin og Verdensbanken finnes både i DealEngine og i
+  Opportunities. Storbritannia mangler etter Brexit; Find a Tender og Contracts
+  Finder har åpne API-er (begge svarte 15. oktober).
+- **Avklaring før sammenslåing:** DealEngine har profiler utenfor havvind (AGR, MAV,
+  maritimt). Enten får OWIS profiler per selskap/bransje, eller DealEngine
+  beholdes for det som ikke er havvind.
