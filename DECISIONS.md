@@ -333,10 +333,11 @@ beslutningen med lenke til den nye.
   ansettelser (i dag havner de under `corporate`), og en visning per selskap og uke.
   Brønnøysundregistrene (åpent API) gir rolleendringer og nye selskaper for
   organisasjonene i registeret. LinkedIn-jobbytter fanges ikke; vi skraper ikke LinkedIn.
-- **eInnsyn:** det separate eInnsyn-repoet bruker `einnsyn.no/api/v2`, som svarte
-  404 den 15. oktober. Nytt API på `api.einnsyn.no` svarte med ferske treff uten
-  nøkkel. Søkeprofilene er avslått i koden. Fikses først i eget repo, flyttes
-  eventuelt inn som regulatorisk kilde senere.
+- **eInnsyn:** det separate eInnsyn-repoet fungerer mot `einnsyn.no/api/v2`.
+  Feilene skyldtes tidsavbrudd fra Notion uten nye forsøk, og svært mange
+  Notion-kall per kjøring; rettet i eInnsyn PR #2 (15. oktober), som også kjører
+  én gang per hverdag. Et nytt, åpent API finnes på `api.einnsyn.no` og kan brukes
+  hvis eInnsyn flyttes inn i OWIS som regulatorisk kilde.
 - **Anbud:** TED, Doffin og Verdensbanken finnes både i DealEngine og i
   Opportunities. Storbritannia mangler etter Brexit; Find a Tender og Contracts
   Finder har åpne API-er (begge svarte 15. oktober).
