@@ -365,3 +365,9 @@ beslutningen med lenke til den nye.
   journalposter nevner nyhetens prosjekt eller et selskapsnavn på minst to ord fra
   hendelseskortet (D14). Vises begge veier: «Related news» og «Public records (eInnsyn)».
   Ingen AI-kall.
+- **Spør om saken:** nederst i sakspanelet kan man stille spørsmål på norsk eller engelsk.
+  Svaret bygger på journalpostene og inntil fire åpne dokumenter (PDF-tekst), valgt etter ord
+  felles med spørsmålet, eller nyeste først når man spør om «siste». Svaret viser kildene.
+- **Det huskes:** samtalen lagres per sak i OWIS-databasen og vises igjen når saken åpnes,
+  også for andre brukere, og brukes som bakgrunn for nye spørsmål. Tekst fra lest PDF lagres,
+  så hvert dokument leses én gang. Samtalen kan slettes med «Clear conversation».

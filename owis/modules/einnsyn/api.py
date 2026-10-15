@@ -8,7 +8,7 @@ from owis.core.config.settings import (
     NOTION_API_KEY,
     NOTION_VERSION,
 )
-from owis.modules.einnsyn import case_accounts, links
+from owis.modules.einnsyn import case_accounts, case_chat, links
 from owis.modules.einnsyn.case_source import CaseSource
 from owis.modules.einnsyn.notion_reader import EinnsynNotionReader, OverviewCache
 
@@ -17,6 +17,7 @@ reader = EinnsynNotionReader(NOTION_API_KEY, EINNSYN_NOTION_SAKER_DB_ID, EINNSYN
                              EINNSYN_NOTION_SOK_DB_ID, NOTION_VERSION)
 cache = OverviewCache(reader)
 cases = CaseSource()
+document_texts = case_chat.DocumentTexts()
 
 
 @router.get("/overview")
@@ -77,3 +78,37 @@ def related_cases(item_ids: list[int] = Query(default=[])):
     except Exception:
         return {"items": []}
     return {"items": links.cases_for_news(item_ids, saker)}
+
+
+class ChatRequest(BaseModel):
+    ref: str
+    question: str
+
+
+@router.get("/case/chat")
+def case_chat_history(ref: str):
+    """The stored conversation about a case."""
+    from owis.modules.einnsyn.case_source import case_ref
+    return {"messages": case_chat.conversation(case_ref(ref))}
+
+
+@router.post("/case/chat")
+def case_chat_answer(payload: ChatRequest):
+    """Answer a question about the case from its journal posts, the most relevant open documents and the
+    conversation so far; the question and answer are stored with the case."""
+    if not payload.question.strip():
+        raise HTTPException(status_code=400, detail="Ask a question.")
+    case = dict(_load_case(payload.ref))
+    case["account"] = case_accounts.stored(case)
+    case["related_news"] = links.news_for_case(case)
+    result = case_chat.answer(case, payload.question, document_texts)
+    if result.get("error"):
+        raise HTTPException(status_code=503, detail=result["error"])
+    return result
+
+
+@router.delete("/case/chat")
+def case_chat_clear(ref: str):
+    from owis.modules.einnsyn.case_source import case_ref
+    case_chat.forget(case_ref(ref))
+    return {"ok": True}
