@@ -125,7 +125,8 @@ def test_big_picture_is_kept_with_its_sources_and_marked_outdated(monkeypatch):
         def _post_json_prompt(self, prompt, text, **kw):
             sent.update(json.loads(text))
             return {"headline": "Grid link for Sørlige Nordsjø II takes shape",
-                    "summary": "The licence case runs alongside the supplier news [1].", "watch": "Watch NVE.", "cited": [1, 99]}
+                    "summary": "The licence case runs alongside the supplier news [1] and a deal [99].", "watch": "Watch NVE [7].",
+                    "cited": [1, 99]}
 
     monkeypatch.setattr(big_picture, "AIClient", FakeAI)
     result = big_picture.write(case, ctx, {"summary": "Ventyr applied.", "stage": "Under review"})
@@ -134,6 +135,10 @@ def test_big_picture_is_kept_with_its_sources_and_marked_outdated(monkeypatch):
     assert result["complete"] and result["headline"].startswith("Grid link")
     assert [s["n"] for s in result["sources"]] == [1]  # out-of-range citations are dropped
     assert result["sources"][0]["title"] == ctx["news"][0]["title"]
+    assert result["summary"] == "The licence case runs alongside the supplier news [1] and a deal."
+    assert result["watch"] == "Watch NVE."
+    renamed = dict(ctx, cases=[dict(ctx["cases"][0], status="Pause")])
+    assert big_picture.stored(case, renamed)["complete"] is False  # a changed case status brings a rewrite
     fewer = dict(ctx, cases=[])
     assert big_picture.stored(case, fewer)["complete"] is False
     assert big_picture.write(case, {"projects": [], "news": [], "cases": []}) is None  # nothing to put it in context with

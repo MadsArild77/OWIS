@@ -84,8 +84,11 @@ def context(case: dict, saker: list[dict]) -> dict:
 
 
 def signature(case: dict, ctx: dict) -> str:
-    parts = [case_accounts.signature(case), ",".join(str(n["id"]) for n in ctx["news"]),
-             ",".join(c["case_number"] for c in ctx["cases"])]
+    # Titles, statuses and project areas are included, so an edited news title or a case moved
+    # to another status or project also brings a rewrite, not only new news or cases
+    parts = [case_accounts.signature(case), ",".join(ctx["projects"]),
+             "\n".join(f'{n["id"]}:{n["title"]}' for n in ctx["news"]),
+             "\n".join(f'{c["case_number"]}:{c["status"]}:{c["title"]}' for c in ctx["cases"])]
     return hashlib.sha1("|".join(parts).encode()).hexdigest()[:16]
 
 
@@ -130,15 +133,21 @@ def write(case: dict, ctx: dict, account: dict | None = None) -> dict | None:
         return None
     if not isinstance(data, dict) or not str(data.get("summary") or "").strip():
         return None
-    cited = sorted({int(n) for n in data.get("cited") or [] if str(n).isdigit() and 1 <= int(n) <= len(ctx["news"])}
-                   | {int(n) for n in re.findall(r"\[(\d+)\]", str(data["summary"])) if 1 <= int(n) <= len(ctx["news"])})
+    valid = range(1, len(ctx["news"]) + 1)
+
+    def clean(text: str) -> str:
+        """Drops citations of news that were not given, so every [n] shown has a source."""
+        return re.sub(r"\s*\[(\d+)\]", lambda m: m.group(0) if int(m.group(1)) in valid else "", str(text or ""))
+
+    summary, watch = clean(data["summary"]), clean(data.get("watch"))
+    cited = sorted({int(n) for n in data.get("cited") or [] if str(n).isdigit() and int(n) in valid}
+                   | {int(n) for n in re.findall(r"\[(\d+)\]", summary + " " + watch)})
     # The cited news are stored with the text, so [n] still points at the right story when the linked news change
     sources = [{"n": n, **{k: ctx["news"][n - 1][k] for k in ("title", "url", "source", "published")}} for n in cited]
     _ensure_table()
     with get_conn() as conn:
         conn.execute('''INSERT OR REPLACE INTO einnsyn_big_picture (ref, signature, headline, summary, watch, sources,
             created_at) VALUES(?,?,?,?,?,?,?)''',
-                     (case["ref"], signature(case, ctx), str(data.get("headline") or "")[:160], str(data["summary"])[:4000],
-                      str(data.get("watch") or "")[:800], json.dumps(sources, ensure_ascii=False), datetime.now(timezone.utc).isoformat()))
+                     (case["ref"], signature(case, ctx), str(data.get("headline") or "")[:160], summary[:4000], watch[:800], json.dumps(sources, ensure_ascii=False), datetime.now(timezone.utc).isoformat()))
     return stored(case, ctx)
 
