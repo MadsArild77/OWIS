@@ -3534,6 +3534,13 @@
       }
     });
     document.getElementById('adviceRefresh').addEventListener('click', loadSourceAdvice);
+
+    // Links from the other pages (e.g. /einnsyn) open a section directly: /news#morning, #governance, #settings
+    {
+      const section = decodeURIComponent(location.hash.slice(1));
+      if (section === 'settings') document.getElementById('showSettingsView').click();
+      else if (section) document.querySelector(`.nav-item.tab-btn[data-tab="${CSS.escape(section)}"]`)?.click();
+    }
   </script>
   <script src="/static/source-config.js" defer></script>
 </body>

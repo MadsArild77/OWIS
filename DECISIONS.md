@@ -385,3 +385,8 @@ beslutningen med lenke til den nye.
   henviser til lagres med teksten, så kildehenvisningene [n] stemmer selv om nyhetsbildet endrer
   seg. Teksten skrives på nytt når saken, nyhetene eller prosjektets saker endres. Nyhetene og de
   andre sakene ligger under teksten som kilder, og sakene kan åpnes derfra.
+- **Samme design som News:** `/einnsyn` bruker samme ramme som nyhetssiden: sidemeny, toppfelt med
+  «Refresh from Notion», prosjekter som temaknapper, tema som nedtrekksliste og visningsvalg
+  (Journal posts, Cases, Suggested, Search terms). Journalposter vises som nyhetslisten, gruppert per
+  dag, og en sak åpnes i det samme lesepanelet som en nyhetssak, med journalpostene som tidslinje.
+  Menyvalgene Morning brief, Policy og Settings åpner riktig del av `/news` (`/news#morning` osv.).

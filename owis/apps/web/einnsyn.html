@@ -3,223 +3,380 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>OWIS eInnsyn</title>
+  <title>eInnsyn · OWIS</title>
   <link rel="stylesheet" href="/static/theme.css" />
   <script src="/static/theme.js"></script>
   <style>
-    /* Page styles for /einnsyn. Colours come from the tokens in theme.css. */
-    .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px 40px; }
-    .topbar {
-      position: sticky; top: 0; z-index: 20;
-      margin: 0 -24px 24px; padding: 12px 24px;
-      display: flex; justify-content: space-between; align-items: center; gap: 12px;
-      background: var(--surface); border-bottom: 1px solid var(--line);
+    /* Page styles for /einnsyn. Layout and components follow /news; colours come from the tokens in theme.css. */
+    [hidden] { display: none !important; }
+    * { box-sizing: border-box; }
+
+    /* ---------- App shell: sidebar + main column (as /news) ---------- */
+    .app { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100vh; }
+    .sidebar {
+      position: sticky; top: 0; height: 100vh;
+      display: flex; flex-direction: column; gap: 4px;
+      padding: 18px 12px 14px;
+      background: var(--sidebar);
+      border-right: 1px solid var(--line);
+      overflow-y: auto;
     }
-    .brand-mark { display: flex; align-items: center; gap: 10px; color: var(--ink); font-size: 0.9rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; }
-    .brand-dot { width: 12px; height: 12px; border-radius: 999px; background: var(--brand); }
-    .nav { display: flex; align-items: center; gap: 18px; font-size: 0.95rem; }
-    .nav a { color: var(--muted); font-weight: 600; text-decoration: none; }
-    .nav a:hover, .nav a[aria-current="page"] { color: var(--brand); }
-    h1 { margin: 0 0 18px; font-size: 1.75rem; }
-    h2 { font-size: 1.35rem; }
-    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; box-shadow: var(--shadow); }
-    .card h2 { margin-top: 0; }
-    .controls { margin-top: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
-    label { display: block; color: var(--muted); font-size: 0.875rem; font-weight: 600; margin-bottom: 4px; }
-    input, select {
-      width: 100%; box-sizing: border-box;
-      border: 1px solid var(--line-strong); border-radius: 8px; padding: 8px 10px;
-      font: inherit; font-size: 0.95rem;
+    .brand { display: flex; align-items: center; gap: 10px; padding: 4px 10px 18px; color: var(--ink); text-decoration: none; }
+    .brand:hover { color: var(--ink); text-decoration: none; }
+    .brand-logo {
+      display: grid; place-items: center; width: 32px; height: 32px; flex: none;
+      border-radius: 8px; background: var(--brand); color: var(--brand-ink);
+    }
+    .brand-logo svg { width: 20px; height: 20px; }
+    .brand-name { display: block; font-weight: 700; font-size: 1rem; letter-spacing: 0.02em; line-height: 1.2; }
+    .brand-sub { display: block; font-size: 0.75rem; color: var(--muted); line-height: 1.3; }
+    .side-nav { display: flex; flex-direction: column; gap: 2px; }
+    .nav-label { padding: 14px 10px 6px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    .nav-item {
+      display: flex; align-items: center; justify-content: flex-start; gap: 10px; width: 100%;
+      margin: 0; padding: 8px 10px;
+      border: 0; border-radius: 8px;
+      background: transparent; color: var(--ink-2);
+      font: inherit; font-size: 0.94rem; font-weight: 500; text-align: left; text-decoration: none;
+      cursor: pointer;
+    }
+    .nav-item svg { width: 18px; height: 18px; flex: none; color: var(--muted); }
+    .nav-item:hover { background: var(--surface-hover); color: var(--ink); text-decoration: none; }
+    .nav-item.active, .nav-item.active:hover { background: var(--active-bg); color: var(--active-ink); font-weight: 600; }
+    .nav-item.active svg { color: var(--brand); }
+    .nav-count { margin-left: auto; padding: 0 7px; border-radius: 999px; background: var(--surface-2); color: var(--muted); font-size: 0.78rem; font-weight: 600; line-height: 1.6; }
+    .nav-count:empty { display: none; }
+    .sidebar-foot { margin-top: auto; padding: 12px 10px 0; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+    .theme-toggle:hover:not([disabled]) { background: var(--surface-hover); border-color: var(--line-strong); color: var(--ink); }
+
+    .main { min-width: 0; }
+    .main-head {
+      position: sticky; top: 0; z-index: 30;
+      display: flex; align-items: center; justify-content: space-between; gap: 20px;
+      padding: 16px 32px;
+      background: color-mix(in srgb, var(--page) 88%, transparent);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--line);
+    }
+    .main-head h1 { margin: 0; font-size: 1.5rem; font-weight: 700; }
+    .main-head p { margin: 2px 0 0; color: var(--muted); font-size: 0.92rem; }
+    .head-actions { display: flex; align-items: center; gap: 10px; flex: none; }
+    .head-actions .muted { font-size: 0.85rem; max-width: 240px; }
+    .head-actions button { white-space: nowrap; }
+    .content { max-width: 1080px; padding: 22px 32px 64px; }
+
+    /* ---------- Controls ---------- */
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line-strong); border-radius: 8px;
+      padding: 8px 11px;
+      font: inherit; font-size: 0.94rem;
       background: var(--surface); color: var(--ink);
     }
+    input:focus, select:focus, textarea:focus { outline: 2px solid var(--brand); outline-offset: 0; border-color: var(--brand); }
+    input[type="checkbox"] { width: auto; accent-color: var(--brand); }
     button {
-      border: 1px solid transparent; border-radius: 8px; padding: 9px 14px;
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      border: 1px solid var(--brand); border-radius: 8px;
+      padding: 8px 14px;
       background: var(--brand); color: var(--brand-ink);
-      font: inherit; font-size: 0.95rem; font-weight: 600; cursor: pointer;
-      margin-right: 8px; margin-bottom: 8px;
+      font: inherit; font-size: 0.92rem; font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.12s ease, border-color 0.12s ease;
     }
-    button:hover { filter: brightness(1.08); }
-    .btn-secondary { background: var(--secondary-bg); color: var(--secondary-ink); border-color: var(--line); }
-    .status { margin-top: 10px; color: var(--ok); }
-    .status.warn { color: var(--warn); }
-    section { margin: 20px 0 30px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
-    .item h3 { margin: 0 0 6px; font-size: 1.05rem; line-height: 1.35; }
-    .muted { color: var(--muted); font-size: 0.95rem; }
-    .meta { margin-top: 8px; color: var(--muted); font-size: 0.875rem; }
+    button:hover:not([disabled]) { background: var(--brand-hover); border-color: var(--brand-hover); }
+    button[disabled] { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary { background: var(--secondary-bg); color: var(--secondary-ink); border-color: var(--line-strong); box-shadow: var(--shadow); }
+    .btn-secondary:hover:not([disabled]) { background: var(--surface-hover); border-color: var(--line-strong); }
+    .btn-ghost { background: transparent; color: var(--brand); border-color: transparent; padding: 6px 8px; }
+    .btn-ghost:hover:not([disabled]) { background: var(--brand-soft); border-color: transparent; }
     a { text-decoration: none; }
     a:hover { text-decoration: underline; }
-    .pill {
-      display: inline-block; padding: 2px 9px; border-radius: 999px;
-      font-size: 0.8rem; font-weight: 700;
-      background: var(--tag-bg); color: var(--tag-ink); margin-left: 6px;
+    .muted { color: var(--muted); font-size: 0.94rem; }
+    .meta { margin-top: 4px; font-size: 0.86rem; color: var(--muted); }
+    .status { color: var(--ok); }
+    .status.warn { color: var(--warn); }
+    code { font-family: var(--mono); font-size: 0.88rem; overflow-wrap: anywhere; }
+
+    /* ---------- Toolbar: projects, theme, views ---------- */
+    .toolbar { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      margin: 0; padding: 6px 14px;
+      border: 1px solid var(--line-strong); border-radius: 999px;
+      background: var(--surface); color: var(--ink-2);
+      font-size: 0.88rem; font-weight: 500; box-shadow: none;
     }
-    @media (max-width: 600px) {
-      .wrap { padding: 0 16px 32px; }
-      .topbar { margin: 0 -16px 16px; padding: 10px 16px; }
-      .nav { gap: 12px; font-size: 0.875rem; }
-      .topbar, .nav { flex-wrap: wrap; }
-    }
-    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 22px; }
-    .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow); }
-    .stat b { display: block; font-size: 1.6rem; font-variant-numeric: tabular-nums; }
-    .stat span { color: var(--muted); font-size: 0.875rem; }
-    .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+    .chip:hover:not([disabled]) { background: var(--surface-hover); border-color: var(--line-strong); }
+    .chip[aria-pressed="true"], .chip[aria-pressed="true"]:hover:not([disabled]) { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+    .chip .chip-count { margin-left: 2px; font-size: 0.78rem; opacity: 0.7; font-variant-numeric: tabular-nums; }
+    .chip.untagged { font-style: italic; }
+    .filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .filter-row .spacer { flex: 1; }
+    .pill-select { width: auto; max-width: 260px; padding: 6px 30px 6px 12px; border-radius: 8px; font-size: 0.88rem; font-weight: 500; }
+    .view-toggle { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); }
+    .view-toggle button { margin: 0; padding: 4px 12px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 0.85rem; box-shadow: none; }
+    .view-toggle button:hover:not([disabled]) { background: transparent; color: var(--ink); }
+    .view-toggle button.active, .view-toggle button.active:hover:not([disabled]) { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+    .summary-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+    .summary-chip { display: inline-flex; align-items: baseline; gap: 6px; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); font-size: 0.86rem; color: var(--muted); }
+    .summary-chip b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+    /* ---------- Feed (as the /news story list) ---------- */
+    .story-list { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; }
+    .day-head { margin: 0; padding: 14px 20px 8px; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: var(--surface-2); border-bottom: 1px solid var(--line); }
+    .story-list .day-head:not(:first-child) { border-top: 1px solid var(--line); }
+    .story { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; padding: 16px 20px; position: relative; transition: background-color 0.12s ease; }
+    .story-list .story + .story { border-top: 1px solid var(--line); }
+    .story.is-clickable { cursor: pointer; }
+    .story.is-clickable:hover { background: var(--surface-hover); }
+    .story-source { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 0.84rem; color: var(--muted); }
+    .source-avatar { display: grid; place-items: center; width: 20px; height: 20px; flex: none; border-radius: 5px; background: var(--brand-soft); color: var(--brand); font-size: 0.7rem; font-weight: 800; }
+    .source-name { color: var(--ink-2); font-weight: 600; }
+    .sources-badge { padding: 0 8px; border-radius: 999px; border: 1px solid var(--line-strong); font-size: 0.75rem; font-weight: 600; color: var(--ink-2); line-height: 1.6; }
+    .focus-badge { padding: 0 8px; border-radius: 999px; background: var(--tag-actor-bg); color: var(--tag-actor-ink); font-size: 0.75rem; font-weight: 600; line-height: 1.6; }
+    .dir-badge { padding: 0 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; line-height: 1.7; }
+    .story h3 { margin: 6px 0 0; font-size: 1.02rem; line-height: 1.38; font-weight: 650; }
+    .story-open { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; color: var(--ink); font: inherit; text-align: left; display: inline; cursor: pointer; }
+    .story-open:hover:not([disabled]) { background: none; border: 0; color: var(--brand); }
+    .story-open::after { content: ""; position: absolute; inset: 0; }
+    .story-description { margin: 6px 0 0; color: var(--muted); font-size: 0.94rem; line-height: 1.55; max-width: 72ch; }
+    .story-side { align-self: center; text-align: right; font-size: 0.84rem; color: var(--muted); white-space: nowrap; }
+    .story-side b { display: block; font-size: 1.3rem; color: var(--ink); font-variant-numeric: tabular-nums; }
+    .story h3 a { color: var(--ink); }
+    .story .row-links { position: relative; z-index: 1; margin-top: 8px; font-size: 0.86rem; }
+    .empty-state { padding: 48px 24px; text-align: center; color: var(--muted); }
+    .empty-state strong { display: block; margin-bottom: 4px; color: var(--ink); font-size: 1.05rem; }
+    .subhead { margin: 28px 0 10px; font-size: 1.05rem; }
+    .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; box-shadow: var(--shadow); }
+    .panel + .panel { margin-top: 14px; }
+    .panel h2 { margin: 0 0 4px; font-size: 1.05rem; }
     table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
-    th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
-    th { color: var(--muted); font-weight: 600; font-size: 0.82rem; }
+    th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; font-size: 0.8rem; }
     td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-    .list { list-style: none; margin: 0; padding: 0; }
-    .list li { padding: 10px 0; border-bottom: 1px solid var(--line); }
-    .list li:last-child { border-bottom: 0; }
-    .head-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .table-wrap { overflow-x: auto; }
-    .empty { color: var(--muted); font-style: italic; }
     td.date { white-space: nowrap; }
-    .case-link { background: none; border: 0; padding: 0; margin: 0; color: var(--brand); font: inherit; text-align: left; cursor: pointer; }
-    .case-link:hover { text-decoration: underline; filter: none; }
-    .drawer-backdrop { position: fixed; inset: 0; background: var(--overlay); z-index: 40; }
-    .drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(760px, 100%); z-index: 41; overflow-y: auto;
-      background: var(--surface); box-shadow: var(--shadow-strong); padding: 20px 28px 40px; box-sizing: border-box; }
-    .drawer h2 { margin: 6px 0 4px; font-size: 1.35rem; line-height: 1.3; }
-    .drawer section { margin: 18px 0; }
-    .drawer h3 { font-size: 1rem; margin: 0 0 8px; }
-    .drawer-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-    .stage { display: inline-block; margin-top: 6px; padding: 3px 10px; border-radius: 999px; background: var(--brand-soft); color: var(--active-ink); font-size: 0.85rem; font-weight: 600; }
-    .next { border-left: 3px solid var(--brand); padding: 8px 12px; background: var(--surface-2); border-radius: 6px; }
-    .timeline { list-style: none; margin: 0; padding: 0; }
-    .timeline li { padding: 10px 0; border-bottom: 1px solid var(--line); }
-    .timeline .dir { display: inline-block; min-width: 64px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--muted); }
+    .table-wrap { overflow-x: auto; }
+    .plain-list { list-style: none; margin: 0; padding: 0; }
+    .plain-list li { padding: 10px 0; border-top: 1px solid var(--line); }
+    .plain-list li:first-child { border-top: 0; }
+
+    /* ---------- Case pane (as the /news reading pane) ---------- */
+    .detail-overlay { position: fixed; inset: 0; z-index: 1000; display: none; justify-content: flex-end; background: var(--overlay); }
+    .detail-overlay.open { display: flex; }
+    .detail-panel { width: min(760px, 100%); height: 100%; overflow-y: auto; background: var(--surface); border-left: 1px solid var(--line); box-shadow: var(--shadow-strong); animation: drawerIn 0.18s ease-out; }
+    @keyframes drawerIn { from { transform: translateX(24px); opacity: 0.6; } to { transform: none; opacity: 1; } }
+    .detail-head { position: sticky; top: 0; z-index: 2; display: flex; flex-direction: column; gap: 12px; padding: 14px 28px 16px; background: var(--surface); border-bottom: 1px solid var(--line); }
+    .detail-controls { display: flex; gap: 6px; align-items: center; justify-content: flex-end; order: -1; }
+    .detail-controls .grow { flex: 1; font-size: 0.8rem; color: var(--muted); }
+    .detail-close { margin: 0; padding: 5px 11px; font-size: 0.85rem; background: var(--secondary-bg); color: var(--secondary-ink); border-color: var(--line-strong); }
+    .detail-close:hover:not([disabled]) { background: var(--surface-hover); border-color: var(--line-strong); }
+    #detailTitle { margin: 0; font-size: 1.5rem; line-height: 1.3; font-weight: 700; }
+    .detail-body { padding: 20px 28px 40px; color: var(--ink); font-size: 1rem; line-height: 1.65; }
+    .detail-body summary { cursor: pointer; color: var(--muted); font-weight: 600; font-size: 0.9rem; }
+    .detail-summary, .detail-why { margin-top: 18px; color: var(--ink); line-height: 1.65; }
+    .detail-summary > strong, .detail-why > strong {
+      display: block; margin: 0 0 6px;
+      color: var(--muted); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+    }
+    .detail-summary p, .detail-why p { margin: 0 0 10px; }
+    .detail-why { padding: 14px 16px; border-radius: 10px; background: var(--surface-2); }
+    .detail-why p:last-child { margin-bottom: 0; }
+    .detail-meta-strip { display: flex; flex-wrap: wrap; gap: 6px; }
+    .detail-meta-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); }
+    .detail-meta-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); white-space: nowrap; }
+    .detail-meta-value { font-size: 0.86rem; line-height: 1.4; word-break: break-word; }
+    .detail-meta-chip.is-stage { background: var(--active-bg); border-color: transparent; }
+    .detail-meta-chip.is-stage .detail-meta-value { color: var(--active-ink); font-weight: 600; }
+    .bp-headline { font-weight: 700; font-size: 1.08rem; margin: 0 0 8px; }
+    .detail-body sup { color: var(--brand); font-size: 0.72rem; }
+    .sources { margin: 10px 0 0; padding-left: 22px; font-size: 0.875rem; line-height: 1.5; }
+    .sources li { margin: 4px 0; }
+    .context { margin-top: 14px; }
+    .context h4 { margin: 12px 0 4px; font-size: 0.9rem; }
+    .context .plain-list li { padding: 8px 0; font-size: 0.94rem; }
+    .case-timeline { list-style: none; padding: 0; margin: 8px 0 0; border-left: 2px solid var(--line-strong); }
+    .case-timeline li { position: relative; padding: 0 0 16px 16px; }
+    .case-timeline li::before { content: ""; position: absolute; left: -6px; top: 7px; width: 10px; height: 10px; border-radius: 50%; background: var(--brand); }
+    .case-timeline li.is-outgoing::before { background: var(--surface); border: 2px solid var(--brand); }
+    .case-timeline li.is-internal::before { background: var(--line-strong); }
+    .case-timeline time { font-size: 0.8rem; color: var(--muted); }
+    .case-timeline .tl-title { display: block; margin: 2px 0; font-weight: 650; }
     .doc { display: inline-block; margin: 4px 6px 0 0; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line-strong); font-size: 0.8rem; }
-    .docs-badge { margin-left: 6px; }
-    .chat { border-top: 1px solid var(--line); padding-top: 14px; }
-    .msg { margin: 10px 0; padding: 10px 12px; border-radius: 10px; white-space: pre-wrap; }
+    .case-link { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; color: var(--brand); font: inherit; text-align: left; cursor: pointer; }
+    .case-link:hover:not([disabled]) { background: none; border: 0; text-decoration: underline; }
+    .toggle-label { display: inline-flex; align-items: center; gap: 7px; font-size: 0.88rem; color: var(--ink-2); cursor: pointer; }
+    .msg { margin: 10px 0; padding: 10px 12px; border-radius: 10px; white-space: pre-wrap; font-size: 0.96rem; }
     .msg.user { background: var(--brand-soft); color: var(--active-ink); margin-left: 15%; }
     .msg.assistant { background: var(--surface-2); margin-right: 5%; }
     .msg .meta a { margin-right: 8px; }
-    .chat textarea { width: 100%; box-sizing: border-box; min-height: 64px; border: 1px solid var(--line-strong); border-radius: 8px;
-      padding: 8px 10px; font: inherit; background: var(--surface); color: var(--ink); resize: vertical; }
+    .chat textarea { min-height: 64px; resize: vertical; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
     .chips button { padding: 4px 10px; font-size: 0.85rem; }
-    @media (max-width: 600px) { .drawer { padding: 16px 16px 32px; } }
-    code { overflow-wrap: anywhere; }
-    .big-picture { border-top: 1px solid var(--line); padding-top: 14px; }
-    .bp-headline { font-weight: 700; font-size: 1.05rem; margin: 0 0 8px; }
-    .big-picture sup { color: var(--brand); font-size: 0.72rem; }
-    .big-picture .next { margin: 10px 0; }
-    .big-picture .next p { margin: 4px 0 0; }
-    .sources { margin: 10px 0 0; padding-left: 22px; font-size: 0.875rem; }
-    .sources li { margin: 4px 0; }
-    .context { margin-top: 12px; }
-    .context summary { cursor: pointer; color: var(--muted); font-size: 0.9rem; }
-    .context h4 { margin: 12px 0 4px; font-size: 0.9rem; }
-    .facets { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
-    .facet { margin: 0; text-align: left; padding: 12px 14px; border-radius: 12px; background: var(--surface); color: var(--ink);
-      border: 1px solid var(--line); box-shadow: var(--shadow); font-weight: 400; }
-    .facet:hover { border-color: var(--brand); filter: none; }
-    .facet b { display: block; font-size: 1rem; margin-bottom: 4px; }
-    .facet span { display: block; color: var(--muted); font-size: 0.82rem; }
-    .facet[aria-pressed="true"], .theme-btn[aria-pressed="true"] { border-color: var(--brand); background: var(--brand-soft); color: var(--active-ink); }
-    .facet.untagged b { font-style: italic; }
-    .themes { display: flex; flex-wrap: wrap; gap: 8px; }
-    .theme-btn { margin: 0; padding: 5px 12px; border-radius: 999px; font-size: 0.875rem; font-weight: 600;
-      background: var(--secondary-bg); color: var(--secondary-ink); border: 1px solid var(--line); }
-    .theme-btn small { color: var(--muted); font-weight: 400; margin-left: 4px; }
-    .filter-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 16px; }
-    .filter-bar[hidden] { display: none; }
-    @media (max-width: 600px) {
-      .facets { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-      .facet { padding: 10px; }
-      .facet b { font-size: 0.92rem; overflow-wrap: break-word; }
+    .chat-actions { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+
+    /* ---------- Responsive (as /news) ---------- */
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar {
+        position: sticky; top: 0; z-index: 40; height: auto;
+        flex-direction: row; align-items: center; gap: 8px;
+        padding: 8px 12px; border-right: 0; border-bottom: 1px solid var(--line);
+        overflow-x: auto; overflow-y: hidden;
+      }
+      .brand { padding: 0 6px 0 0; }
+      .brand-text, .nav-label { display: none; }
+      .side-nav { flex-direction: row; gap: 2px; }
+      .nav-item { white-space: nowrap; padding: 7px 10px; }
+      .sidebar-foot { margin: 0 0 0 auto; padding: 0; }
+      .main-head { position: static; flex-wrap: wrap; padding: 14px 16px; }
+      .content { padding: 16px 16px 48px; }
+    }
+    @media (max-width: 640px) {
+      .chip-row, .filter-row { flex-wrap: nowrap; overflow-x: auto; margin: 0 -16px; padding: 0 16px 2px; scrollbar-width: none; }
+      .chip-row::-webkit-scrollbar, .filter-row::-webkit-scrollbar { display: none; }
+      .chip, .pill-select, .view-toggle { flex: none; white-space: nowrap; }
+      .filter-row .spacer { display: none; }
+      .story { grid-template-columns: 1fr; padding: 14px 16px; gap: 6px; }
+      .story-side { text-align: left; }
+      .story-side b { display: inline; font-size: 1rem; margin-right: 4px; }
+      .main-head h1 { font-size: 1.3rem; }
+      .head-actions { width: 100%; justify-content: space-between; }
+      .head-actions .muted { max-width: none; }
+      .detail-head { padding: 12px 16px 14px; }
+      .detail-body { padding: 16px 16px 32px; }
+      #detailTitle { font-size: 1.25rem; }
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header class="topbar">
-      <a class="brand-mark" href="/news" aria-label="OWIS News"><span class="brand-dot"></span><span>OWIS Intelligence</span></a>
-      <nav class="nav" aria-label="Primary navigation">
-        <a href="/news">News</a>
-        <a href="/opportunities">Opportunities</a>
-        <a href="/einnsyn" aria-current="page">eInnsyn</a>
-        <button type="button" class="theme-toggle" data-theme-toggle>Dark mode</button>
+  <div class="app">
+    <aside class="sidebar">
+      <a class="brand" href="/news" aria-label="OWIS – news">
+        <span class="brand-logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="1.6"/><path d="M12 10.6V22M12 9 7 3.5M12 9l7.2-1.6M12 9l-4.6 6.4M9 22h6"/></svg>
+        </span>
+        <span class="brand-text"><span class="brand-name">OWIS</span><span class="brand-sub">Offshore wind intelligence</span></span>
+      </a>
+      <nav class="side-nav" aria-label="Sections">
+        <div class="nav-label">Briefing</div>
+        <a class="nav-item" href="/news#morning">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v2M5.6 5.6 7 7M3 13h2M19 13h2M17 7l1.4-1.4M7 17a5 5 0 0 1 10 0M3 21h18"/></svg>
+          Morning brief
+        </a>
+        <a class="nav-item" href="/news">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h13a2 2 0 0 1 2 2v12a2 2 0 0 0 2-2V9h-2M4 5v12a2 2 0 0 0 2 2h13M8 9h7M8 13h7M8 16h4"/></svg>
+          News
+        </a>
+        <a class="nav-item" href="/news#governance">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M7 21h10M5 7h14M5 7l-3 6a3 3 0 0 0 6 0zM19 7l-3 6a3 3 0 0 0 6 0z"/></svg>
+          Policy &amp; regulation
+        </a>
+        <div class="nav-label">More</div>
+        <a class="nav-item" href="/opportunities">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h16v11H4zM9 8V5h6v3M4 13h16"/></svg>
+          Opportunities
+        </a>
+        <a class="nav-item active" href="/einnsyn" aria-current="page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6"/></svg>
+          eInnsyn <span class="nav-count" id="navCount"></span>
+        </a>
+        <a class="nav-item" href="/news#settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+          Settings
+        </a>
       </nav>
-    </header>
-    <div class="head-row">
-      <h1>eInnsyn</h1>
-      <div><button id="refreshBtn" type="button" class="btn-secondary">Refresh from Notion</button></div>
-    </div>
-    <p class="muted">Public records from eInnsyn, collected daily by the eInnsyn monitor and stored in Notion. This page only reads Notion; edit cases and search terms there.</p>
-    <p id="status" class="status" role="status" aria-live="polite">Loading …</p>
+      <div class="sidebar-foot">
+        <button type="button" class="theme-toggle btn-secondary" data-theme-toggle>Dark mode</button>
+      </div>
+    </aside>
 
-    <section aria-labelledby="projectsHead">
-      <h2 id="projectsHead">Projects</h2>
-      <div class="facets" id="projects"></div>
-    </section>
-    <section aria-labelledby="themesHead">
-      <h2 id="themesHead">Themes</h2>
-      <div class="themes" id="themes"></div>
-    </section>
-    <div class="filter-bar" id="filterBar" hidden>
-      <span>Showing <b id="filterText"></b></span>
-      <button type="button" class="btn-secondary" id="clearFilter" style="margin:0">Show everything</button>
-    </div>
-    <div class="stats" id="stats"></div>
+    <main class="main">
+      <header class="main-head">
+        <div>
+          <h1>eInnsyn</h1>
+          <p>Public records from Norwegian agencies, followed daily. Read from Notion; edit cases and search terms there.</p>
+        </div>
+        <div class="head-actions">
+          <span class="muted" id="status" role="status" aria-live="polite">Loading …</span>
+          <button id="refreshBtn" type="button">Refresh from Notion</button>
+        </div>
+      </header>
 
-    <section class="card">
-      <h2>Suggested cases <span class="pill" id="suggestedCount"></span></h2>
-      <p class="muted">Found by the search terms. Set the status to «Aktiv» in Notion to follow a case, or «Ikke relevant» to hide it for good.</p>
-      <ul class="list" id="suggested"></ul>
-    </section>
+      <div class="content">
+        <div class="toolbar">
+          <div class="chip-row" id="projects" aria-label="Projects"></div>
+          <div class="filter-row">
+            <select class="pill-select" id="themeSelect" aria-label="Theme"></select>
+            <button type="button" class="btn-ghost" id="clearFilter" hidden>Clear filters</button>
+            <span class="spacer"></span>
+            <div class="view-toggle" role="tablist" aria-label="View">
+              <button type="button" data-view="posts" class="active">Journal posts</button>
+              <button type="button" data-view="cases">Cases</button>
+              <button type="button" data-view="suggested">Suggested <span id="suggestedCount"></span></button>
+              <button type="button" data-view="terms">Search terms</button>
+            </div>
+          </div>
+        </div>
+        <div class="summary-row" id="summary"></div>
 
-    <section class="card">
-      <h2>New journal posts, last 14 days</h2>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Published</th><th>Journal post</th><th>Case</th><th>From</th><th>To</th></tr></thead>
-        <tbody id="recent"></tbody>
-      </table></div>
-    </section>
+        <section data-panel="posts">
+          <div class="story-list" id="recent"></div>
+        </section>
 
-    <div class="cols">
-      <section class="card">
-        <h2>Most active cases, 30 days</h2>
-        <table><thead><tr><th>Case</th><th class="num">Posts</th></tr></thead><tbody id="active"></tbody></table>
-      </section>
-      <section class="card">
-        <h2>Most frequent senders, 90 days</h2>
-        <table><thead><tr><th>Sender</th><th class="num">Posts</th></tr></thead><tbody id="senders"></tbody></table>
-      </section>
-    </div>
+        <section data-panel="cases" hidden>
+          <div class="story-list" id="active"></div>
+          <h2 class="subhead">Most frequent senders, 90 days</h2>
+          <div class="panel"><table><thead><tr><th>Sender</th><th class="num">Journal posts</th></tr></thead><tbody id="senders"></tbody></table></div>
+        </section>
 
-    <section class="card">
-      <h2>Search term suggestions <span class="pill" id="kwSuggestCount"></span></h2>
-      <p class="muted">Proposed weekly from senders and project areas in the cases you follow. Set to «Aktiv» in Notion to use; leave on «Pause» to keep it from being suggested again.</p>
-      <ul class="list" id="kwSuggestions"></ul>
-    </section>
+        <section data-panel="suggested" hidden>
+          <p class="muted">Found by the search terms. Set the status to «Aktiv» in Notion to follow a case, or «Ikke relevant» to hide it for good.</p>
+          <div class="story-list" id="suggested"></div>
+        </section>
 
-    <section class="card">
-      <h2>Search terms</h2>
-      <p class="muted">Quotes search for the exact phrase; <code>|</code> means «or».</p>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Search term</th><th>Status</th><th>Last run</th><th>Note</th></tr></thead>
-        <tbody id="keywords"></tbody>
-      </table></div>
-    </section>
+        <section data-panel="terms" hidden>
+          <div class="panel">
+            <h2>Search term suggestions <span class="sources-badge" id="kwSuggestCount"></span></h2>
+            <p class="muted">Proposed weekly from senders and project areas in the cases you follow. Set to «Aktiv» in Notion to use; leave on «Pause» to keep it from being suggested again.</p>
+            <ul class="plain-list" id="kwSuggestions"></ul>
+          </div>
+          <div class="panel">
+            <h2>Search terms</h2>
+            <p class="muted">Quotes search for the exact phrase; <code>|</code> means «or».</p>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Search term</th><th>Status</th><th>Last run</th><th>Note</th></tr></thead>
+              <tbody id="keywords"></tbody>
+            </table></div>
+          </div>
+        </section>
+      </div>
+    </main>
   </div>
 
-  <div id="drawerBackdrop" class="drawer-backdrop" hidden></div>
-  <aside id="drawer" class="drawer" hidden aria-labelledby="drawerTitle" role="dialog" aria-modal="true">
-    <div class="drawer-head">
-      <span class="muted" id="drawerMeta"></span>
-      <button type="button" class="btn-secondary" id="drawerClose">Close</button>
+  <div id="detailOverlay" class="detail-overlay" aria-hidden="true">
+    <div class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+      <div class="detail-head">
+        <div class="detail-controls">
+          <span class="grow" id="detailKicker"></span>
+          <button id="detailCloseBtn" class="detail-close" type="button" aria-label="Close">✕</button>
+        </div>
+        <div>
+          <h2 id="detailTitle"></h2>
+          <div id="detailMeta" class="meta"></div>
+        </div>
+      </div>
+      <div id="detailContent" class="detail-body"></div>
     </div>
-    <div id="drawerBody"></div>
-  </aside>
+  </div>
 
   <script>
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const link = (url, text) => url ? `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(text)}</a>` : esc(text);
     const caseBtn = (url, text) => url ? `<button type="button" class="case-link" data-case="${esc(url)}">${esc(text)}</button>` : esc(text);
-    const empty = (cols, msg) => `<tr><td colspan="${cols}" class="empty">${esc(msg)}</td></tr>`;
+    const paragraphs = (text, f = esc) => String(text || '').split(/\n\s*\n/).map(t => `<p>${f(t)}</p>`).join('');
+    const initial = name => esc(String(name || '?').trim().charAt(0).toUpperCase());
+    const emptyState = (title, text) => `<div class="empty-state"><strong>${esc(title)}</strong>${esc(text)}</div>`;
 
     function setStatus(msg, warn = false) {
       const el = document.getElementById('status');
@@ -227,9 +384,19 @@
       el.classList.toggle('warn', warn);
     }
 
+    function dayLabel(iso) {
+      if (!iso) return 'Undated';
+      const day = new Date(iso + 'T12:00:00'), today = new Date();
+      const diff = Math.round((new Date(today.toDateString()) - new Date(day.toDateString())) / 86400000);
+      if (diff === 0) return 'Today';
+      if (diff === 1) return 'Yesterday';
+      return day.toLocaleDateString('en-GB', {weekday: 'long', day: 'numeric', month: 'long'});
+    }
+
     // Project and theme filter, kept in the address so a filtered view can be bookmarked or shared
     const params = new URLSearchParams(location.search);
     const filter = {project: params.get('project') || '', theme: params.get('theme') || ''};
+    let view = ['posts', 'cases', 'suggested', 'terms'].includes(params.get('view')) ? params.get('view') : 'posts';
     const UNTAGGED = 'Uklassifisert';
 
     function boxLine(b) {
@@ -239,92 +406,147 @@
 
     function renderFacets(d) {
       const projects = d.projects || [], themes = d.themes || [];
-      document.getElementById('projects').innerHTML = projects.length
-        ? projects.map(b => `<button type="button" class="facet${b.name === UNTAGGED ? ' untagged' : ''}" data-project="${esc(b.name)}"
-            aria-pressed="${b.name === filter.project}"><b>${esc(b.name).replace(/\//g, '/<wbr>')}</b><span>${esc(boxLine(b))}</span></button>`).join('')
-        : '<p class="empty">No project areas in Notion yet.</p>';
-      document.getElementById('themes').innerHTML = themes.length
-        ? themes.map(b => `<button type="button" class="theme-btn" data-theme-filter="${esc(b.name)}" title="${esc(boxLine(b))}"
-            aria-pressed="${b.name === filter.theme}">${esc(b.name)}<small>${esc(b.cases)}</small></button>`).join('')
-        : '<p class="empty">No themes in Notion yet.</p>';
-      const parts = [filter.project, filter.theme].filter(Boolean);
-      document.getElementById('filterBar').hidden = !parts.length;
-      document.getElementById('filterText').textContent = parts.join(' + ');
+      document.getElementById('projects').innerHTML =
+        `<button type="button" class="chip" data-project="" aria-pressed="${!filter.project}">All projects</button>`
+        + projects.map(b => `<button type="button" class="chip${b.name === UNTAGGED ? ' untagged' : ''}" data-project="${esc(b.name)}"
+            title="${esc(boxLine(b))}" aria-pressed="${b.name === filter.project}">${esc(b.name)} <span class="chip-count">${esc(b.cases)}</span></button>`).join('');
+      const select = document.getElementById('themeSelect');
+      const names = themes.map(b => b.name);
+      select.innerHTML = '<option value="">All themes</option>'
+        + themes.map(b => `<option value="${esc(b.name)}">${esc(b.name)} (${esc(b.cases)})</option>`).join('')
+        + (filter.theme && !names.includes(filter.theme) ? `<option value="${esc(filter.theme)}">${esc(filter.theme)} (0)</option>` : '');
+      select.value = filter.theme;
+      document.getElementById('clearFilter').hidden = !(filter.project || filter.theme);
     }
 
     function setFilter(key, value) {
-      filter[key] = filter[key] === value ? '' : value;
-      syncFilterUrl();
+      filter[key] = value;
+      syncUrl();
       load();
     }
 
-    // Only touch the filter parameters, so an open case (?case=) stays in the address
-    function syncFilterUrl() {
+    // Only touch our own parameters, so an open case (?case=) stays in the address
+    function syncUrl() {
       const url = new URL(location.href);
       for (const key of ['project', 'theme']) {
         if (filter[key]) url.searchParams.set(key, filter[key]); else url.searchParams.delete(key);
       }
+      if (view !== 'posts') url.searchParams.set('view', view); else url.searchParams.delete('view');
       history.replaceState(null, '', url);
+    }
+
+    function showView(name) {
+      view = name;
+      document.querySelectorAll('[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === name));
+      document.querySelectorAll('[data-panel]').forEach(p => { p.hidden = p.dataset.panel !== name; });
+      syncUrl();
+    }
+
+    const dirOf = type => /inng/i.test(type || '') ? 'In' : /utg/i.test(type || '') ? 'Out' : type ? 'Internal' : '';
+
+    function postRow(p) {
+      const dir = dirOf(p.type);
+      const party = dir === 'Out' ? p.to : p.from || p.to;
+      const clickable = Boolean(p.case_url);
+      return `<article class="story${clickable ? ' is-clickable' : ''}">
+          <div class="story-main">
+            <div class="story-source">
+              ${party ? `<span class="source-avatar" aria-hidden="true">${initial(party)}</span>
+              <span class="source-name">${esc(party)}</span>` : ''}
+              ${dir ? `<span class="dir-badge">${esc(dir)}</span>` : ''}
+              ${p.case_number ? `<span class="sources-badge">${esc(p.case_number)}</span>` : ''}
+            </div>
+            <h3>${clickable ? `<button type="button" class="story-open" data-case="${esc(p.case_url)}">${esc(p.title)}</button>` : link(p.url, p.title)}</h3>
+            ${p.case_title ? `<p class="story-description">${esc(p.case_title)}</p>` : ''}
+          </div>
+        </article>`;
+    }
+
+    function renderPosts(posts) {
+      const root = document.getElementById('recent');
+      if (!posts.length) { root.innerHTML = emptyState('No new journal posts', 'Nothing published in the last 14 days for this selection.'); return; }
+      let html = '', last = null;
+      for (const p of posts) {
+        if (p.published !== last) { html += `<h3 class="day-head">${esc(dayLabel(p.published))}</h3>`; last = p.published; }
+        html += postRow(p);
+      }
+      root.innerHTML = html;
     }
 
     function render(d) {
       renderFacets(d);
       const s = d.summary;
-      document.getElementById('stats').innerHTML = [
-        [s.active_cases, 'cases followed'], [s.suggested_cases, 'suggested cases'],
-        [s.journal_posts_7d, 'journal posts, 7 days'], [s.journal_posts_30d, 'journal posts, 30 days'],
-        [s.active_keywords, 'active search terms'], [s.keyword_suggestions, 'term suggestions'],
-      ].map(([n, label]) => `<div class="stat"><b>${esc(n)}</b><span>${esc(label)}</span></div>`).join('');
+      document.getElementById('navCount').textContent = s.journal_posts_7d || '';
+      document.getElementById('summary').innerHTML = [
+        [s.active_cases, 'cases followed'], [s.suggested_cases, 'suggested'],
+        [s.journal_posts_7d, 'posts, 7 days'], [s.journal_posts_30d, 'posts, 30 days'],
+        [s.active_keywords, 'search terms'],
+      ].map(([n, label]) => `<span class="summary-chip"><b>${esc(n)}</b>${esc(label)}</span>`).join('');
 
-      document.getElementById('suggestedCount').textContent = d.suggested_cases.length;
-      document.getElementById('suggested').innerHTML = d.suggested_cases.length
-        ? d.suggested_cases.map(c => `<li>${caseBtn(c.url, c.title)} <span class="pill">${esc(c.case_number)}</span>
-            <div class="meta">${esc(c.comment)}${c.added ? ' · added ' + esc(c.added) : ''} · ${link(c.notion_url, 'open in Notion')}</div></li>`).join('')
-        : '<li class="empty">No suggested cases.</li>';
-
-      document.getElementById('recent').innerHTML = d.recent_journal_posts.length
-        ? d.recent_journal_posts.map(p => `<tr><td class="date">${esc(p.published)}</td><td>${link(p.url, p.title)}</td>
-            <td>${caseBtn(p.case_url, p.case_number)}<div class="meta">${esc(p.case_title)}</div></td><td>${esc(p.from)}</td><td>${esc(p.to)}</td></tr>`).join('')
-        : empty(5, 'No new journal posts in the last 14 days.');
+      renderPosts(d.recent_journal_posts);
 
       document.getElementById('active').innerHTML = d.most_active_cases.length
-        ? d.most_active_cases.map(c => `<tr><td>${caseBtn(c.url, c.case_number)}<span class="pill docs-badge" data-docs-for="${esc(c.url)}" hidden></span><div class="meta">${esc(c.title)}</div></td><td class="num">${esc(c.journal_posts)}</td></tr>`).join('')
-        : empty(2, 'No activity in the last 30 days.');
+        ? '<h3 class="day-head">Most active, last 30 days</h3>' + d.most_active_cases.map(c => `<article class="story${c.url ? ' is-clickable' : ''}">
+            <div class="story-main">
+              <div class="story-source"><span class="sources-badge">${esc(c.case_number)}</span>
+                <span class="focus-badge" data-docs-for="${esc(c.url)}" hidden></span></div>
+              <h3>${c.url ? `<button type="button" class="story-open" data-case="${esc(c.url)}">${esc(c.title || c.case_number)}</button>` : esc(c.title || c.case_number)}</h3>
+            </div>
+            <div class="story-side"><b>${esc(c.journal_posts)}</b>posts</div>
+          </article>`).join('')
+        : emptyState('No activity', 'No journal posts in the last 30 days for this selection.');
 
       document.getElementById('senders').innerHTML = d.top_senders.length
         ? d.top_senders.map(x => `<tr><td>${esc(x.name)}</td><td class="num">${esc(x.journal_posts)}</td></tr>`).join('')
-        : empty(2, 'No senders in the last 90 days.');
+        : '<tr><td colspan="2" class="muted">No senders in the last 90 days.</td></tr>';
+
+      document.getElementById('suggestedCount').textContent = d.suggested_cases.length ? `(${d.suggested_cases.length})` : '';
+      document.getElementById('suggested').innerHTML = d.suggested_cases.length
+        ? d.suggested_cases.map(c => `<article class="story${c.url ? ' is-clickable' : ''}">
+            <div class="story-main">
+              <div class="story-source"><span class="focus-badge">Suggested</span>
+                ${c.case_number ? `<span class="sources-badge">${esc(c.case_number)}</span>` : ''}
+                ${c.added ? `<span>added ${esc(c.added)}</span>` : ''}</div>
+              <h3>${c.url ? `<button type="button" class="story-open" data-case="${esc(c.url)}">${esc(c.title)}</button>` : esc(c.title)}</h3>
+              ${c.comment ? `<p class="story-description">${esc(c.comment)}</p>` : ''}
+              ${c.notion_url ? `<div class="row-links">${link(c.notion_url, 'Open in Notion')}</div>` : ''}
+            </div>
+          </article>`).join('')
+        : emptyState('No suggested cases', 'New cases found by the search terms appear here.');
 
       document.getElementById('kwSuggestCount').textContent = d.keyword_suggestions.length;
       document.getElementById('kwSuggestions').innerHTML = d.keyword_suggestions.length
         ? d.keyword_suggestions.map(k => `<li><code>${esc(k.query)}</code> · ${link(k.notion_url, 'open in Notion')}<div class="meta">${esc(k.note)}</div></li>`).join('')
-        : '<li class="empty">No suggestions yet. They are added on Mondays.</li>';
+        : '<li class="muted">No suggestions yet. They are added on Mondays.</li>';
 
       document.getElementById('keywords').innerHTML = d.keywords.length
         ? d.keywords.map(k => `<tr><td><code>${link(k.notion_url, k.query)}</code></td><td>${esc(k.status)}</td><td class="date">${esc(k.last_run.slice(0, 10))}</td><td class="muted">${esc(k.note)}</td></tr>`).join('')
-        : empty(4, 'No search terms.');
+        : '<tr><td colspan="4" class="muted">No search terms.</td></tr>';
     }
 
     // ---- One case: story, likely next step, the big picture, journal posts with open documents ----
     const dirLabel = {incoming: 'In', outgoing: 'Out', internal: 'Internal'};
+    const overlay = document.getElementById('detailOverlay');
     function closeDrawer() {
-      document.getElementById('drawer').hidden = true;
-      document.getElementById('drawerBackdrop').hidden = true;
+      overlay.classList.remove('open'); overlay.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
       const url = new URL(location.href); url.searchParams.delete('case'); history.replaceState(null, '', url);
     }
+    const metaChip = (label, value, cls = '') => value || value === 0
+      ? `<span class="detail-meta-chip ${cls}"><span class="detail-meta-label">${esc(label)}</span><span class="detail-meta-value">${esc(value)}</span></span>` : '';
     function accountHtml(a) {
-      return `<section><h3>The case so far</h3>${a.stage ? `<span class="stage">${esc(a.stage)}</span>` : ''}
-          ${String(a.summary).split(/\n\s*\n/).map(t => `<p>${esc(t)}</p>`).join('')}</section>
-        ${a.next_steps ? `<section class="next"><h3>Likely next step</h3><p>${esc(a.next_steps)}</p></section>` : ''}
-        ${a.documents ? `<p class="muted">${esc(a.documents)}</p>` : ''}
+      return `<div class="detail-summary"><strong>The case so far</strong>${paragraphs(a.summary)}</div>
+        ${a.next_steps || a.documents ? `<div class="detail-why"><strong>Likely next step</strong>
+          ${a.next_steps ? `<p>${esc(a.next_steps)}</p>` : ''}
+          ${a.documents ? `<p class="muted">${esc(a.documents)}</p>` : ''}</div>` : ''}
         ${a.complete ? '' : '<p class="muted">Written before the latest journal posts; updating…</p>'}`;
     }
     // The big picture: the case with its news and the other cases on the same project
     function bigPictureHtml(b) {
       const cite = t => esc(t).replace(/\[(\d+)\]/g, '<sup>[$1]</sup>');
       return `${b.headline ? `<p class="bp-headline">${esc(b.headline)}</p>` : ''}
-        ${String(b.summary).split(/\n\s*\n/).map(t => `<p>${cite(t)}</p>`).join('')}
-        ${b.watch ? `<div class="next"><b>What to watch</b><p>${cite(b.watch)}</p></div>` : ''}
+        ${paragraphs(b.summary, cite)}
+        ${b.watch ? `<div class="detail-why"><strong>What to watch</strong><p>${cite(b.watch)}</p></div>` : ''}
         ${(b.sources || []).length ? `<ol class="sources">${b.sources.map(x => `<li value="${esc(x.n)}">${link(x.url, x.title)}
           <span class="muted">· ${esc(x.source)} · ${esc(x.published)}</span></li>`).join('')}</ol>` : ''}
         ${b.complete ? '' : '<p class="muted">Written before the latest news or journal posts; updating…</p>'}`;
@@ -334,18 +556,22 @@
       const parts = [news.length && `${news.length} news ${news.length === 1 ? 'story' : 'stories'}`,
         others.length && `${others.length} other case${others.length === 1 ? '' : 's'} on ${esc((c.projects || []).join(', '))}`].filter(Boolean);
       return `<details class="context"><summary>Based on ${parts.join(' and ')}</summary>
-        ${news.length ? `<h4>News</h4><ul class="list">${news.map(n => `<li>${link(n.url, n.title)}
+        ${news.length ? `<h4>News</h4><ul class="plain-list">${news.map(n => `<li>${link(n.url, n.title)}
           <div class="meta">${esc(n.source)} · ${esc(n.published)} · via ${esc(n.matched_on.join(', '))}</div></li>`).join('')}</ul>` : ''}
-        ${others.length ? `<h4>Other cases on the project</h4><ul class="list">${others.map(o => `<li>${caseBtn(o.url, o.title)}
+        ${others.length ? `<h4>Other cases on the project</h4><ul class="plain-list">${others.map(o => `<li>${caseBtn(o.url, o.title)}
           <div class="meta">${esc(o.case_number)} · ${esc(o.status)}</div></li>`).join('')}</ul>` : ''}</details>`;
     }
     let currentCase = '';
-    const stillOpen = ref => currentCase === ref && !document.getElementById('drawer').hidden;
+    const stillOpen = ref => currentCase === ref && overlay.classList.contains('open');
     async function openCase(ref) {
       currentCase = ref;
-      const drawer = document.getElementById('drawer'), body = document.getElementById('drawerBody');
-      drawer.hidden = false; document.getElementById('drawerBackdrop').hidden = false;
-      document.getElementById('drawerMeta').textContent = '';
+      overlay.classList.add('open'); overlay.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      overlay.querySelector('.detail-panel').scrollTop = 0;
+      const body = document.getElementById('detailContent');
+      document.getElementById('detailKicker').textContent = 'eInnsyn case';
+      document.getElementById('detailTitle').textContent = 'Loading …';
+      document.getElementById('detailMeta').innerHTML = '';
       body.innerHTML = '<p class="muted">Loading the case from eInnsyn …</p>';
       const url = new URL(location.href); url.searchParams.set('case', ref); history.replaceState(null, '', url);
       let c;
@@ -353,33 +579,41 @@
         const res = await fetch('/api/einnsyn/case?ref=' + encodeURIComponent(ref));
         c = await res.json();
         if (!res.ok) throw new Error(c.detail || `HTTP ${res.status}`);
-      } catch (err) { if (stillOpen(ref)) body.innerHTML = `<p class="status warn">${esc(err.message || err)}</p>`; return; }
+      } catch (err) {
+        if (stillOpen(ref)) { document.getElementById('detailTitle').textContent = 'Could not open the case'; body.innerHTML = `<p class="status warn">${esc(err.message || err)}</p>`; }
+        return;
+      }
       if (!stillOpen(ref)) return;  // another case was opened meanwhile
-      document.getElementById('drawerMeta').textContent = [c.case_number, c.agency].filter(Boolean).join(' · ');
+      document.getElementById('detailKicker').textContent = [c.case_number, c.agency].filter(Boolean).join(' · ');
+      document.getElementById('detailTitle').textContent = c.account?.title || c.title;
+      document.getElementById('detailMeta').innerHTML = `${esc(c.title)} · ${link(c.url, 'Open in eInnsyn')}`;
       const posts = c.journal_posts || [];
       const hasContext = (c.related_news || []).length || (c.project_cases || []).length;
-      const postHtml = p => `<li><span class="dir">${esc(dirLabel[p.direction] || p.direction)}</span>
-          <span class="muted">${esc(p.date)}</span> ${esc(p.title)}
+      const postHtml = p => `<li class="is-${esc(p.direction)}">
+          <time datetime="${esc(p.date)}">${esc(p.date)} · ${esc(dirLabel[p.direction] || p.direction)}</time>
+          <span class="tl-title">${esc(p.title)}</span>
           <div class="meta">${[p.from && 'From ' + esc(p.from), p.to && 'To ' + esc(p.to), p.restricted && !p.documents.length && 'not public (exempt from disclosure)'].filter(Boolean).join(' · ')}</div>
           ${p.documents.map(d => `<a class="doc" href="${esc(d.url)}" target="_blank" rel="noopener">PDF${d.role === 'attachment' ? ' (attachment)' : ''}: ${esc(d.title || 'document')}</a>`).join('')}</li>`;
-      body.innerHTML = `<h2 id="drawerTitle">${esc(c.account?.title || c.title)}</h2>
-        <p class="muted">${esc(c.title)} · ${link(c.url, 'open in eInnsyn')}</p>
-        <div class="stats">
-          <div class="stat"><b>${posts.length}</b><span>journal posts</span></div>
-          <div class="stat"><b>${esc(c.open_documents)}</b><span>open documents</span></div>
-          <div class="stat"><b>${esc(posts[0]?.date || '–')}</b><span>latest</span></div>
+      body.innerHTML = `
+        <div class="detail-meta-strip" id="caseStrip">
+          ${metaChip('Stage', c.account?.stage, 'is-stage')}
+          ${metaChip('Journal posts', posts.length)}
+          ${metaChip('Open documents', c.open_documents)}
+          ${metaChip('Latest', posts[0]?.date)}
+          ${(c.projects || []).length ? metaChip('Project', c.projects.join(', ')) : ''}
         </div>
         <div id="caseAccount">${c.account ? accountHtml(c.account) : '<p class="muted">Writing the case summary …</p>'}</div>
-        ${hasContext ? `<section class="big-picture"><h3>The big picture</h3>
+        ${hasContext ? `<div class="detail-summary"><strong>The big picture</strong>
           <div id="bigPicture">${c.big_picture ? bigPictureHtml(c.big_picture) : '<p class="muted">Putting the case in context …</p>'}</div>
-          ${contextHtml(c)}</section>` : ''}
-        <section><h3>Journal posts ${c.open_documents ? `<span class="pill">${esc(c.posts_with_documents)} with open documents</span>` : ''}</h3>
-          <label class="muted"><input type="checkbox" id="onlyDocs" style="width:auto"> Only posts with open documents</label>
-          <ul class="timeline" id="timeline">${posts.slice(0, 25).map(postHtml).join('')}</ul>
+          ${contextHtml(c)}</div>` : ''}
+        <div class="detail-summary">
+          <strong>Journal posts</strong>
+          ${c.open_documents ? `<label class="toggle-label"><input type="checkbox" id="onlyDocs"> Only posts with open documents (${esc(c.posts_with_documents)})</label>` : ''}
+          <ol class="case-timeline" id="timeline">${posts.slice(0, 25).map(postHtml).join('')}</ol>
           ${posts.length > 25 ? '<button type="button" class="btn-secondary" id="morePosts">Show all journal posts</button>' : ''}
-        </section>
-        <section class="chat">
-          <div class="head-row"><h3>Ask about this case</h3><button type="button" class="btn-secondary" id="chatClear" hidden>Clear conversation</button></div>
+        </div>
+        <div class="detail-summary chat">
+          <strong>Ask about this case</strong>
           <p class="muted">Answers use the journal posts and read the most relevant open documents. The conversation is saved with the case.</p>
           <div id="chatLog"></div>
           <div class="chips" id="chatChips">
@@ -388,16 +622,19 @@
             <button type="button" class="btn-secondary">Who are the parties, and what do they want?</button>
           </div>
           <form id="chatForm"><textarea id="chatInput" placeholder="Ask in Norwegian or English …" aria-label="Question about this case"></textarea>
-            <button type="submit" id="chatSend">Ask</button> <span class="muted" id="chatStatus" role="status" aria-live="polite"></span></form>
-        </section>`;
+            <div class="chat-actions"><button type="submit" id="chatSend">Ask</button>
+              <span class="muted" id="chatStatus" role="status" aria-live="polite"></span>
+              <span style="flex:1"></span>
+              <button type="button" class="btn-ghost" id="chatClear" hidden>Clear conversation</button></div></form>
+        </div>`;
       mountChat(ref);
       let showAll = false;
       const redraw = () => {
-        const only = document.getElementById('onlyDocs').checked;
+        const only = document.getElementById('onlyDocs')?.checked;
         const list = posts.filter(p => !only || p.documents.length);
-        document.getElementById('timeline').innerHTML = (showAll || only ? list : list.slice(0, 25)).map(postHtml).join('') || '<li class="empty">No journal posts with open documents.</li>';
+        document.getElementById('timeline').innerHTML = (showAll || only ? list : list.slice(0, 25)).map(postHtml).join('') || '<li class="muted">No journal posts with open documents.</li>';
       };
-      document.getElementById('onlyDocs').addEventListener('change', redraw);
+      document.getElementById('onlyDocs')?.addEventListener('change', redraw);
       document.getElementById('morePosts')?.addEventListener('click', e => { showAll = true; e.target.remove(); redraw(); });
       if (!c.account?.complete) {
         try {
@@ -406,7 +643,8 @@
           if (!res.ok) throw new Error(account.detail || `HTTP ${res.status}`);
           if (stillOpen(ref)) {
             document.getElementById('caseAccount').innerHTML = accountHtml(account);
-            document.getElementById('drawerTitle').textContent = account.title || c.title;
+            document.getElementById('detailTitle').textContent = account.title || c.title;
+            if (account.stage && !c.account?.stage) document.getElementById('caseStrip').insertAdjacentHTML('afterbegin', metaChip('Stage', account.stage, 'is-stage'));
           }
         } catch (err) {
           if (!c.account && stillOpen(ref)) document.getElementById('caseAccount').innerHTML = `<p class="muted">The summary could not be written now: ${esc(err.message || err)}</p>`;
@@ -437,7 +675,7 @@
       const show = messages => { log.innerHTML = messages.map(msgHtml).join(''); clear.hidden = !messages.length; };
       try {
         const res = await fetch('/api/einnsyn/case/chat?ref=' + encodeURIComponent(ref));
-        if (res.ok) show((await res.json()).messages || []);
+        if (res.ok && stillOpen(ref)) show((await res.json()).messages || []);
       } catch (err) { /* no stored conversation */ }
       const ask = async question => {
         if (!question.trim()) return;
@@ -449,6 +687,7 @@
             body: JSON.stringify({ref, question})});
           const data = await res.json();
           if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+          if (!stillOpen(ref)) return;
           log.insertAdjacentHTML('beforeend', msgHtml({role: 'assistant', content: data.answer, sources: data.sources}));
           clear.hidden = false; status.textContent = '';
         } catch (err) {
@@ -472,28 +711,31 @@
         try {
           const res = await fetch('/api/einnsyn/case?ref=' + encodeURIComponent(el.dataset.docsFor));
           const c = await res.json();
-          if (res.ok && c.open_documents) { el.textContent = `${c.open_documents} open docs`; el.hidden = false; }
+          if (res.ok && c.open_documents) { el.textContent = `${c.open_documents} open documents`; el.hidden = false; }
         } catch (err) { /* badge is optional */ }
       }
     }
     document.addEventListener('click', e => {
       const btn = e.target.closest('[data-case]');
-      if (btn) openCase(btn.dataset.case);
+      if (btn) { openCase(btn.dataset.case); return; }
       const project = e.target.closest('[data-project]');
       if (project) setFilter('project', project.dataset.project);
-      const theme = e.target.closest('[data-theme-filter]');
-      if (theme) setFilter('theme', theme.dataset.themeFilter);
+      const tab = e.target.closest('[data-view]');
+      if (tab) showView(tab.dataset.view);
     });
+    document.getElementById('themeSelect').addEventListener('change', e => setFilter('theme', e.target.value));
     document.getElementById('clearFilter').addEventListener('click', () => {
       filter.project = filter.theme = '';
-      syncFilterUrl();
+      syncUrl();
       load();
     });
-    document.getElementById('drawerClose').addEventListener('click', closeDrawer);
-    document.getElementById('drawerBackdrop').addEventListener('click', closeDrawer);
-    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.getElementById('drawer').hidden) closeDrawer(); });
+    document.getElementById('detailCloseBtn').addEventListener('click', closeDrawer);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeDrawer(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && overlay.classList.contains('open')) closeDrawer(); });
 
+    let loading = 0;
     async function load(refresh = false) {
+      const mine = ++loading;
       setStatus(refresh ? 'Refreshing from Notion …' : 'Loading …');
       try {
         const q = new URLSearchParams();
@@ -503,15 +745,17 @@
         const res = await fetch('/api/einnsyn/overview' + (q.toString() ? '?' + q : ''));
         const body = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(body.detail || `HTTP ${res.status}`);
+        if (mine !== loading) return;  // a newer filter was chosen meanwhile
         render(body);
         loadDocBadges();
-        setStatus(`Data from Notion, read ${new Date(body.loaded_at).toLocaleString()}.`);
+        setStatus(`Read from Notion ${new Date(body.loaded_at).toLocaleString('en-GB', {dateStyle: 'short', timeStyle: 'short'})}`);
       } catch (err) {
-        setStatus(err.message || String(err), true);
+        if (mine === loading) setStatus(err.message || String(err), true);
       }
     }
 
     document.getElementById('refreshBtn').addEventListener('click', () => load(true));
+    showView(view);
     load();
     const startCase = params.get('case');
     if (startCase) openCase(startCase);
