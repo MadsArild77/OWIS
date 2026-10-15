@@ -92,6 +92,14 @@
     .timeline .dir { display: inline-block; min-width: 64px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--muted); }
     .doc { display: inline-block; margin: 4px 6px 0 0; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line-strong); font-size: 0.8rem; }
     .docs-badge { margin-left: 6px; }
+    .chat { border-top: 1px solid var(--line); padding-top: 14px; }
+    .msg { margin: 10px 0; padding: 10px 12px; border-radius: 10px; white-space: pre-wrap; }
+    .msg.user { background: var(--brand-soft); color: var(--active-ink); margin-left: 15%; }
+    .msg.assistant { background: var(--surface-2); margin-right: 5%; }
+    .msg .meta a { margin-right: 8px; }
+    .chat textarea { width: 100%; box-sizing: border-box; min-height: 64px; border: 1px solid var(--line-strong); border-radius: 8px;
+      padding: 8px 10px; font: inherit; background: var(--surface); color: var(--ink); resize: vertical; }
+    .chips button { padding: 4px 10px; font-size: 0.85rem; }
     @media (max-width: 600px) { .drawer { padding: 16px 16px 32px; } }
     code { overflow-wrap: anywhere; }
   </style>
@@ -261,7 +269,20 @@
           <label class="muted"><input type="checkbox" id="onlyDocs" style="width:auto"> Only posts with open documents</label>
           <ul class="timeline" id="timeline">${posts.slice(0, 25).map(postHtml).join('')}</ul>
           ${posts.length > 25 ? '<button type="button" class="btn-secondary" id="morePosts">Show all journal posts</button>' : ''}
+        </section>
+        <section class="chat">
+          <div class="head-row"><h3>Ask about this case</h3><button type="button" class="btn-secondary" id="chatClear" hidden>Clear conversation</button></div>
+          <p class="muted">Answers use the journal posts and read the most relevant open documents. The conversation is saved with the case.</p>
+          <div id="chatLog"></div>
+          <div class="chips" id="chatChips">
+            <button type="button" class="btn-secondary">What is the latest development?</button>
+            <button type="button" class="btn-secondary">Hva står i de siste åpne dokumentene?</button>
+            <button type="button" class="btn-secondary">Who are the parties, and what do they want?</button>
+          </div>
+          <form id="chatForm"><textarea id="chatInput" placeholder="Ask in Norwegian or English …" aria-label="Question about this case"></textarea>
+            <button type="submit" id="chatSend">Ask</button> <span class="muted" id="chatStatus" role="status" aria-live="polite"></span></form>
         </section>`;
+      mountChat(ref);
       let showAll = false;
       const redraw = () => {
         const only = document.getElementById('onlyDocs').checked;
@@ -283,6 +304,46 @@
           if (!c.account) document.getElementById('caseAccount').innerHTML = `<p class="muted">The summary could not be written now: ${esc(err.message || err)}</p>`;
         }
       }
+    }
+    function msgHtml(m) {
+      const src = (m.sources || []).map(x => `<a href="${esc(x.url)}" target="_blank" rel="noopener">[${esc(x.n)}] ${esc(x.title)}${x.date ? ' (' + esc(x.date) + ')' : ''}</a>`).join('');
+      return `<div class="msg ${m.role === 'user' ? 'user' : 'assistant'}">${esc(m.content)}${src ? `<div class="meta">Sources: ${src}</div>` : ''}</div>`;
+    }
+    async function mountChat(ref) {
+      const log = document.getElementById('chatLog'), form = document.getElementById('chatForm');
+      const input = document.getElementById('chatInput'), status = document.getElementById('chatStatus');
+      const clear = document.getElementById('chatClear');
+      const show = messages => { log.innerHTML = messages.map(msgHtml).join(''); clear.hidden = !messages.length; };
+      try {
+        const res = await fetch('/api/einnsyn/case/chat?ref=' + encodeURIComponent(ref));
+        if (res.ok) show((await res.json()).messages || []);
+      } catch (err) { /* no stored conversation */ }
+      const ask = async question => {
+        if (!question.trim()) return;
+        log.insertAdjacentHTML('beforeend', msgHtml({role: 'user', content: question}));
+        input.value = ''; status.textContent = 'Reading the case and its documents …';
+        document.getElementById('chatSend').disabled = true;
+        try {
+          const res = await fetch('/api/einnsyn/case/chat', {method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ref, question})});
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+          log.insertAdjacentHTML('beforeend', msgHtml({role: 'assistant', content: data.answer, sources: data.sources}));
+          clear.hidden = false; status.textContent = '';
+        } catch (err) {
+          status.textContent = err.message || String(err);
+        } finally {
+          document.getElementById('chatSend').disabled = false;
+        }
+      };
+      form.addEventListener('submit', e => { e.preventDefault(); ask(input.value); });
+      input.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); ask(input.value); } });
+      document.getElementById('chatChips').addEventListener('click', e => { if (e.target.tagName === 'BUTTON') ask(e.target.textContent); });
+      clear.addEventListener('click', async () => {
+        if (!confirm('Delete the saved conversation about this case?')) return;
+        await fetch('/api/einnsyn/case/chat?ref=' + encodeURIComponent(ref), {method: 'DELETE'});
+        show([]);
+      });
     }
     async function loadDocBadges() {
       for (const el of document.querySelectorAll('[data-docs-for]')) {

@@ -68,6 +68,8 @@ The server must be running. Manual generation is available in the News page.
   from eInnsyn's open API), the written account and related news
 - `POST /api/einnsyn/case/account` `{ref}`: write the account now (AI)
 - `GET /api/einnsyn/related?item_ids=..`: eInnsyn cases naming the projects/companies of news items
+- `GET|POST|DELETE /api/einnsyn/case/chat`: the saved conversation about a case; `POST {ref, question}`
+  answers from the journal posts and the most relevant open documents (PDF text via `pypdf`)
 - Page: `/einnsyn`
 
 ## eInnsyn page config
