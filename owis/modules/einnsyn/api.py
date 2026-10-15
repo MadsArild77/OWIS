@@ -8,7 +8,7 @@ from owis.core.config.settings import (
     NOTION_API_KEY,
     NOTION_VERSION,
 )
-from owis.modules.einnsyn import case_accounts, case_chat, links
+from owis.modules.einnsyn import big_picture, case_accounts, case_chat, links
 from owis.modules.einnsyn.case_source import CaseSource
 from owis.modules.einnsyn.notion_reader import EinnsynNotionReader, OverviewCache
 
@@ -50,8 +50,20 @@ def case_detail(ref: str):
     """One case from eInnsyn: journal posts, open documents, the written account if any, related news."""
     case = dict(_load_case(ref))
     case["account"] = case_accounts.stored(case)
-    case["related_news"] = links.news_for_case(case)
+    ctx = big_picture.context(case, _saker())
+    case["related_news"], case["project_cases"], case["projects"] = ctx["news"], ctx["cases"], ctx["projects"]
+    case["big_picture"] = big_picture.stored(case, ctx)
     return case
+
+
+def _saker() -> list[dict]:
+    """Case rows from the Notion cache, or none when Notion is not set up or not reachable."""
+    if not reader.configured():
+        return []
+    try:
+        return cache.saker()
+    except Exception:
+        return []
 
 
 class AccountRequest(BaseModel):
@@ -68,16 +80,24 @@ def case_account(payload: AccountRequest):
     return account
 
 
+@router.post("/case/big-picture")
+def case_big_picture(payload: AccountRequest):
+    """Write the big picture: the case together with its news and the other cases on the same project."""
+    case = _load_case(payload.ref)
+    ctx = big_picture.context(case, _saker())
+    if not (ctx["news"] or ctx["cases"]):
+        raise HTTPException(status_code=404, detail="No news or other cases on this project to put the case in context.")
+    result = big_picture.write(case, ctx, case_accounts.stored(case))
+    if not result:
+        raise HTTPException(status_code=503, detail="The big picture could not be written now (is AI enabled?).")
+    return result
+
+
 @router.get("/related")
 def related_cases(item_ids: list[int] = Query(default=[])):
     """eInnsyn cases naming the projects or companies of these news items (for the news page)."""
-    if not item_ids or not reader.configured():
-        return {"items": []}
-    try:
-        saker = cache.saker()
-    except Exception:
-        return {"items": []}
-    return {"items": links.cases_for_news(item_ids, saker)}
+    saker = _saker() if item_ids else []
+    return {"items": links.cases_for_news(item_ids, saker) if saker else []}
 
 
 class ChatRequest(BaseModel):
