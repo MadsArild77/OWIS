@@ -377,3 +377,11 @@ beslutningen med lenke til den nye.
   kan kombineres, og filteret står i adressen så visningen kan deles. Saker uten prosjekt eller
   tema samles i «Uklassifisert». Åpne dokumenter telles ikke i boksene, fordi det ville krevd et
   oppslag i eInnsyn per sak; de vises fortsatt per sak.
+- **The big picture (erstatter «Related news»):** i sakspanelet skriver AI en kort tekst som setter
+  saken inn i den større sammenhengen: hvilket prosjekt eller hvilken prosess den hører til, hva
+  nyhetene sier skjer rundt den, om saken kommer før, følger av, bekrefter eller motsier nyhetene,
+  og hva man bør følge med på. Den bygger på saksomtalen, nyhetene som er koblet til saken og de
+  andre fulgte sakene i samme *Prosjektområde* (ikke «Generelt/Tversgående»). Nyhetene teksten
+  henviser til lagres med teksten, så kildehenvisningene [n] stemmer selv om nyhetsbildet endrer
+  seg. Teksten skrives på nytt når saken, nyhetene eller prosjektets saker endres. Nyhetene og de
+  andre sakene ligger under teksten som kilder, og sakene kan åpnes derfra.

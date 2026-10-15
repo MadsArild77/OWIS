@@ -102,6 +102,16 @@
     .chips button { padding: 4px 10px; font-size: 0.85rem; }
     @media (max-width: 600px) { .drawer { padding: 16px 16px 32px; } }
     code { overflow-wrap: anywhere; }
+    .big-picture { border-top: 1px solid var(--line); padding-top: 14px; }
+    .bp-headline { font-weight: 700; font-size: 1.05rem; margin: 0 0 8px; }
+    .big-picture sup { color: var(--brand); font-size: 0.72rem; }
+    .big-picture .next { margin: 10px 0; }
+    .big-picture .next p { margin: 4px 0 0; }
+    .sources { margin: 10px 0 0; padding-left: 22px; font-size: 0.875rem; }
+    .sources li { margin: 4px 0; }
+    .context { margin-top: 12px; }
+    .context summary { cursor: pointer; color: var(--muted); font-size: 0.9rem; }
+    .context h4 { margin: 12px 0 4px; font-size: 0.9rem; }
     .facets { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
     .facet { margin: 0; text-align: left; padding: 12px 14px; border-radius: 12px; background: var(--surface); color: var(--ink);
       border: 1px solid var(--line); box-shadow: var(--shadow); font-weight: 400; }
@@ -295,7 +305,7 @@
         : empty(4, 'No search terms.');
     }
 
-    // ---- One case: story, likely next step, journal posts with open documents, related news ----
+    // ---- One case: story, likely next step, the big picture, journal posts with open documents ----
     const dirLabel = {incoming: 'In', outgoing: 'Out', internal: 'Internal'};
     function closeDrawer() {
       document.getElementById('drawer').hidden = true;
@@ -309,7 +319,30 @@
         ${a.documents ? `<p class="muted">${esc(a.documents)}</p>` : ''}
         ${a.complete ? '' : '<p class="muted">Written before the latest journal posts; updating…</p>'}`;
     }
+    // The big picture: the case with its news and the other cases on the same project
+    function bigPictureHtml(b) {
+      const cite = t => esc(t).replace(/\[(\d+)\]/g, '<sup>[$1]</sup>');
+      return `${b.headline ? `<p class="bp-headline">${esc(b.headline)}</p>` : ''}
+        ${String(b.summary).split(/\n\s*\n/).map(t => `<p>${cite(t)}</p>`).join('')}
+        ${b.watch ? `<div class="next"><b>What to watch</b><p>${cite(b.watch)}</p></div>` : ''}
+        ${(b.sources || []).length ? `<ol class="sources">${b.sources.map(x => `<li value="${esc(x.n)}">${link(x.url, x.title)}
+          <span class="muted">· ${esc(x.source)} · ${esc(x.published)}</span></li>`).join('')}</ol>` : ''}
+        ${b.complete ? '' : '<p class="muted">Written before the latest news or journal posts; updating…</p>'}`;
+    }
+    function contextHtml(c) {
+      const news = c.related_news || [], others = c.project_cases || [];
+      const parts = [news.length && `${news.length} news ${news.length === 1 ? 'story' : 'stories'}`,
+        others.length && `${others.length} other case${others.length === 1 ? '' : 's'} on ${esc((c.projects || []).join(', '))}`].filter(Boolean);
+      return `<details class="context"><summary>Based on ${parts.join(' and ')}</summary>
+        ${news.length ? `<h4>News</h4><ul class="list">${news.map(n => `<li>${link(n.url, n.title)}
+          <div class="meta">${esc(n.source)} · ${esc(n.published)} · via ${esc(n.matched_on.join(', '))}</div></li>`).join('')}</ul>` : ''}
+        ${others.length ? `<h4>Other cases on the project</h4><ul class="list">${others.map(o => `<li>${caseBtn(o.url, o.title)}
+          <div class="meta">${esc(o.case_number)} · ${esc(o.status)}</div></li>`).join('')}</ul>` : ''}</details>`;
+    }
+    let currentCase = '';
+    const stillOpen = ref => currentCase === ref && !document.getElementById('drawer').hidden;
     async function openCase(ref) {
+      currentCase = ref;
       const drawer = document.getElementById('drawer'), body = document.getElementById('drawerBody');
       drawer.hidden = false; document.getElementById('drawerBackdrop').hidden = false;
       document.getElementById('drawerMeta').textContent = '';
@@ -320,9 +353,11 @@
         const res = await fetch('/api/einnsyn/case?ref=' + encodeURIComponent(ref));
         c = await res.json();
         if (!res.ok) throw new Error(c.detail || `HTTP ${res.status}`);
-      } catch (err) { body.innerHTML = `<p class="status warn">${esc(err.message || err)}</p>`; return; }
+      } catch (err) { if (stillOpen(ref)) body.innerHTML = `<p class="status warn">${esc(err.message || err)}</p>`; return; }
+      if (!stillOpen(ref)) return;  // another case was opened meanwhile
       document.getElementById('drawerMeta').textContent = [c.case_number, c.agency].filter(Boolean).join(' · ');
       const posts = c.journal_posts || [];
+      const hasContext = (c.related_news || []).length || (c.project_cases || []).length;
       const postHtml = p => `<li><span class="dir">${esc(dirLabel[p.direction] || p.direction)}</span>
           <span class="muted">${esc(p.date)}</span> ${esc(p.title)}
           <div class="meta">${[p.from && 'From ' + esc(p.from), p.to && 'To ' + esc(p.to), p.restricted && !p.documents.length && 'not public (exempt from disclosure)'].filter(Boolean).join(' · ')}</div>
@@ -335,8 +370,9 @@
           <div class="stat"><b>${esc(posts[0]?.date || '–')}</b><span>latest</span></div>
         </div>
         <div id="caseAccount">${c.account ? accountHtml(c.account) : '<p class="muted">Writing the case summary …</p>'}</div>
-        ${c.related_news.length ? `<section><h3>Related news</h3><ul class="list">${c.related_news.map(n => `<li>${link(n.url, n.title)}
-          <div class="meta">${esc(n.source)} · ${esc(n.published)} · via ${esc(n.matched_on.join(', '))}</div></li>`).join('')}</ul></section>` : ''}
+        ${hasContext ? `<section class="big-picture"><h3>The big picture</h3>
+          <div id="bigPicture">${c.big_picture ? bigPictureHtml(c.big_picture) : '<p class="muted">Putting the case in context …</p>'}</div>
+          ${contextHtml(c)}</section>` : ''}
         <section><h3>Journal posts ${c.open_documents ? `<span class="pill">${esc(c.posts_with_documents)} with open documents</span>` : ''}</h3>
           <label class="muted"><input type="checkbox" id="onlyDocs" style="width:auto"> Only posts with open documents</label>
           <ul class="timeline" id="timeline">${posts.slice(0, 25).map(postHtml).join('')}</ul>
@@ -368,12 +404,25 @@
           const res = await fetch('/api/einnsyn/case/account', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ref})});
           const account = await res.json();
           if (!res.ok) throw new Error(account.detail || `HTTP ${res.status}`);
-          if (!document.getElementById('drawer').hidden) {
+          if (stillOpen(ref)) {
             document.getElementById('caseAccount').innerHTML = accountHtml(account);
             document.getElementById('drawerTitle').textContent = account.title || c.title;
           }
         } catch (err) {
-          if (!c.account) document.getElementById('caseAccount').innerHTML = `<p class="muted">The summary could not be written now: ${esc(err.message || err)}</p>`;
+          if (!c.account && stillOpen(ref)) document.getElementById('caseAccount').innerHTML = `<p class="muted">The summary could not be written now: ${esc(err.message || err)}</p>`;
+        }
+      }
+      // Written after the account, which it builds on
+      if (hasContext && !c.big_picture?.complete) {
+        try {
+          const res = await fetch('/api/einnsyn/case/big-picture', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ref})});
+          const b = await res.json();
+          if (!res.ok) throw new Error(b.detail || `HTTP ${res.status}`);
+          const el = document.getElementById('bigPicture');
+          if (el && stillOpen(ref)) el.innerHTML = bigPictureHtml(b);
+        } catch (err) {
+          const el = document.getElementById('bigPicture');
+          if (el && !c.big_picture && stillOpen(ref)) el.innerHTML = `<p class="muted">The big picture could not be written now: ${esc(err.message || err)}</p>`;
         }
       }
     }
