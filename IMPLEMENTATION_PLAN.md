@@ -130,9 +130,9 @@ PR: ikke opprettet. Validering: ikke utført.
 
 Foreslått 15. oktober 2026, ikke startet. Se [D23](DECISIONS.md). Rekkefølge:
 
-1. [ ] **eInnsyn** (eget repo): bytt til nytt API på `api.einnsyn.no` og slå på
-   søkeprofilene igjen. Ferdig når nye journalposter for fulgte saker og
-   søkeprofiler havner i Notion.
+1. [x] **eInnsyn** (eget repo): nye forsøk mot Notion og færre kall per kjøring
+   ([eInnsyn PR #2](https://github.com/MadsArild77/eInnsyn/pull/2)). Søkeprofilene
+   er fortsatt avslått; vurderes ved flytting til OWIS.
 2. [ ] **Varslingssøk i OWIS:** lagrede søk med valg av kilder, varsling og
    leveranse. Google Alerts-RSS som kilde, med egen regel for eget navn.
    Ferdig når et søk på «NorthernBlue» gir treff fra minst to kilder og vises
