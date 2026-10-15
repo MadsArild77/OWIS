@@ -244,11 +244,17 @@
 
     function setFilter(key, value) {
       filter[key] = filter[key] === value ? '' : value;
-      const q = new URLSearchParams();
-      if (filter.project) q.set('project', filter.project);
-      if (filter.theme) q.set('theme', filter.theme);
-      history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : ''));
+      syncFilterUrl();
       load();
+    }
+
+    // Only touch the filter parameters, so an open case (?case=) stays in the address
+    function syncFilterUrl() {
+      const url = new URL(location.href);
+      for (const key of ['project', 'theme']) {
+        if (filter[key]) url.searchParams.set(key, filter[key]); else url.searchParams.delete(key);
+      }
+      history.replaceState(null, '', url);
     }
 
     function render(d) {
@@ -431,7 +437,7 @@
     });
     document.getElementById('clearFilter').addEventListener('click', () => {
       filter.project = filter.theme = '';
-      history.replaceState(null, '', location.pathname);
+      syncFilterUrl();
       load();
     });
     document.getElementById('drawerClose').addEventListener('click', closeDrawer);

@@ -146,3 +146,19 @@ def test_filter_by_project_and_theme():
     o = build_overview(_tagged(), today=TODAY, project="Uklassifisert")
     assert [c["case_number"] for c in o["suggested_cases"]] == ["2026/9"]
     assert o["recent_journal_posts"] == []
+
+
+def test_filter_joins_journal_posts_on_the_case_page_not_only_the_number():
+    data = _tagged()
+    data["saker"][0]["_id"] = "page-utsira"
+    data["saker"].append({"Name": "Annen etat", "Saksnummer": "2025/1", "Status": "Aktiv", "_id": "page-other",
+                          "Prosjektområde": "Brage Havvind"})
+    for r in data["logg"]:
+        if r["Saksnummer"] == "2025/1":
+            r["Sak"] = "page-utsira"
+    data["logg"].append({**_log("x", "2025/1", "2026-10-13", "Annen AS"), "Sak": "page-other"})
+    o = build_overview(data, today=TODAY, project="Utsira Nord")
+    assert [p["title"] for p in o["recent_journal_posts"]] == ["a", "b"]
+    assert "Annen AS" not in {s["name"] for s in o["top_senders"]}
+    projects = {b["name"]: b["journal_posts_30d"] for b in o["projects"]}
+    assert projects["Utsira Nord"] == 2 and projects["Brage Havvind"] == 1

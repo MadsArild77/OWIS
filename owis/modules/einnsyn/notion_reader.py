@@ -64,6 +64,17 @@ def _tags(row: dict[str, str], field: str) -> list[str]:
     return [t for t in (row.get(field) or "").split(TAG_SEP) if t.strip()] or [UNTAGGED]
 
 
+def _log_case_ids(row: dict[str, str]) -> list[str]:
+    """Notion pages of the case a journal post belongs to (the «Sak» relation). Case numbers
+    alone are not unique: two agencies can both have a case 2025/1234."""
+    return [i for i in (row.get("Sak") or "").split(",") if i]
+
+
+def _case_posts(posts_30d: Counter, case: dict[str, str]) -> int:
+    """Posts are counted by case page when the log row links to one, else by case number."""
+    return posts_30d.get(case.get("_id", ""), 0) + posts_30d.get("#" + case.get("Saksnummer", ""), 0)
+
+
 def _facets(saker: list[dict[str, str]], posts_30d: Counter, field: str) -> list[dict[str, Any]]:
     """One box per project or theme: followed cases, suggested cases and new journal posts."""
     boxes: dict[str, dict[str, Any]] = {}
@@ -74,7 +85,7 @@ def _facets(saker: list[dict[str, str]], posts_30d: Counter, field: str) -> list
             box = boxes.setdefault(tag, {"name": tag, "cases": 0, "suggested": 0, "journal_posts_30d": 0})
             box["cases"] += 1
             box["suggested"] += s.get("Status") == "Foreslått"
-            box["journal_posts_30d"] += posts_30d.get(s.get("Saksnummer", ""), 0)
+            box["journal_posts_30d"] += _case_posts(posts_30d, s)
     return sorted(boxes.values(), key=lambda b: (b["name"] == UNTAGGED, -b["cases"], b["name"].lower()))
 
 
@@ -129,8 +140,10 @@ def build_overview(data: dict[str, list[dict[str, str]]], today: date | None = N
     def published(row: dict[str, str]) -> date | None:
         return _parse_day(row.get("Publisert") or row.get("Journaldato") or row.get("Dato") or "")
 
-    posts_30d = Counter(r.get("Saksnummer", "") for r in all_logg
-                        if r.get("Saksnummer") and (published(r) or date.min) >= today - timedelta(days=30))
+    posts_30d: Counter = Counter()
+    for r in all_logg:
+        if (published(r) or date.min) >= today - timedelta(days=30):
+            posts_30d.update(_log_case_ids(r) or (["#" + r["Saksnummer"]] if r.get("Saksnummer") else []))
     # Each row of boxes is counted within the other filter, so «Utsira Nord» shows how many
     # of its cases fall under the chosen theme, and the other way round.
     projects = _facets([s for s in all_saker if has(s, THEME_FIELD, theme)], posts_30d, PROJECT_FIELD)
@@ -139,8 +152,10 @@ def build_overview(data: dict[str, list[dict[str, str]]], today: date | None = N
     saker = [s for s in all_saker if has(s, PROJECT_FIELD, project) and has(s, THEME_FIELD, theme)]
     logg = all_logg
     if project or theme:
+        ids = {s.get("_id") for s in saker}
         numbers = {s.get("Saksnummer") for s in saker if s.get("Saksnummer")}
-        logg = [r for r in all_logg if r.get("Saksnummer") in numbers]
+        logg = [r for r in all_logg
+                if (set(_log_case_ids(r)) & ids if _log_case_ids(r) else r.get("Saksnummer") in numbers)]
     case_names = {s.get("Saksnummer", ""): s.get("Name", "") for s in saker if s.get("Saksnummer")}
     case_urls = {s.get("Saksnummer", ""): s.get("URL", "") for s in saker if s.get("Saksnummer") and s.get("URL")}
 
