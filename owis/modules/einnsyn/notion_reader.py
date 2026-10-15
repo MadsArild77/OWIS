@@ -18,6 +18,10 @@ import httpx
 NOTION_BASE = "https://api.notion.com/v1"
 RETRY_STATUS = {429, 500, 502, 503, 504}
 SUGGESTION_MARK = "Forslag fra ukentlig sjekk"
+PROJECT_FIELD, THEME_FIELD = "Prosjektområde", "Tema"
+UNTAGGED = "Uklassifisert"
+TAG_SEP = ", "
+FOLLOWED = ("Aktiv", "Foreslått")
 
 
 def _text(prop: dict[str, Any] | None) -> str:
@@ -29,6 +33,8 @@ def _text(prop: dict[str, Any] | None) -> str:
         return "".join(str(p.get("plain_text") or "") for p in value or []).strip()
     if kind == "select":
         return str((value or {}).get("name") or "")
+    if kind == "multi_select":
+        return TAG_SEP.join(str(o.get("name") or "") for o in value or [] if o.get("name"))
     if kind == "url":
         return str(value or "")
     if kind == "date":
@@ -51,6 +57,36 @@ def _parse_day(value: str) -> date | None:
         return date.fromisoformat(value[:10]) if value else None
     except ValueError:
         return None
+
+
+def _tags(row: dict[str, str], field: str) -> list[str]:
+    """Project areas or themes of a case; cases without any count as «Uklassifisert»."""
+    return [t for t in (row.get(field) or "").split(TAG_SEP) if t.strip()] or [UNTAGGED]
+
+
+def _log_case_ids(row: dict[str, str]) -> list[str]:
+    """Notion pages of the case a journal post belongs to (the «Sak» relation). Case numbers
+    alone are not unique: two agencies can both have a case 2025/1234."""
+    return [i for i in (row.get("Sak") or "").split(",") if i]
+
+
+def _case_posts(posts_30d: Counter, case: dict[str, str]) -> int:
+    """Posts are counted by case page when the log row links to one, else by case number."""
+    return posts_30d.get(case.get("_id", ""), 0) + posts_30d.get("#" + case.get("Saksnummer", ""), 0)
+
+
+def _facets(saker: list[dict[str, str]], posts_30d: Counter, field: str) -> list[dict[str, Any]]:
+    """One box per project or theme: followed cases, suggested cases and new journal posts."""
+    boxes: dict[str, dict[str, Any]] = {}
+    for s in saker:
+        if s.get("Status") not in FOLLOWED:
+            continue
+        for tag in _tags(s, field):
+            box = boxes.setdefault(tag, {"name": tag, "cases": 0, "suggested": 0, "journal_posts_30d": 0})
+            box["cases"] += 1
+            box["suggested"] += s.get("Status") == "Foreslått"
+            box["journal_posts_30d"] += _case_posts(posts_30d, s)
+    return sorted(boxes.values(), key=lambda b: (b["name"] == UNTAGGED, -b["cases"], b["name"].lower()))
 
 
 class EinnsynNotionReader:
@@ -91,15 +127,37 @@ class EinnsynNotionReader:
         return {name: [_row(p) for p in self._query_all(db)] for name, db in self.dbs.items()}
 
 
-def build_overview(data: dict[str, list[dict[str, str]]], today: date | None = None) -> dict[str, Any]:
-    """Summarise the three databases. Pure function, so it is easy to test."""
+def build_overview(data: dict[str, list[dict[str, str]]], today: date | None = None,
+                   project: str = "", theme: str = "") -> dict[str, Any]:
+    """Summarise the three databases, optionally for one project and/or theme.
+    Pure function, so it is easy to test."""
     today = today or datetime.now(timezone.utc).date()
-    saker, logg, sok = data.get("saker", []), data.get("logg", []), data.get("sok", [])
-    case_names = {s.get("Saksnummer", ""): s.get("Name", "") for s in saker if s.get("Saksnummer")}
-    case_urls = {s.get("Saksnummer", ""): s.get("URL", "") for s in saker if s.get("Saksnummer") and s.get("URL")}
+    all_saker, all_logg, sok = data.get("saker", []), data.get("logg", []), data.get("sok", [])
+
+    def has(row: dict[str, str], field: str, value: str) -> bool:
+        return not value or value in _tags(row, field)
 
     def published(row: dict[str, str]) -> date | None:
         return _parse_day(row.get("Publisert") or row.get("Journaldato") or row.get("Dato") or "")
+
+    posts_30d: Counter = Counter()
+    for r in all_logg:
+        if (published(r) or date.min) >= today - timedelta(days=30):
+            posts_30d.update(_log_case_ids(r) or (["#" + r["Saksnummer"]] if r.get("Saksnummer") else []))
+    # Each row of boxes is counted within the other filter, so «Utsira Nord» shows how many
+    # of its cases fall under the chosen theme, and the other way round.
+    projects = _facets([s for s in all_saker if has(s, THEME_FIELD, theme)], posts_30d, PROJECT_FIELD)
+    themes = _facets([s for s in all_saker if has(s, PROJECT_FIELD, project)], posts_30d, THEME_FIELD)
+
+    saker = [s for s in all_saker if has(s, PROJECT_FIELD, project) and has(s, THEME_FIELD, theme)]
+    logg = all_logg
+    if project or theme:
+        ids = {s.get("_id") for s in saker}
+        numbers = {s.get("Saksnummer") for s in saker if s.get("Saksnummer")}
+        logg = [r for r in all_logg
+                if (set(_log_case_ids(r)) & ids if _log_case_ids(r) else r.get("Saksnummer") in numbers)]
+    case_names = {s.get("Saksnummer", ""): s.get("Name", "") for s in saker if s.get("Saksnummer")}
+    case_urls = {s.get("Saksnummer", ""): s.get("URL", "") for s in saker if s.get("Saksnummer") and s.get("URL")}
 
     recent_cut, active_cut, sender_cut = (today - timedelta(days=d) for d in (14, 30, 90))
     recent = sorted((r for r in logg if (published(r) or date.min) >= recent_cut),
@@ -117,6 +175,9 @@ def build_overview(data: dict[str, list[dict[str, str]]], today: date | None = N
     keywords = [k for k in sok if k not in keyword_suggestions]
 
     return {
+        "filter": {"project": project, "theme": theme},
+        "projects": projects,
+        "themes": themes,
         "summary": {
             "active_cases": status.get("Aktiv", 0),
             "suggested_cases": status.get("Foreslått", 0),
@@ -165,14 +226,18 @@ class OverviewCache:
         self._loaded_at = 0.0
         self._lock = threading.Lock()
 
-    def get(self, refresh: bool = False) -> dict[str, Any]:
+    def get(self, refresh: bool = False, project: str = "", theme: str = "") -> dict[str, Any]:
         with self._lock:
             if refresh or self._value is None or time.time() - self._loaded_at > self.ttl:
                 self._data = self.reader.load()
                 overview = build_overview(self._data)
                 overview["loaded_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
                 self._value, self._loaded_at = overview, time.time()
-            return self._value
+            if not (project or theme):
+                return self._value
+            filtered = build_overview(self._data, project=project, theme=theme)
+            filtered["loaded_at"] = self._value["loaded_at"]
+            return filtered
 
     def saker(self) -> list[dict[str, str]]:
         """The case rows behind the current overview (loads them if needed)."""

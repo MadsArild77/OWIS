@@ -21,7 +21,7 @@ document_texts = case_chat.DocumentTexts()
 
 
 @router.get("/overview")
-def overview(refresh: bool = False):
+def overview(refresh: bool = False, project: str = "", theme: str = ""):
     if not reader.configured():
         raise HTTPException(
             status_code=503,
@@ -30,7 +30,7 @@ def overview(refresh: bool = False):
                    "databases with the integration.",
         )
     try:
-        return cache.get(refresh=refresh)
+        return cache.get(refresh=refresh, project=project.strip(), theme=theme.strip())
     except Exception as exc:  # Notion down or not shared: show the reason on the page
         raise HTTPException(status_code=502, detail=f"Could not read eInnsyn data from Notion: {exc}")
 

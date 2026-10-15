@@ -371,3 +371,9 @@ beslutningen med lenke til den nye.
 - **Det huskes:** samtalen lagres per sak i OWIS-databasen og vises igjen når saken åpnes,
   også for andre brukere, og brukes som bakgrunn for nye spørsmål. Tekst fra lest PDF lagres,
   så hvert dokument leses én gang. Samtalen kan slettes med «Clear conversation».
+- **Prosjekter og temaer:** øverst på `/einnsyn` er en boks per *Prosjektområde* og en knapp per
+  *Tema*, begge hentet fra Notion. Boksen viser antall fulgte saker (Aktiv og Foreslått), nye
+  journalposter siste 30 dager og foreslåtte saker. Klikk filtrerer hele siden; prosjekt og tema
+  kan kombineres, og filteret står i adressen så visningen kan deles. Saker uten prosjekt eller
+  tema samles i «Uklassifisert». Åpne dokumenter telles ikke i boksene, fordi det ville krevd et
+  oppslag i eInnsyn per sak; de vises fortsatt per sak.

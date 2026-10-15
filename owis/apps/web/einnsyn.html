@@ -102,6 +102,25 @@
     .chips button { padding: 4px 10px; font-size: 0.85rem; }
     @media (max-width: 600px) { .drawer { padding: 16px 16px 32px; } }
     code { overflow-wrap: anywhere; }
+    .facets { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+    .facet { margin: 0; text-align: left; padding: 12px 14px; border-radius: 12px; background: var(--surface); color: var(--ink);
+      border: 1px solid var(--line); box-shadow: var(--shadow); font-weight: 400; }
+    .facet:hover { border-color: var(--brand); filter: none; }
+    .facet b { display: block; font-size: 1rem; margin-bottom: 4px; }
+    .facet span { display: block; color: var(--muted); font-size: 0.82rem; }
+    .facet[aria-pressed="true"], .theme-btn[aria-pressed="true"] { border-color: var(--brand); background: var(--brand-soft); color: var(--active-ink); }
+    .facet.untagged b { font-style: italic; }
+    .themes { display: flex; flex-wrap: wrap; gap: 8px; }
+    .theme-btn { margin: 0; padding: 5px 12px; border-radius: 999px; font-size: 0.875rem; font-weight: 600;
+      background: var(--secondary-bg); color: var(--secondary-ink); border: 1px solid var(--line); }
+    .theme-btn small { color: var(--muted); font-weight: 400; margin-left: 4px; }
+    .filter-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 16px; }
+    .filter-bar[hidden] { display: none; }
+    @media (max-width: 600px) {
+      .facets { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .facet { padding: 10px; }
+      .facet b { font-size: 0.92rem; overflow-wrap: break-word; }
+    }
   </style>
 </head>
 <body>
@@ -122,6 +141,18 @@
     <p class="muted">Public records from eInnsyn, collected daily by the eInnsyn monitor and stored in Notion. This page only reads Notion; edit cases and search terms there.</p>
     <p id="status" class="status" role="status" aria-live="polite">Loading …</p>
 
+    <section aria-labelledby="projectsHead">
+      <h2 id="projectsHead">Projects</h2>
+      <div class="facets" id="projects"></div>
+    </section>
+    <section aria-labelledby="themesHead">
+      <h2 id="themesHead">Themes</h2>
+      <div class="themes" id="themes"></div>
+    </section>
+    <div class="filter-bar" id="filterBar" hidden>
+      <span>Showing <b id="filterText"></b></span>
+      <button type="button" class="btn-secondary" id="clearFilter" style="margin:0">Show everything</button>
+    </div>
     <div class="stats" id="stats"></div>
 
     <section class="card">
@@ -186,7 +217,48 @@
       el.classList.toggle('warn', warn);
     }
 
+    // Project and theme filter, kept in the address so a filtered view can be bookmarked or shared
+    const params = new URLSearchParams(location.search);
+    const filter = {project: params.get('project') || '', theme: params.get('theme') || ''};
+    const UNTAGGED = 'Uklassifisert';
+
+    function boxLine(b) {
+      return `${b.cases} case${b.cases === 1 ? '' : 's'} · ${b.journal_posts_30d} new post${b.journal_posts_30d === 1 ? '' : 's'}, 30 days`
+        + (b.suggested ? ` · ${b.suggested} suggested` : '');
+    }
+
+    function renderFacets(d) {
+      const projects = d.projects || [], themes = d.themes || [];
+      document.getElementById('projects').innerHTML = projects.length
+        ? projects.map(b => `<button type="button" class="facet${b.name === UNTAGGED ? ' untagged' : ''}" data-project="${esc(b.name)}"
+            aria-pressed="${b.name === filter.project}"><b>${esc(b.name).replace(/\//g, '/<wbr>')}</b><span>${esc(boxLine(b))}</span></button>`).join('')
+        : '<p class="empty">No project areas in Notion yet.</p>';
+      document.getElementById('themes').innerHTML = themes.length
+        ? themes.map(b => `<button type="button" class="theme-btn" data-theme-filter="${esc(b.name)}" title="${esc(boxLine(b))}"
+            aria-pressed="${b.name === filter.theme}">${esc(b.name)}<small>${esc(b.cases)}</small></button>`).join('')
+        : '<p class="empty">No themes in Notion yet.</p>';
+      const parts = [filter.project, filter.theme].filter(Boolean);
+      document.getElementById('filterBar').hidden = !parts.length;
+      document.getElementById('filterText').textContent = parts.join(' + ');
+    }
+
+    function setFilter(key, value) {
+      filter[key] = filter[key] === value ? '' : value;
+      syncFilterUrl();
+      load();
+    }
+
+    // Only touch the filter parameters, so an open case (?case=) stays in the address
+    function syncFilterUrl() {
+      const url = new URL(location.href);
+      for (const key of ['project', 'theme']) {
+        if (filter[key]) url.searchParams.set(key, filter[key]); else url.searchParams.delete(key);
+      }
+      history.replaceState(null, '', url);
+    }
+
     function render(d) {
+      renderFacets(d);
       const s = d.summary;
       document.getElementById('stats').innerHTML = [
         [s.active_cases, 'cases followed'], [s.suggested_cases, 'suggested cases'],
@@ -358,6 +430,15 @@
     document.addEventListener('click', e => {
       const btn = e.target.closest('[data-case]');
       if (btn) openCase(btn.dataset.case);
+      const project = e.target.closest('[data-project]');
+      if (project) setFilter('project', project.dataset.project);
+      const theme = e.target.closest('[data-theme-filter]');
+      if (theme) setFilter('theme', theme.dataset.themeFilter);
+    });
+    document.getElementById('clearFilter').addEventListener('click', () => {
+      filter.project = filter.theme = '';
+      syncFilterUrl();
+      load();
     });
     document.getElementById('drawerClose').addEventListener('click', closeDrawer);
     document.getElementById('drawerBackdrop').addEventListener('click', closeDrawer);
@@ -366,7 +447,11 @@
     async function load(refresh = false) {
       setStatus(refresh ? 'Refreshing from Notion …' : 'Loading …');
       try {
-        const res = await fetch('/api/einnsyn/overview' + (refresh ? '?refresh=true' : ''));
+        const q = new URLSearchParams();
+        if (refresh) q.set('refresh', 'true');
+        if (filter.project) q.set('project', filter.project);
+        if (filter.theme) q.set('theme', filter.theme);
+        const res = await fetch('/api/einnsyn/overview' + (q.toString() ? '?' + q : ''));
         const body = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(body.detail || `HTTP ${res.status}`);
         render(body);
@@ -379,7 +464,7 @@
 
     document.getElementById('refreshBtn').addEventListener('click', () => load(true));
     load();
-    const startCase = new URLSearchParams(location.search).get('case');
+    const startCase = params.get('case');
     if (startCase) openCase(startCase);
   </script>
 </body>

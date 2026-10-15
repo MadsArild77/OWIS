@@ -101,3 +101,64 @@ def test_api_explains_missing_configuration(monkeypatch):
     assert resp.status_code == 503 and "OWI_EINNSYN_SAKER_DB_ID" in resp.json()["detail"]
     page = TestClient(app).get("/einnsyn")
     assert page.status_code == 200 and "eInnsyn" in page.text
+
+
+def _tagged():
+    data = _data()
+    data["saker"][0].update({"Prosjektområde": "Utsira Nord", "Tema": "Konsesjon/Tildeling, Støtte/Finansiering"})
+    data["saker"][1].update({"Prosjektområde": "Sørlige Nordsjø II", "Tema": "Støtte/Finansiering"})
+    return data
+
+
+def test_multi_select_is_read_as_joined_names():
+    prop = {"type": "multi_select", "multi_select": [{"name": "Utsira Nord"}, {"name": "Brage Havvind"}]}
+    assert notion_reader._text(prop) == "Utsira Nord, Brage Havvind"
+    assert notion_reader._text({"type": "multi_select", "multi_select": []}) == ""
+
+
+def test_project_and_theme_boxes():
+    o = build_overview(_tagged(), today=TODAY)
+    projects = {b["name"]: b for b in o["projects"]}
+    assert projects["Utsira Nord"] == {"name": "Utsira Nord", "cases": 1, "suggested": 0, "journal_posts_30d": 2}
+    assert projects["Sørlige Nordsjø II"]["journal_posts_30d"] == 1
+    # The suggested case has no project, and «Ikke relevant» cases are not counted at all
+    assert projects["Uklassifisert"] == {"name": "Uklassifisert", "cases": 1, "suggested": 1, "journal_posts_30d": 0}
+    assert o["projects"][-1]["name"] == "Uklassifisert"
+    themes = {b["name"]: b["cases"] for b in o["themes"]}
+    assert themes == {"Støtte/Finansiering": 2, "Konsesjon/Tildeling": 1, "Uklassifisert": 1}
+
+
+def test_filter_by_project_and_theme():
+    o = build_overview(_tagged(), today=TODAY, project="Utsira Nord")
+    assert o["filter"] == {"project": "Utsira Nord", "theme": ""}
+    assert o["summary"]["active_cases"] == 1
+    assert [p["case_number"] for p in o["recent_journal_posts"]] == ["2025/1", "2025/1"]
+    assert [c["case_number"] for c in o["most_active_cases"]] == ["2025/1"]
+    assert o["suggested_cases"] == []
+    # Theme boxes are counted within the chosen project; project boxes stay unfiltered
+    assert {b["name"] for b in o["themes"]} == {"Konsesjon/Tildeling", "Støtte/Finansiering"}
+    assert len(o["projects"]) == 3
+
+    o = build_overview(_tagged(), today=TODAY, theme="Støtte/Finansiering")
+    assert o["summary"]["active_cases"] == 2
+    assert {b["name"] for b in o["projects"]} == {"Utsira Nord", "Sørlige Nordsjø II"}
+
+    o = build_overview(_tagged(), today=TODAY, project="Uklassifisert")
+    assert [c["case_number"] for c in o["suggested_cases"]] == ["2026/9"]
+    assert o["recent_journal_posts"] == []
+
+
+def test_filter_joins_journal_posts_on_the_case_page_not_only_the_number():
+    data = _tagged()
+    data["saker"][0]["_id"] = "page-utsira"
+    data["saker"].append({"Name": "Annen etat", "Saksnummer": "2025/1", "Status": "Aktiv", "_id": "page-other",
+                          "Prosjektområde": "Brage Havvind"})
+    for r in data["logg"]:
+        if r["Saksnummer"] == "2025/1":
+            r["Sak"] = "page-utsira"
+    data["logg"].append({**_log("x", "2025/1", "2026-10-13", "Annen AS"), "Sak": "page-other"})
+    o = build_overview(data, today=TODAY, project="Utsira Nord")
+    assert [p["title"] for p in o["recent_journal_posts"]] == ["a", "b"]
+    assert "Annen AS" not in {s["name"] for s in o["top_senders"]}
+    projects = {b["name"]: b["journal_posts_30d"] for b in o["projects"]}
+    assert projects["Utsira Nord"] == 2 and projects["Brage Havvind"] == 1
