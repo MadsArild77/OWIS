@@ -344,3 +344,15 @@ beslutningen med lenke til den nye.
 - **Avklaring før sammenslåing:** DealEngine har profiler utenfor havvind (AGR, MAV,
   maritimt). Enten får OWIS profiler per selskap/bransje, eller DealEngine
   beholdes for det som ikke er havvind.
+
+## D24 – eInnsyn vises i OWIS, lest fra Notion
+
+**Vedtatt og implementert 15. oktober 2026. Første steg av eInnsyn-delen i [D23](#d23--overvåking-samlet-i-owis-varslingssøk-bevegelser-einnsyn-og-anbud).**
+- **Rask løsning:** ny side `/einnsyn` leser de tre Notion-tabellene som
+  eInnsyn-overvåkingen skriver til (saker, logg, søkeord) og viser foreslåtte saker,
+  nye journalposter, mest aktive saker, hyppigste avsendere, søkeord og søkeordforslag.
+- **Kun lesing:** OWIS skriver ingenting til Notion, så ingen informasjon kan gå tapt.
+  Saker og søkeord redigeres fortsatt i Notion.
+- **Mellomlagring:** oversikten lagres i 30 minutter; «Refresh from Notion» henter på nytt.
+- **Senere:** full flytting av eInnsyn inn i OWIS (egen innhenting og søkeord i
+  Settings) er fortsatt åpen, jf. D23.

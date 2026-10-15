@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OWIS eInnsyn</title>
+  <link rel="stylesheet" href="/static/theme.css" />
+  <script src="/static/theme.js"></script>
+  <style>
+    /* Page styles for /einnsyn. Colours come from the tokens in theme.css. */
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px 40px; }
+    .topbar {
+      position: sticky; top: 0; z-index: 20;
+      margin: 0 -24px 24px; padding: 12px 24px;
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      background: var(--surface); border-bottom: 1px solid var(--line);
+    }
+    .brand-mark { display: flex; align-items: center; gap: 10px; color: var(--ink); font-size: 0.9rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; }
+    .brand-dot { width: 12px; height: 12px; border-radius: 999px; background: var(--brand); }
+    .nav { display: flex; align-items: center; gap: 18px; font-size: 0.95rem; }
+    .nav a { color: var(--muted); font-weight: 600; text-decoration: none; }
+    .nav a:hover, .nav a[aria-current="page"] { color: var(--brand); }
+    h1 { margin: 0 0 18px; font-size: 1.75rem; }
+    h2 { font-size: 1.35rem; }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; box-shadow: var(--shadow); }
+    .card h2 { margin-top: 0; }
+    .controls { margin-top: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+    label { display: block; color: var(--muted); font-size: 0.875rem; font-weight: 600; margin-bottom: 4px; }
+    input, select {
+      width: 100%; box-sizing: border-box;
+      border: 1px solid var(--line-strong); border-radius: 8px; padding: 8px 10px;
+      font: inherit; font-size: 0.95rem;
+      background: var(--surface); color: var(--ink);
+    }
+    button {
+      border: 1px solid transparent; border-radius: 8px; padding: 9px 14px;
+      background: var(--brand); color: var(--brand-ink);
+      font: inherit; font-size: 0.95rem; font-weight: 600; cursor: pointer;
+      margin-right: 8px; margin-bottom: 8px;
+    }
+    button:hover { filter: brightness(1.08); }
+    .btn-secondary { background: var(--secondary-bg); color: var(--secondary-ink); border-color: var(--line); }
+    .status { margin-top: 10px; color: var(--ok); }
+    .status.warn { color: var(--warn); }
+    section { margin: 20px 0 30px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+    .item h3 { margin: 0 0 6px; font-size: 1.05rem; line-height: 1.35; }
+    .muted { color: var(--muted); font-size: 0.95rem; }
+    .meta { margin-top: 8px; color: var(--muted); font-size: 0.875rem; }
+    a { text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .pill {
+      display: inline-block; padding: 2px 9px; border-radius: 999px;
+      font-size: 0.8rem; font-weight: 700;
+      background: var(--tag-bg); color: var(--tag-ink); margin-left: 6px;
+    }
+    @media (max-width: 600px) {
+      .wrap { padding: 0 16px 32px; }
+      .topbar { margin: 0 -16px 16px; padding: 10px 16px; }
+      .nav { gap: 12px; font-size: 0.875rem; }
+      .topbar, .nav { flex-wrap: wrap; }
+    }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 22px; }
+    .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow); }
+    .stat b { display: block; font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+    .stat span { color: var(--muted); font-size: 0.875rem; }
+    .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; font-size: 0.82rem; }
+    td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .list { list-style: none; margin: 0; padding: 0; }
+    .list li { padding: 10px 0; border-bottom: 1px solid var(--line); }
+    .list li:last-child { border-bottom: 0; }
+    .head-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .table-wrap { overflow-x: auto; }
+    .empty { color: var(--muted); font-style: italic; }
+    td.date { white-space: nowrap; }
+    code { overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="topbar">
+      <a class="brand-mark" href="/news" aria-label="OWIS News"><span class="brand-dot"></span><span>OWIS Intelligence</span></a>
+      <nav class="nav" aria-label="Primary navigation">
+        <a href="/news">News</a>
+        <a href="/opportunities">Opportunities</a>
+        <a href="/einnsyn" aria-current="page">eInnsyn</a>
+        <button type="button" class="theme-toggle" data-theme-toggle>Dark mode</button>
+      </nav>
+    </header>
+    <div class="head-row">
+      <h1>eInnsyn</h1>
+      <div><button id="refreshBtn" type="button" class="btn-secondary">Refresh from Notion</button></div>
+    </div>
+    <p class="muted">Public records from eInnsyn, collected daily by the eInnsyn monitor and stored in Notion. This page only reads Notion; edit cases and search terms there.</p>
+    <p id="status" class="status" role="status" aria-live="polite">Loading …</p>
+
+    <div class="stats" id="stats"></div>
+
+    <section class="card">
+      <h2>Suggested cases <span class="pill" id="suggestedCount"></span></h2>
+      <p class="muted">Found by the search terms. Set the status to «Aktiv» in Notion to follow a case, or «Ikke relevant» to hide it for good.</p>
+      <ul class="list" id="suggested"></ul>
+    </section>
+
+    <section class="card">
+      <h2>New journal posts, last 14 days</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Published</th><th>Journal post</th><th>Case</th><th>From</th><th>To</th></tr></thead>
+        <tbody id="recent"></tbody>
+      </table></div>
+    </section>
+
+    <div class="cols">
+      <section class="card">
+        <h2>Most active cases, 30 days</h2>
+        <table><thead><tr><th>Case</th><th class="num">Posts</th></tr></thead><tbody id="active"></tbody></table>
+      </section>
+      <section class="card">
+        <h2>Most frequent senders, 90 days</h2>
+        <table><thead><tr><th>Sender</th><th class="num">Posts</th></tr></thead><tbody id="senders"></tbody></table>
+      </section>
+    </div>
+
+    <section class="card">
+      <h2>Search term suggestions <span class="pill" id="kwSuggestCount"></span></h2>
+      <p class="muted">Proposed weekly from senders and project areas in the cases you follow. Set to «Aktiv» in Notion to use; leave on «Pause» to keep it from being suggested again.</p>
+      <ul class="list" id="kwSuggestions"></ul>
+    </section>
+
+    <section class="card">
+      <h2>Search terms</h2>
+      <p class="muted">Quotes search for the exact phrase; <code>|</code> means «or».</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Search term</th><th>Status</th><th>Last run</th><th>Note</th></tr></thead>
+        <tbody id="keywords"></tbody>
+      </table></div>
+    </section>
+  </div>
+
+  <script>
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const link = (url, text) => url ? `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(text)}</a>` : esc(text);
+    const empty = (cols, msg) => `<tr><td colspan="${cols}" class="empty">${esc(msg)}</td></tr>`;
+
+    function setStatus(msg, warn = false) {
+      const el = document.getElementById('status');
+      el.textContent = msg;
+      el.classList.toggle('warn', warn);
+    }
+
+    function render(d) {
+      const s = d.summary;
+      document.getElementById('stats').innerHTML = [
+        [s.active_cases, 'cases followed'], [s.suggested_cases, 'suggested cases'],
+        [s.journal_posts_7d, 'journal posts, 7 days'], [s.journal_posts_30d, 'journal posts, 30 days'],
+        [s.active_keywords, 'active search terms'], [s.keyword_suggestions, 'term suggestions'],
+      ].map(([n, label]) => `<div class="stat"><b>${esc(n)}</b><span>${esc(label)}</span></div>`).join('');
+
+      document.getElementById('suggestedCount').textContent = d.suggested_cases.length;
+      document.getElementById('suggested').innerHTML = d.suggested_cases.length
+        ? d.suggested_cases.map(c => `<li>${link(c.url, c.title)} <span class="pill">${esc(c.case_number)}</span>
+            <div class="meta">${esc(c.comment)}${c.added ? ' · added ' + esc(c.added) : ''} · ${link(c.notion_url, 'open in Notion')}</div></li>`).join('')
+        : '<li class="empty">No suggested cases.</li>';
+
+      document.getElementById('recent').innerHTML = d.recent_journal_posts.length
+        ? d.recent_journal_posts.map(p => `<tr><td class="date">${esc(p.published)}</td><td>${link(p.url, p.title)}</td>
+            <td>${esc(p.case_number)}<div class="meta">${esc(p.case_title)}</div></td><td>${esc(p.from)}</td><td>${esc(p.to)}</td></tr>`).join('')
+        : empty(5, 'No new journal posts in the last 14 days.');
+
+      document.getElementById('active').innerHTML = d.most_active_cases.length
+        ? d.most_active_cases.map(c => `<tr><td>${esc(c.case_number)}<div class="meta">${esc(c.title)}</div></td><td class="num">${esc(c.journal_posts)}</td></tr>`).join('')
+        : empty(2, 'No activity in the last 30 days.');
+
+      document.getElementById('senders').innerHTML = d.top_senders.length
+        ? d.top_senders.map(x => `<tr><td>${esc(x.name)}</td><td class="num">${esc(x.journal_posts)}</td></tr>`).join('')
+        : empty(2, 'No senders in the last 90 days.');
+
+      document.getElementById('kwSuggestCount').textContent = d.keyword_suggestions.length;
+      document.getElementById('kwSuggestions').innerHTML = d.keyword_suggestions.length
+        ? d.keyword_suggestions.map(k => `<li><code>${esc(k.query)}</code> · ${link(k.notion_url, 'open in Notion')}<div class="meta">${esc(k.note)}</div></li>`).join('')
+        : '<li class="empty">No suggestions yet. They are added on Mondays.</li>';
+
+      document.getElementById('keywords').innerHTML = d.keywords.length
+        ? d.keywords.map(k => `<tr><td><code>${link(k.notion_url, k.query)}</code></td><td>${esc(k.status)}</td><td class="date">${esc(k.last_run.slice(0, 10))}</td><td class="muted">${esc(k.note)}</td></tr>`).join('')
+        : empty(4, 'No search terms.');
+    }
+
+    async function load(refresh = false) {
+      setStatus(refresh ? 'Refreshing from Notion …' : 'Loading …');
+      try {
+        const res = await fetch('/api/einnsyn/overview' + (refresh ? '?refresh=true' : ''));
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body.detail || `HTTP ${res.status}`);
+        render(body);
+        setStatus(`Data from Notion, read ${new Date(body.loaded_at).toLocaleString()}.`);
+      } catch (err) {
+        setStatus(err.message || String(err), true);
+      }
+    }
+
+    document.getElementById('refreshBtn').addEventListener('click', () => load(true));
+    load();
+  </script>
+</body>
+</html>
