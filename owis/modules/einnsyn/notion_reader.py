@@ -75,6 +75,11 @@ def _case_posts(posts_30d: Counter, case: dict[str, str]) -> int:
     return posts_30d.get(case.get("_id", ""), 0) + posts_30d.get("#" + case.get("Saksnummer", ""), 0)
 
 
+def _case_latest(latest: dict[str, date], case: dict[str, str]) -> date | None:
+    days = [d for d in (latest.get(case.get("_id", "")), latest.get("#" + case.get("Saksnummer", ""))) if d]
+    return max(days) if days else None
+
+
 def _facets(saker: list[dict[str, str]], posts_30d: Counter, field: str) -> list[dict[str, Any]]:
     """One box per project or theme: followed cases, suggested cases and new journal posts."""
     boxes: dict[str, dict[str, Any]] = {}
@@ -141,9 +146,14 @@ def build_overview(data: dict[str, list[dict[str, str]]], today: date | None = N
         return _parse_day(row.get("Publisert") or row.get("Journaldato") or row.get("Dato") or "")
 
     posts_30d: Counter = Counter()
+    latest: dict[str, date] = {}  # newest journal post per case page (or «#case number»)
     for r in all_logg:
-        if (published(r) or date.min) >= today - timedelta(days=30):
-            posts_30d.update(_log_case_ids(r) or (["#" + r["Saksnummer"]] if r.get("Saksnummer") else []))
+        keys = _log_case_ids(r) or (["#" + r["Saksnummer"]] if r.get("Saksnummer") else [])
+        day = published(r)
+        if (day or date.min) >= today - timedelta(days=30):
+            posts_30d.update(keys)
+        for key in keys if day else []:
+            latest[key] = max(latest.get(key, day), day)
     # Each row of boxes is counted within the other filter, so «Utsira Nord» shows how many
     # of its cases fall under the chosen theme, and the other way round.
     projects = _facets([s for s in all_saker if has(s, THEME_FIELD, theme)], posts_30d, PROJECT_FIELD)
@@ -199,6 +209,16 @@ def build_overview(data: dict[str, list[dict[str, str]]], today: date | None = N
              "to": r.get("Til", ""), "type": r.get("Journalposttype", ""),
              "published": str(published(r) or ""), "url": r.get("URL", "")}
             for r in recent[:60]
+        ],
+        # Every followed case in the selection, most recently active first
+        "cases": [
+            {"title": c.get("Name", ""), "case_number": c.get("Saksnummer", ""), "status": c.get("Status", ""),
+             "url": c.get("URL", ""), "notion_url": c.get("_url", ""),
+             "projects": [t for t in _tags(c, PROJECT_FIELD) if t != UNTAGGED],
+             "themes": [t for t in _tags(c, THEME_FIELD) if t != UNTAGGED],
+             "latest": str(_case_latest(latest, c) or ""), "journal_posts_30d": _case_posts(posts_30d, c)}
+            for c in sorted((c for c in saker if c.get("Status") in FOLLOWED),
+                            key=lambda c: (_case_latest(latest, c) or date.min, c.get("Saksnummer", "")), reverse=True)
         ],
         "most_active_cases": [
             {"case_number": num, "title": case_names.get(num, ""), "url": case_urls.get(num, ""), "journal_posts": n}

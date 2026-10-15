@@ -162,3 +162,13 @@ def test_filter_joins_journal_posts_on_the_case_page_not_only_the_number():
     assert "Annen AS" not in {s["name"] for s in o["top_senders"]}
     projects = {b["name"]: b["journal_posts_30d"] for b in o["projects"]}
     assert projects["Utsira Nord"] == 2 and projects["Brage Havvind"] == 1
+
+
+def test_cases_list_every_followed_case_in_the_selection():
+    o = build_overview(_tagged(), today=TODAY, project="Utsira Nord")
+    assert [c["case_number"] for c in o["cases"]] == ["2025/1"]
+    case = o["cases"][0]
+    assert case["latest"] == "2026-10-14" and case["journal_posts_30d"] == 2
+    assert case["projects"] == ["Utsira Nord"] and case["themes"] == ["Konsesjon/Tildeling", "Støtte/Finansiering"]
+    # Unfiltered: followed cases only (not «Ikke relevant»), most recently active first, cases without posts last
+    assert [c["case_number"] for c in build_overview(_tagged(), today=TODAY)["cases"]] == ["2025/1", "2025/2", "2026/9"]
