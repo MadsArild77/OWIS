@@ -76,6 +76,23 @@
     .table-wrap { overflow-x: auto; }
     .empty { color: var(--muted); font-style: italic; }
     td.date { white-space: nowrap; }
+    .case-link { background: none; border: 0; padding: 0; margin: 0; color: var(--brand); font: inherit; text-align: left; cursor: pointer; }
+    .case-link:hover { text-decoration: underline; filter: none; }
+    .drawer-backdrop { position: fixed; inset: 0; background: var(--overlay); z-index: 40; }
+    .drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(760px, 100%); z-index: 41; overflow-y: auto;
+      background: var(--surface); box-shadow: var(--shadow-strong); padding: 20px 28px 40px; box-sizing: border-box; }
+    .drawer h2 { margin: 6px 0 4px; font-size: 1.35rem; line-height: 1.3; }
+    .drawer section { margin: 18px 0; }
+    .drawer h3 { font-size: 1rem; margin: 0 0 8px; }
+    .drawer-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .stage { display: inline-block; margin-top: 6px; padding: 3px 10px; border-radius: 999px; background: var(--brand-soft); color: var(--active-ink); font-size: 0.85rem; font-weight: 600; }
+    .next { border-left: 3px solid var(--brand); padding: 8px 12px; background: var(--surface-2); border-radius: 6px; }
+    .timeline { list-style: none; margin: 0; padding: 0; }
+    .timeline li { padding: 10px 0; border-bottom: 1px solid var(--line); }
+    .timeline .dir { display: inline-block; min-width: 64px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--muted); }
+    .doc { display: inline-block; margin: 4px 6px 0 0; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line-strong); font-size: 0.8rem; }
+    .docs-badge { margin-left: 6px; }
+    @media (max-width: 600px) { .drawer { padding: 16px 16px 32px; } }
     code { overflow-wrap: anywhere; }
   </style>
 </head>
@@ -140,9 +157,19 @@
     </section>
   </div>
 
+  <div id="drawerBackdrop" class="drawer-backdrop" hidden></div>
+  <aside id="drawer" class="drawer" hidden aria-labelledby="drawerTitle" role="dialog" aria-modal="true">
+    <div class="drawer-head">
+      <span class="muted" id="drawerMeta"></span>
+      <button type="button" class="btn-secondary" id="drawerClose">Close</button>
+    </div>
+    <div id="drawerBody"></div>
+  </aside>
+
   <script>
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const link = (url, text) => url ? `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(text)}</a>` : esc(text);
+    const caseBtn = (url, text) => url ? `<button type="button" class="case-link" data-case="${esc(url)}">${esc(text)}</button>` : esc(text);
     const empty = (cols, msg) => `<tr><td colspan="${cols}" class="empty">${esc(msg)}</td></tr>`;
 
     function setStatus(msg, warn = false) {
@@ -161,17 +188,17 @@
 
       document.getElementById('suggestedCount').textContent = d.suggested_cases.length;
       document.getElementById('suggested').innerHTML = d.suggested_cases.length
-        ? d.suggested_cases.map(c => `<li>${link(c.url, c.title)} <span class="pill">${esc(c.case_number)}</span>
+        ? d.suggested_cases.map(c => `<li>${caseBtn(c.url, c.title)} <span class="pill">${esc(c.case_number)}</span>
             <div class="meta">${esc(c.comment)}${c.added ? ' · added ' + esc(c.added) : ''} · ${link(c.notion_url, 'open in Notion')}</div></li>`).join('')
         : '<li class="empty">No suggested cases.</li>';
 
       document.getElementById('recent').innerHTML = d.recent_journal_posts.length
         ? d.recent_journal_posts.map(p => `<tr><td class="date">${esc(p.published)}</td><td>${link(p.url, p.title)}</td>
-            <td>${esc(p.case_number)}<div class="meta">${esc(p.case_title)}</div></td><td>${esc(p.from)}</td><td>${esc(p.to)}</td></tr>`).join('')
+            <td>${caseBtn(p.case_url, p.case_number)}<div class="meta">${esc(p.case_title)}</div></td><td>${esc(p.from)}</td><td>${esc(p.to)}</td></tr>`).join('')
         : empty(5, 'No new journal posts in the last 14 days.');
 
       document.getElementById('active').innerHTML = d.most_active_cases.length
-        ? d.most_active_cases.map(c => `<tr><td>${esc(c.case_number)}<div class="meta">${esc(c.title)}</div></td><td class="num">${esc(c.journal_posts)}</td></tr>`).join('')
+        ? d.most_active_cases.map(c => `<tr><td>${caseBtn(c.url, c.case_number)}<span class="pill docs-badge" data-docs-for="${esc(c.url)}" hidden></span><div class="meta">${esc(c.title)}</div></td><td class="num">${esc(c.journal_posts)}</td></tr>`).join('')
         : empty(2, 'No activity in the last 30 days.');
 
       document.getElementById('senders').innerHTML = d.top_senders.length
@@ -188,6 +215,93 @@
         : empty(4, 'No search terms.');
     }
 
+    // ---- One case: story, likely next step, journal posts with open documents, related news ----
+    const dirLabel = {incoming: 'In', outgoing: 'Out', internal: 'Internal'};
+    function closeDrawer() {
+      document.getElementById('drawer').hidden = true;
+      document.getElementById('drawerBackdrop').hidden = true;
+      const url = new URL(location.href); url.searchParams.delete('case'); history.replaceState(null, '', url);
+    }
+    function accountHtml(a) {
+      return `<section><h3>The case so far</h3>${a.stage ? `<span class="stage">${esc(a.stage)}</span>` : ''}
+          ${String(a.summary).split(/\n\s*\n/).map(t => `<p>${esc(t)}</p>`).join('')}</section>
+        ${a.next_steps ? `<section class="next"><h3>Likely next step</h3><p>${esc(a.next_steps)}</p></section>` : ''}
+        ${a.documents ? `<p class="muted">${esc(a.documents)}</p>` : ''}
+        ${a.complete ? '' : '<p class="muted">Written before the latest journal posts; updating…</p>'}`;
+    }
+    async function openCase(ref) {
+      const drawer = document.getElementById('drawer'), body = document.getElementById('drawerBody');
+      drawer.hidden = false; document.getElementById('drawerBackdrop').hidden = false;
+      document.getElementById('drawerMeta').textContent = '';
+      body.innerHTML = '<p class="muted">Loading the case from eInnsyn …</p>';
+      const url = new URL(location.href); url.searchParams.set('case', ref); history.replaceState(null, '', url);
+      let c;
+      try {
+        const res = await fetch('/api/einnsyn/case?ref=' + encodeURIComponent(ref));
+        c = await res.json();
+        if (!res.ok) throw new Error(c.detail || `HTTP ${res.status}`);
+      } catch (err) { body.innerHTML = `<p class="status warn">${esc(err.message || err)}</p>`; return; }
+      document.getElementById('drawerMeta').textContent = [c.case_number, c.agency].filter(Boolean).join(' · ');
+      const posts = c.journal_posts || [];
+      const postHtml = p => `<li><span class="dir">${esc(dirLabel[p.direction] || p.direction)}</span>
+          <span class="muted">${esc(p.date)}</span> ${esc(p.title)}
+          <div class="meta">${[p.from && 'From ' + esc(p.from), p.to && 'To ' + esc(p.to), p.restricted && !p.documents.length && 'not public (exempt from disclosure)'].filter(Boolean).join(' · ')}</div>
+          ${p.documents.map(d => `<a class="doc" href="${esc(d.url)}" target="_blank" rel="noopener">PDF${d.role === 'attachment' ? ' (attachment)' : ''}: ${esc(d.title || 'document')}</a>`).join('')}</li>`;
+      body.innerHTML = `<h2 id="drawerTitle">${esc(c.account?.title || c.title)}</h2>
+        <p class="muted">${esc(c.title)} · ${link(c.url, 'open in eInnsyn')}</p>
+        <div class="stats">
+          <div class="stat"><b>${posts.length}</b><span>journal posts</span></div>
+          <div class="stat"><b>${esc(c.open_documents)}</b><span>open documents</span></div>
+          <div class="stat"><b>${esc(posts[0]?.date || '–')}</b><span>latest</span></div>
+        </div>
+        <div id="caseAccount">${c.account ? accountHtml(c.account) : '<p class="muted">Writing the case summary …</p>'}</div>
+        ${c.related_news.length ? `<section><h3>Related news</h3><ul class="list">${c.related_news.map(n => `<li>${link(n.url, n.title)}
+          <div class="meta">${esc(n.source)} · ${esc(n.published)} · via ${esc(n.matched_on.join(', '))}</div></li>`).join('')}</ul></section>` : ''}
+        <section><h3>Journal posts ${c.open_documents ? `<span class="pill">${esc(c.posts_with_documents)} with open documents</span>` : ''}</h3>
+          <label class="muted"><input type="checkbox" id="onlyDocs" style="width:auto"> Only posts with open documents</label>
+          <ul class="timeline" id="timeline">${posts.slice(0, 25).map(postHtml).join('')}</ul>
+          ${posts.length > 25 ? '<button type="button" class="btn-secondary" id="morePosts">Show all journal posts</button>' : ''}
+        </section>`;
+      let showAll = false;
+      const redraw = () => {
+        const only = document.getElementById('onlyDocs').checked;
+        const list = posts.filter(p => !only || p.documents.length);
+        document.getElementById('timeline').innerHTML = (showAll || only ? list : list.slice(0, 25)).map(postHtml).join('') || '<li class="empty">No journal posts with open documents.</li>';
+      };
+      document.getElementById('onlyDocs').addEventListener('change', redraw);
+      document.getElementById('morePosts')?.addEventListener('click', e => { showAll = true; e.target.remove(); redraw(); });
+      if (!c.account?.complete) {
+        try {
+          const res = await fetch('/api/einnsyn/case/account', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ref})});
+          const account = await res.json();
+          if (!res.ok) throw new Error(account.detail || `HTTP ${res.status}`);
+          if (!document.getElementById('drawer').hidden) {
+            document.getElementById('caseAccount').innerHTML = accountHtml(account);
+            document.getElementById('drawerTitle').textContent = account.title || c.title;
+          }
+        } catch (err) {
+          if (!c.account) document.getElementById('caseAccount').innerHTML = `<p class="muted">The summary could not be written now: ${esc(err.message || err)}</p>`;
+        }
+      }
+    }
+    async function loadDocBadges() {
+      for (const el of document.querySelectorAll('[data-docs-for]')) {
+        if (!el.dataset.docsFor) continue;
+        try {
+          const res = await fetch('/api/einnsyn/case?ref=' + encodeURIComponent(el.dataset.docsFor));
+          const c = await res.json();
+          if (res.ok && c.open_documents) { el.textContent = `${c.open_documents} open docs`; el.hidden = false; }
+        } catch (err) { /* badge is optional */ }
+      }
+    }
+    document.addEventListener('click', e => {
+      const btn = e.target.closest('[data-case]');
+      if (btn) openCase(btn.dataset.case);
+    });
+    document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+    document.getElementById('drawerBackdrop').addEventListener('click', closeDrawer);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.getElementById('drawer').hidden) closeDrawer(); });
+
     async function load(refresh = false) {
       setStatus(refresh ? 'Refreshing from Notion …' : 'Loading …');
       try {
@@ -195,6 +309,7 @@
         const body = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(body.detail || `HTTP ${res.status}`);
         render(body);
+        loadDocBadges();
         setStatus(`Data from Notion, read ${new Date(body.loaded_at).toLocaleString()}.`);
       } catch (err) {
         setStatus(err.message || String(err), true);
@@ -203,6 +318,8 @@
 
     document.getElementById('refreshBtn').addEventListener('click', () => load(true));
     load();
+    const startCase = new URLSearchParams(location.search).get('case');
+    if (startCase) openCase(startCase);
   </script>
 </body>
 </html>

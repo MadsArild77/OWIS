@@ -356,3 +356,12 @@ beslutningen med lenke til den nye.
 - **Mellomlagring:** oversikten lagres i 30 minutter; «Refresh from Notion» henter på nytt.
 - **Senere:** full flytting av eInnsyn inn i OWIS (egen innhenting og søkeord i
   Settings) er fortsatt åpen, jf. D23.
+- **Saken i sentrum (samme dag):** en sak åpnes i et panel med AI-skrevet omtale (hva saken
+  gjelder, hva som har skjedd, hvor den står) og *sannsynlig neste steg*, tydelig merket som
+  vurdering. Omtalen skrives når saken åpnes og på nytt når den får nye journalposter, som
+  for nyhetssaker (D22). Journalposter og **åpne dokumenter** (PDF) hentes direkte fra
+  eInnsyns åpne API; Notion endres ikke.
+- **Kobling til nyheter:** en eInnsyn-sak og en nyhet kobles når sakens tittel eller
+  journalposter nevner nyhetens prosjekt eller et selskapsnavn på minst to ord fra
+  hendelseskortet (D14). Vises begge veier: «Related news» og «Public records (eInnsyn)».
+  Ingen AI-kall.
