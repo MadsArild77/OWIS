@@ -10,12 +10,14 @@ from owis.core.storage.db import init_db
 from owis.modules.news.presentation.api import router as news_router
 from owis.core.sources.api import router as source_config_router
 from owis.modules.opportunities.presentation.api import router as opportunities_router
+from owis.modules.einnsyn.api import router as einnsyn_router
 
 app = FastAPI(title="Offshore Wind Intelligence API", version="0.1.0")
 app.middleware("http")(require_login)
 app.include_router(news_router)
 app.include_router(source_config_router)
 app.include_router(opportunities_router)
+app.include_router(einnsyn_router)
 
 web_dir = Path("owis/apps/web")
 if web_dir.exists():
@@ -73,6 +75,11 @@ def news_page():
 @app.get("/opportunities", include_in_schema=False)
 def opportunities_page():
     return FileResponse(web_dir / "opportunities.html")
+
+
+@app.get("/einnsyn", include_in_schema=False)
+def einnsyn_page():
+    return FileResponse(web_dir / "einnsyn.html", headers={"Cache-Control": "no-store"})
 
 
 @app.get("/health")

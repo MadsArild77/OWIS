@@ -43,6 +43,10 @@ NOTION_OPPORTUNITIES_DB_ID = os.getenv(
     os.getenv("NOTION_OPPORTUNITIES_DB_ID", ""),
 )
 NOTION_VERSION = os.getenv("OWI_NOTION_VERSION", "2022-06-28")
+# eInnsyn monitor databases in Notion (read-only; the /einnsyn page shows them)
+EINNSYN_NOTION_SAKER_DB_ID = os.getenv("OWI_EINNSYN_SAKER_DB_ID", "")
+EINNSYN_NOTION_LOGG_DB_ID = os.getenv("OWI_EINNSYN_LOGG_DB_ID", "")
+EINNSYN_NOTION_SOK_DB_ID = os.getenv("OWI_EINNSYN_SOK_DB_ID", "")
 OPPORTUNITIES_NOTION_EXPORT_ENABLED = os.getenv("OWI_OPP_NOTION_EXPORT_ENABLED", "false").lower() in {
     "1",
     "true",

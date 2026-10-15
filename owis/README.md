@@ -61,6 +61,25 @@ The server must be running. Manual generation is available in the News page.
 - `POST /api/opportunities/run/fetch-process`
 - `POST /api/opportunities/export/notion`
 
+### eInnsyn (read-only from Notion)
+
+- `GET /api/einnsyn/overview` (`?refresh=true` skips the 30-minute cache)
+- Page: `/einnsyn`
+
+## eInnsyn page config
+
+The separate eInnsyn monitor (github.com/MadsArild77/eInnsyn) stores cases,
+journal posts and search terms in Notion. OWIS only reads them; nothing is
+written back, so Notion stays the source of truth. Set:
+
+- `NOTION_API_KEY=...` (same integration as below)
+- `OWI_EINNSYN_SAKER_DB_ID=...` (eInnsyn – Saker)
+- `OWI_EINNSYN_LOGG_DB_ID=...` (eInnsyn – Logg)
+- `OWI_EINNSYN_SOK_DB_ID=...` (eInnsyn – Søk)
+
+Share the three databases with the Notion integration behind `NOTION_API_KEY`.
+Without this the page shows what is missing.
+
 ## Opportunities DealEngine bridge config
 
 The opportunities module uses local profiles and DealEngine-style source adapters (TED, Doffin, World Bank).
