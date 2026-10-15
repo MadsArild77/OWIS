@@ -1759,11 +1759,29 @@
             <p>${escapeHtml(shortText(c.master?.summary || '', 320))}</p>
             <div class="muted">${escapeHtml((c.master?.sources || []).join(', '))}</div>
           </li>`).join('')}</ol>
-        </div>`;
+        </div>
+        <div id="publicRecords"></div>`;
+      loadPublicRecords(developments.flatMap(c => (c.items || []).map(i => Number(i.id))), String(latest.collection_key || ''));
       document.getElementById('detailContent').querySelectorAll('[data-case-development]').forEach(button => {
         button.addEventListener('click', () => showCollectionDetails(button.dataset.caseDevelopment));
       });
       if (!account?.complete) writeCaseStory(latest);
+    }
+
+    // eInnsyn cases naming the same project or company as this story (see /einnsyn).
+    async function loadPublicRecords(itemIds, key) {
+      const ids = itemIds.filter(Number.isFinite);
+      if (!ids.length) return;
+      try {
+        const data = await getJson('/api/einnsyn/related?' + ids.map(id => `item_ids=${id}`).join('&'));
+        const el = document.getElementById('publicRecords');
+        if (!el || String(activeDetailCollectionKey || '') !== key || !data.items?.length) return;
+        el.innerHTML = `<div class="detail-why">
+          <strong>Public records (eInnsyn)</strong>
+          <ul>${data.items.map(c => `<li><a href="/einnsyn?case=${encodeURIComponent(c.url || '')}">${escapeHtml(c.title)}</a>
+            <span class="muted">${escapeHtml(c.case_number)} · ${escapeHtml(c.status)} · via ${escapeHtml(c.matched_on.join(', '))}</span></li>`).join('')}</ul>
+        </div>`;
+      } catch (error) { /* eInnsyn not configured: show nothing */ }
     }
 
     function caseAccountHtml(account) {
@@ -1860,7 +1878,9 @@
           <strong>Source articles in this merged story</strong>
           <div>${sourceRows}</div>
         </div>
+        <div id="publicRecords"></div>
       `;
+      loadPublicRecords(items.map(item => Number(item.id)), String(collection.collection_key || ''));
       document.getElementById('detailContent').querySelectorAll('[data-open-story-item]').forEach(button => {
         button.addEventListener('click', () => showItemDetails(Number(button.dataset.openStoryItem)));
       });

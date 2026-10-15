@@ -96,6 +96,7 @@ def build_overview(data: dict[str, list[dict[str, str]]], today: date | None = N
     today = today or datetime.now(timezone.utc).date()
     saker, logg, sok = data.get("saker", []), data.get("logg", []), data.get("sok", [])
     case_names = {s.get("Saksnummer", ""): s.get("Name", "") for s in saker if s.get("Saksnummer")}
+    case_urls = {s.get("Saksnummer", ""): s.get("URL", "") for s in saker if s.get("Saksnummer") and s.get("URL")}
 
     def published(row: dict[str, str]) -> date | None:
         return _parse_day(row.get("Publisert") or row.get("Journaldato") or row.get("Dato") or "")
@@ -132,13 +133,14 @@ def build_overview(data: dict[str, list[dict[str, str]]], today: date | None = N
         ],
         "recent_journal_posts": [
             {"title": r.get("Name", ""), "case_number": r.get("Saksnummer", ""),
-             "case_title": case_names.get(r.get("Saksnummer", ""), ""), "from": r.get("Fra", ""),
+             "case_title": case_names.get(r.get("Saksnummer", ""), ""),
+             "case_url": case_urls.get(r.get("Saksnummer", ""), ""), "from": r.get("Fra", ""),
              "to": r.get("Til", ""), "type": r.get("Journalposttype", ""),
              "published": str(published(r) or ""), "url": r.get("URL", "")}
             for r in recent[:60]
         ],
         "most_active_cases": [
-            {"case_number": num, "title": case_names.get(num, ""), "journal_posts": n}
+            {"case_number": num, "title": case_names.get(num, ""), "url": case_urls.get(num, ""), "journal_posts": n}
             for num, n in active.most_common(15)
         ],
         "top_senders": [{"name": name, "journal_posts": n} for name, n in senders.most_common(15)],
@@ -159,13 +161,20 @@ class OverviewCache:
     def __init__(self, reader: EinnsynNotionReader, ttl_seconds: int = 1800) -> None:
         self.reader, self.ttl = reader, ttl_seconds
         self._value: dict[str, Any] | None = None
+        self._data: dict[str, list[dict[str, str]]] = {}
         self._loaded_at = 0.0
         self._lock = threading.Lock()
 
     def get(self, refresh: bool = False) -> dict[str, Any]:
         with self._lock:
             if refresh or self._value is None or time.time() - self._loaded_at > self.ttl:
-                overview = build_overview(self.reader.load())
+                self._data = self.reader.load()
+                overview = build_overview(self._data)
                 overview["loaded_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
                 self._value, self._loaded_at = overview, time.time()
             return self._value
+
+    def saker(self) -> list[dict[str, str]]:
+        """The case rows behind the current overview (loads them if needed)."""
+        self.get()
+        return self._data.get("saker", [])

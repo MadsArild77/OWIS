@@ -64,6 +64,10 @@ The server must be running. Manual generation is available in the News page.
 ### eInnsyn (read-only from Notion)
 
 - `GET /api/einnsyn/overview` (`?refresh=true` skips the 30-minute cache)
+- `GET /api/einnsyn/case?ref=<eInnsyn case link or id>`: journal posts and open documents (read
+  from eInnsyn's open API), the written account and related news
+- `POST /api/einnsyn/case/account` `{ref}`: write the account now (AI)
+- `GET /api/einnsyn/related?item_ids=..`: eInnsyn cases naming the projects/companies of news items
 - Page: `/einnsyn`
 
 ## eInnsyn page config

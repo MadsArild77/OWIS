@@ -44,7 +44,7 @@ def test_overview_counts_and_lists():
     assert (s["active_keywords"], s["keyword_suggestions"]) == (1, 1)
     assert [p["title"] for p in o["recent_journal_posts"]] == ["a", "b", "c"]  # newest first, 14 days
     assert o["recent_journal_posts"][0]["case_title"] == "Utsira Nord"
-    assert o["most_active_cases"][0] == {"case_number": "2025/1", "title": "Utsira Nord", "journal_posts": 2}
+    assert o["most_active_cases"][0] == {"case_number": "2025/1", "title": "Utsira Nord", "url": "", "journal_posts": 2}
     assert [x["name"] for x in o["top_senders"]] == ["Equinor ASA", "Ventyr SN II AS"]  # 90 days only
     assert [c["case_number"] for c in o["suggested_cases"]] == ["2026/9"]
     assert [k["query"] for k in o["keyword_suggestions"]] == ['"Windport"']
