@@ -595,8 +595,8 @@
           <div class="meta">${[p.from && 'From ' + esc(p.from), p.to && 'To ' + esc(p.to), p.restricted && !p.documents.length && 'not public (exempt from disclosure)'].filter(Boolean).join(' · ')}</div>
           ${p.documents.map(d => `<a class="doc" href="${esc(d.url)}" target="_blank" rel="noopener">PDF${d.role === 'attachment' ? ' (attachment)' : ''}: ${esc(d.title || 'document')}</a>`).join('')}</li>`;
       body.innerHTML = `
-        <div class="detail-meta-strip" id="caseStrip">
-          ${metaChip('Stage', c.account?.stage, 'is-stage')}
+        <div class="detail-meta-strip">
+          <span id="stageChip" style="display:contents">${metaChip('Stage', c.account?.stage, 'is-stage')}</span>
           ${metaChip('Journal posts', posts.length)}
           ${metaChip('Open documents', c.open_documents)}
           ${metaChip('Latest', posts[0]?.date)}
@@ -644,7 +644,7 @@
           if (stillOpen(ref)) {
             document.getElementById('caseAccount').innerHTML = accountHtml(account);
             document.getElementById('detailTitle').textContent = account.title || c.title;
-            if (account.stage && !c.account?.stage) document.getElementById('caseStrip').insertAdjacentHTML('afterbegin', metaChip('Stage', account.stage, 'is-stage'));
+            document.getElementById('stageChip').innerHTML = metaChip('Stage', account.stage, 'is-stage');
           }
         } catch (err) {
           if (!c.account && stillOpen(ref)) document.getElementById('caseAccount').innerHTML = `<p class="muted">The summary could not be written now: ${esc(err.message || err)}</p>`;
