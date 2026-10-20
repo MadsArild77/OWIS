@@ -395,3 +395,23 @@ beslutningen med lenke til den nye.
   skriver til eInnsyn-tabellene, og bare i søkeordtabellen. Endringen vises med en gang i OWIS og
   brukes fra overvåkingens neste daglige kjøring. Integrasjonen må ha redigeringstilgang til
   søkeordtabellen i Notion.
+
+## D25 – Stortinget og energiministerens kalender ved siden av eInnsyn
+
+**Vedtatt og implementert 20. oktober 2026. Første del av «Norge-adaptere» i trinn 3 (D05, IMPLEMENTATION_PLAN).**
+- **Mål: komplette bilder.** Et prosjekt eller en sak vises sammen med det som skjer i Stortinget og i
+  energiministerens kalender, ikke bare eInnsyn og nyheter.
+- **Stortinget:** Stortingets åpne data (data.stortinget.no), inneværende og forrige sesjon: skriftlige
+  spørsmål, spørretimespørsmål, interpellasjoner, saker og komitéhøringer. Bare det som nevner et
+  søkeord, et prosjektnavn eller havvind generelt lagres. Hentes i bakgrunnen to ganger i døgnet.
+- **Energiministerens kalender:** publiseres ukentlig som artikkel på regjeringen.no («Utdrag frå
+  energiminister … kalender for veke NN»). regjeringen.no stopper automatiske oppslag med Cloudflare, så
+  artiklene finnes og leses via Tavily (krever `TAVILY_API_KEY`, telles i søkebudsjettet som «calendar»,
+  høyst én gang i døgnet). AI leser ut oppføringene én gang per artikkel. Et møte er ikke et vedtak.
+- **Kobling til prosjekter:** på prosjektets fulle navn og på alle alternativer i søkeord der ett
+  alternativ er prosjektnavnet («SN2» for Sørlige Nordsjø II, «Marin energi testsenter» for METCentre).
+  Delnavn («Karmøy») brukes bare når ingen søkeord nevner prosjektet. Koblingen gjøres ved visning, så den
+  følger endringer i Notion.
+- **Visning:** egen fane «Storting & minister» på `/einnsyn` som følger valgt prosjekt eller tema, og
+  status for hver kilde (når den sist ble hentet, eller hvorfor den ikke er tilgjengelig). I sakspanelet
+  inngår postene i «The big picture», nummerert etter nyhetene, og listes som kilder.

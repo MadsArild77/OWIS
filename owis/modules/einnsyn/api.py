@@ -8,9 +8,9 @@ from owis.core.config.settings import (
     NOTION_API_KEY,
     NOTION_VERSION,
 )
-from owis.modules.einnsyn import big_picture, case_accounts, case_chat, links
+from owis.modules.einnsyn import big_picture, case_accounts, case_chat, links, public_sources
 from owis.modules.einnsyn.case_source import CaseSource
-from owis.modules.einnsyn.notion_reader import EinnsynNotionReader, OverviewCache
+from owis.modules.einnsyn.notion_reader import PROJECT_FIELD, THEME_FIELD, EinnsynNotionReader, OverviewCache, _tags
 
 router = APIRouter(prefix="/api/einnsyn", tags=["einnsyn"])
 reader = EinnsynNotionReader(NOTION_API_KEY, EINNSYN_NOTION_SAKER_DB_ID, EINNSYN_NOTION_LOGG_DB_ID,
@@ -50,20 +50,26 @@ def case_detail(ref: str):
     """One case from eInnsyn: journal posts, open documents, the written account if any, related news."""
     case = dict(_load_case(ref))
     case["account"] = case_accounts.stored(case)
-    ctx = big_picture.context(case, _saker())
+    saker, sok = notion_rows()
+    ctx = big_picture.context(case, saker, sok)
     case["related_news"], case["project_cases"], case["projects"] = ctx["news"], ctx["cases"], ctx["projects"]
+    case["public_records"] = ctx["public"]
     case["big_picture"] = big_picture.stored(case, ctx)
     return case
 
 
 def _saker() -> list[dict]:
-    """Case rows from the Notion cache, or none when Notion is not set up or not reachable."""
+    return notion_rows()[0]
+
+
+def notion_rows() -> tuple[list[dict], list[dict]]:
+    """Case and search-term rows from the Notion cache, or none when Notion is not set up or not reachable."""
     if not reader.configured():
-        return []
+        return [], []
     try:
-        return cache.saker()
+        return cache.saker(), cache.sok()
     except Exception:
-        return []
+        return [], []
 
 
 class AccountRequest(BaseModel):
@@ -84,9 +90,9 @@ def case_account(payload: AccountRequest):
 def case_big_picture(payload: AccountRequest):
     """Write the big picture: the case together with its news and the other cases on the same project."""
     case = _load_case(payload.ref)
-    ctx = big_picture.context(case, _saker())
-    if not (ctx["news"] or ctx["cases"]):
-        raise HTTPException(status_code=404, detail="No news or other cases on this project to put the case in context.")
+    ctx = big_picture.context(case, *notion_rows())
+    if not (ctx["news"] or ctx["cases"] or ctx["public"]):
+        raise HTTPException(status_code=404, detail="No news, Storting records or other cases on this project to put the case in context.")
     result = big_picture.write(case, ctx, case_accounts.stored(case))
     if not result:
         raise HTTPException(status_code=503, detail="The big picture could not be written now (is AI enabled?).")
@@ -112,6 +118,33 @@ def keyword_status(payload: KeywordStatusRequest):
     except Exception as exc:  # Notion down, or the integration may not edit the database
         raise HTTPException(status_code=502, detail=f"Notion did not accept the change: {exc}")
     return {"id": payload.id, "status": status}
+
+
+@router.get("/public")
+def public_records(project: str = "", theme: str = ""):
+    """Storting records and the minister's calendar for the selection, with when each source last ran."""
+    saker, sok = notion_rows()
+    if project and public_sources._norm_project(project) not in public_sources.BROAD_PROJECTS:
+        wanted = [project]
+    elif theme:  # the projects of the theme's cases
+        wanted = sorted({p for r in saker if theme in _tags(r, THEME_FIELD) for p in _tags(r, PROJECT_FIELD)})
+    else:
+        wanted = None
+    items = public_sources.items(saker, sok, projects=wanted)
+    if project and wanted is None:  # «Generelt» or «Uklassifisert»: the records naming no project
+        items = [i for i in items if not i["projects"]]
+    return {"items": items[:300], "total": len(items), "runs": public_sources.runs()}
+
+
+@router.post("/public/refresh")
+def public_refresh():
+    """Fetch the Storting and the minister's calendar now, in the background."""
+    saker, sok = notion_rows()
+    if not (saker or sok):
+        raise HTTPException(status_code=503, detail="The Notion data is needed first (project areas and search terms).")
+    import threading
+    threading.Thread(target=public_sources.refresh, args=(saker, sok), daemon=True).start()
+    return {"started": True, "runs": public_sources.runs()}
 
 
 @router.get("/related")
