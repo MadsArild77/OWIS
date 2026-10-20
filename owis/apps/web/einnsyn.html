@@ -175,6 +175,27 @@
     .public-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
     .public-head p { margin: 0; }
     .public-head button { flex: none; }
+    .heli-kicker { margin: 0 0 4px; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+    .heli-title { margin: 0 0 10px; font-size: 1.3rem; line-height: 1.3; }
+    .heli-body { margin-top: 12px; line-height: 1.65; }
+    .heli-body p { margin: 0 0 10px; }
+    .heli sup { color: var(--brand); font-size: 0.72rem; }
+    .heli-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; margin-top: 8px; }
+    .heli-cols h4 { margin: 0 0 6px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+    .heli-cols ul { margin: 0; padding-left: 18px; line-height: 1.55; }
+    .heli-cols li { margin: 0 0 6px; }
+    .heli .detail-why { margin-top: 14px; }
+    .heli-projects { margin: 6px 0 12px; }
+    .momentum { display: inline-block; padding: 0 8px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; background: var(--surface-2); color: var(--muted); }
+    .momentum.m-high { background: var(--brand); color: var(--brand-ink); }
+    .momentum.m-medium { background: var(--brand-soft); color: var(--active-ink); }
+    .tl-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin: 24px 0 10px; }
+    .tl-head .subhead { margin: 0; }
+    .tl-badge { padding: 0 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; line-height: 1.7; }
+    .tl-journal_post { background: var(--brand-soft); color: var(--active-ink); }
+    .tl-news { background: var(--tag-actor-bg); color: var(--tag-actor-ink); }
+    .tl-storting { background: var(--tag-bg); color: var(--tag-ink); }
+    .tl-calendar { background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line-strong); }
     .plain-list { list-style: none; margin: 0; padding: 0; }
     .plain-list li { padding: 10px 0; border-top: 1px solid var(--line); }
     .plain-list li:first-child { border-top: 0; }
@@ -329,7 +350,8 @@
             <button type="button" class="btn-ghost" id="clearFilter" hidden>Clear filters</button>
             <span class="spacer"></span>
             <div class="view-toggle" role="tablist" aria-label="View">
-              <button type="button" data-view="posts" class="active">Journal posts</button>
+              <button type="button" data-view="helicopter" class="active">Helicopter view</button>
+              <button type="button" data-view="posts">Journal posts</button>
               <button type="button" data-view="cases">Cases <span id="casesCount"></span></button>
               <button type="button" data-view="suggested">Suggested <span id="suggestedCount"></span></button>
               <button type="button" data-view="public">Storting &amp; minister</button>
@@ -339,7 +361,23 @@
         </div>
         <div class="summary-row" id="summary"></div>
 
-        <section data-panel="posts">
+        <section data-panel="helicopter">
+          <div class="panel heli" id="heliView"><p class="muted">Loading …</p></div>
+          <div class="tl-head">
+            <h2 class="subhead">Timeline</h2>
+            <div class="chip-row" id="tlKinds">
+              <button type="button" class="chip" data-tl="" aria-pressed="true">All</button>
+              <button type="button" class="chip" data-tl="journal_post" aria-pressed="false">Journal posts</button>
+              <button type="button" class="chip" data-tl="news" aria-pressed="false">News</button>
+              <button type="button" class="chip" data-tl="storting" aria-pressed="false">Storting</button>
+              <button type="button" class="chip" data-tl="calendar" aria-pressed="false">Minister's calendar</button>
+            </div>
+          </div>
+          <div class="story-list" id="timelineList"></div>
+          <button type="button" class="btn-secondary" id="moreTimeline" hidden style="margin-top:12px">Show more</button>
+        </section>
+
+        <section data-panel="posts" hidden>
           <div class="story-list" id="recent"></div>
         </section>
 
@@ -424,7 +462,7 @@
     // Project and theme filter, kept in the address so a filtered view can be bookmarked or shared
     const params = new URLSearchParams(location.search);
     const filter = {project: params.get('project') || '', theme: params.get('theme') || ''};
-    let view = ['posts', 'cases', 'suggested', 'public', 'terms'].includes(params.get('view')) ? params.get('view') : 'posts';
+    let view = ['helicopter', 'posts', 'cases', 'suggested', 'public', 'terms'].includes(params.get('view')) ? params.get('view') : 'helicopter';
     const UNTAGGED = 'Uklassifisert';
 
     function boxLine(b) {
@@ -449,11 +487,12 @@
 
     function setFilter(key, value) {
       filter[key] = value;
-      // Choosing a project or theme is asking for its cases
-      if (value && view === 'posts') view = 'cases';
-      if (view === 'public') loadPublic();
+      // Choosing a project or theme from the journal-post list opens its helicopter view
+      if (value && view === 'posts') view = 'helicopter';
       syncUrl();
       load();
+      if (view === 'public') loadPublic();
+      if (view === 'helicopter') loadHelicopter();
     }
 
     // Shows the chosen view and keeps view and filters in the address; only our own parameters
@@ -465,7 +504,7 @@
       for (const key of ['project', 'theme']) {
         if (filter[key]) url.searchParams.set(key, filter[key]); else url.searchParams.delete(key);
       }
-      if (view !== 'posts') url.searchParams.set('view', view); else url.searchParams.delete('view');
+      if (view !== 'helicopter') url.searchParams.set('view', view); else url.searchParams.delete('view');
       history.replaceState(null, '', url);
     }
 
@@ -473,6 +512,94 @@
       view = name;
       syncUrl();
       if (name === 'public') loadPublic();
+      if (name === 'helicopter') loadHelicopter();
+    }
+
+    // ---- Helicopter view: an overview across all sources, and one timeline (journal posts, news, Storting, calendar) ----
+    const cite = t => esc(t).replace(/\[(\d+)\]/g, '<sup>[$1]</sup>');
+    const TL_PAGE = 60;
+    let tlEntries = [], tlShown = TL_PAGE, tlKind = '';
+    const tlGroup = e => e.kind === 'journal_post' ? 'journal_post' : e.kind === 'news' ? 'news' : e.kind === 'calendar' ? 'calendar' : 'storting';
+    function tlRow(e) {
+      const group = tlGroup(e);
+      const title = e.kind === 'journal_post' && e.case_url
+        ? `<button type="button" class="story-open" data-case="${esc(e.case_url)}">${esc(e.title)}</button>` : link(e.url, e.title);
+      const sub = e.kind === 'journal_post' ? e.case_title
+        : group === 'storting' || group === 'calendar' ? [e.status, e.person, e.body].filter(Boolean).join(' · ') : '';
+      return `<article class="story${e.kind === 'journal_post' && e.case_url ? ' is-clickable' : ''}">
+          <div class="story-main">
+            <div class="story-source">
+              <span class="tl-badge tl-${group}">${esc(group === 'journal_post' ? 'eInnsyn' : group === 'news' ? 'News' : group === 'calendar' ? 'Calendar' : 'Storting')}</span>
+              <span class="source-name">${esc(e.kind === 'journal_post' ? [e.from || e.to, e.case_number].filter(Boolean).join(' · ') : e.label)}</span>
+              <span>${esc(e.date)}</span>
+            </div>
+            <h3>${title}</h3>
+            ${sub ? `<p class="story-description">${esc(sub)}</p>` : ''}
+          </div>
+        </article>`;
+    }
+    function renderTimeline() {
+      const list = tlEntries.filter(e => !tlKind || tlGroup(e) === tlKind);
+      let html = '', last = null;
+      for (const e of list.slice(0, tlShown)) {
+        const month = e.date ? new Date(e.date + 'T12:00:00').toLocaleDateString('en-GB', {month: 'long', year: 'numeric'}) : 'Undated';
+        if (month !== last) { html += `<h3 class="day-head">${esc(month)}</h3>`; last = month; }
+        html += tlRow(e);
+      }
+      document.getElementById('timelineList').innerHTML = html || emptyState('Nothing on the timeline', 'No journal posts, news or Storting records for this selection.');
+      const more = document.getElementById('moreTimeline');
+      more.hidden = list.length <= tlShown;
+      more.textContent = `Show more (${Math.max(0, list.length - tlShown)} more)`;
+    }
+    function heliHtml(v, d) {
+      const name = filter.project || filter.theme || 'All projects';
+      const c = d.counts;
+      const basis = `Built from ${c.cases} followed cases, ${c.journal_posts} journal posts${d.portfolio ? ' (last 60 days)' : ''}, ${c.news} news stories and ${c.public} Storting and calendar records.`;
+      if (!v) return `<p class="heli-kicker">Helicopter view · ${esc(name)}</p><p class="muted">${c.cases || c.news || c.public ? 'Writing the overview …' : 'Nothing to write an overview from yet.'}</p><p class="meta">${esc(basis)}</p>`;
+      const projects = (v.projects || []).length ? `<table class="heli-projects"><thead><tr><th>Project</th><th>Where it stands</th><th>Activity</th></tr></thead><tbody>
+          ${v.projects.map(p => `<tr><td><button type="button" class="case-link" data-project="${esc(p.name)}">${esc(p.name)}</button></td><td>${esc(p.status)}</td>
+            <td><span class="momentum m-${esc(p.momentum)}">${esc(p.momentum || '–')}</span></td></tr>`).join('')}</tbody></table>` : '';
+      return `<p class="heli-kicker">Helicopter view · ${esc(name)}</p>
+        <h2 class="heli-title">${esc(v.headline)}</h2>
+        ${v.status ? `<span class="detail-meta-chip is-stage"><span class="detail-meta-label">Now</span><span class="detail-meta-value">${esc(v.status)}</span></span>` : ''}
+        <div class="heli-body">${paragraphs(v.summary, cite)}</div>
+        ${projects}
+        ${(v.recent || []).length || (v.actors || []).length ? `<div class="heli-cols">
+          ${(v.recent || []).length ? `<div><h4>Latest developments</h4><ul>${v.recent.map(r => `<li>${cite(r)}</li>`).join('')}</ul></div>` : ''}
+          ${(v.actors || []).length ? `<div><h4>Who is involved</h4><ul class="actors">${v.actors.map(a => `<li><b>${esc(a.name)}</b>${a.role ? ' – ' + esc(a.role) : ''}</li>`).join('')}</ul></div>` : ''}
+        </div>` : ''}
+        ${v.next || v.risks ? `<div class="detail-why"><strong>What comes next</strong>${v.next ? `<p>${cite(v.next)}</p>` : ''}${v.risks ? `<p class="muted">${cite(v.risks)}</p>` : ''}</div>` : ''}
+        ${(v.sources || []).length ? `<ol class="sources">${v.sources.map(x => `<li value="${esc(x.n)}">${link(x.url, x.title)} <span class="muted">· ${esc(x.source)} · ${esc(x.published)}</span></li>`).join('')}</ol>` : ''}
+        <p class="meta">${esc(basis)}${v.complete ? '' : ' Written before the latest material; updating …'}</p>`;
+    }
+    let heliLoading = 0;
+    async function loadHelicopter() {
+      const mine = ++heliLoading;
+      const box = document.getElementById('heliView');
+      const q = new URLSearchParams();
+      if (filter.project) q.set('project', filter.project);
+      if (filter.theme) q.set('theme', filter.theme);
+      box.innerHTML = '<p class="muted">Loading …</p>';
+      try {
+        const res = await fetch('/api/einnsyn/project' + (q.toString() ? '?' + q : ''));
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.detail || `HTTP ${res.status}`);
+        if (mine !== heliLoading) return;
+        tlEntries = d.timeline || []; tlShown = TL_PAGE;
+        renderTimeline();
+        box.innerHTML = heliHtml(d.view, d);
+        const c = d.counts;
+        if (!d.view?.complete && (c.cases || c.news || c.public)) {
+          const w = await fetch('/api/einnsyn/project/view', {method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({project: filter.project, theme: filter.theme})});
+          const v = await w.json();
+          if (mine !== heliLoading) return;
+          if (!w.ok) throw new Error(v.detail || `HTTP ${w.status}`);
+          box.innerHTML = heliHtml(v, d);
+        }
+      } catch (err) {
+        if (mine === heliLoading) box.insertAdjacentHTML('beforeend', `<p class="status warn">${esc(err.message || err)}</p>`);
+      }
     }
 
     // ---- The Storting and the minister's calendar for the selection (links open stortinget.no / regjeringen.no) ----
@@ -854,6 +981,14 @@
         document.getElementById('publicRuns').textContent = err.message || String(err);
       }
     });
+    document.getElementById('moreTimeline').addEventListener('click', () => { tlShown += TL_PAGE; renderTimeline(); });
+    document.getElementById('tlKinds').addEventListener('click', e => {
+      const chip = e.target.closest('[data-tl]');
+      if (!chip) return;
+      tlKind = chip.dataset.tl; tlShown = TL_PAGE;
+      document.querySelectorAll('#tlKinds [data-tl]').forEach(c => c.setAttribute('aria-pressed', String(c === chip)));
+      renderTimeline();
+    });
     document.getElementById('moreCases').addEventListener('click', () => { casesShown += CASES_PAGE; renderCases(); });
     document.getElementById('themeSelect').addEventListener('change', e => setFilter('theme', e.target.value));
     document.getElementById('clearFilter').addEventListener('click', () => {
@@ -861,6 +996,7 @@
       syncUrl();
       load();
       if (view === 'public') loadPublic();
+      if (view === 'helicopter') loadHelicopter();
     });
     document.getElementById('detailCloseBtn').addEventListener('click', closeDrawer);
     overlay.addEventListener('click', e => { if (e.target === overlay) closeDrawer(); });

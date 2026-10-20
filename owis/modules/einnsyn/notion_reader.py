@@ -144,6 +144,27 @@ class EinnsynNotionReader:
         self._send("PATCH", f"{NOTION_BASE}/pages/{page_id}", {"properties": properties})
 
 
+def published(row: dict[str, str]) -> date | None:
+    """A journal post's publication day."""
+    return _parse_day(row.get("Publisert") or row.get("Journaldato") or row.get("Dato") or "")
+
+
+def select(data: dict[str, list[dict[str, str]]], project: str = "", theme: str = "") -> tuple[list[dict], list[dict]]:
+    """The cases in a project and/or theme, and their journal posts (joined on the «Sak» relation, else the
+    case number, since case numbers repeat across agencies)."""
+    def has(row: dict[str, str], field: str, value: str) -> bool:
+        return not value or value in _tags(row, field)
+
+    all_logg = data.get("logg", [])
+    saker = [s for s in data.get("saker", []) if has(s, PROJECT_FIELD, project) and has(s, THEME_FIELD, theme)]
+    if not (project or theme):
+        return saker, all_logg
+    ids = {s.get("_id") for s in saker}
+    numbers = {s.get("Saksnummer") for s in saker if s.get("Saksnummer")}
+    return saker, [r for r in all_logg
+                   if (set(_log_case_ids(r)) & ids if _log_case_ids(r) else r.get("Saksnummer") in numbers)]
+
+
 def build_overview(data: dict[str, list[dict[str, str]]], today: date | None = None,
                    project: str = "", theme: str = "") -> dict[str, Any]:
     """Summarise the three databases, optionally for one project and/or theme.
@@ -153,9 +174,6 @@ def build_overview(data: dict[str, list[dict[str, str]]], today: date | None = N
 
     def has(row: dict[str, str], field: str, value: str) -> bool:
         return not value or value in _tags(row, field)
-
-    def published(row: dict[str, str]) -> date | None:
-        return _parse_day(row.get("Publisert") or row.get("Journaldato") or row.get("Dato") or "")
 
     posts_30d: Counter = Counter()
     latest: dict[str, date] = {}  # newest journal post per case page (or «#case number»)
@@ -171,13 +189,7 @@ def build_overview(data: dict[str, list[dict[str, str]]], today: date | None = N
     projects = _facets([s for s in all_saker if has(s, THEME_FIELD, theme)], posts_30d, PROJECT_FIELD)
     themes = _facets([s for s in all_saker if has(s, PROJECT_FIELD, project)], posts_30d, THEME_FIELD)
 
-    saker = [s for s in all_saker if has(s, PROJECT_FIELD, project) and has(s, THEME_FIELD, theme)]
-    logg = all_logg
-    if project or theme:
-        ids = {s.get("_id") for s in saker}
-        numbers = {s.get("Saksnummer") for s in saker if s.get("Saksnummer")}
-        logg = [r for r in all_logg
-                if (set(_log_case_ids(r)) & ids if _log_case_ids(r) else r.get("Saksnummer") in numbers)]
+    saker, logg = select(data, project, theme)
     case_names = {s.get("Saksnummer", ""): s.get("Name", "") for s in saker if s.get("Saksnummer")}
     case_urls = {s.get("Saksnummer", ""): s.get("URL", "") for s in saker if s.get("Saksnummer") and s.get("URL")}
 
@@ -295,6 +307,11 @@ class OverviewCache:
                 self._value = build_overview(self._data)
                 self._value["loaded_at"] = loaded_at
         return status
+
+    def data(self) -> dict[str, list[dict[str, str]]]:
+        """All three databases behind the current overview."""
+        self.get()
+        return self._data
 
     def sok(self) -> list[dict[str, str]]:
         """The search-term rows behind the current overview."""
