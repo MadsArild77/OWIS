@@ -95,11 +95,11 @@ def test_links_both_ways_on_project_and_specific_companies():
 
 SAKER = [
     {"Name": FOLDER["offentligTittel"], "Saksnummer": "2024/8749", "Status": "Aktiv",
-     "URL": "https://einnsyn.no/saksmappe?id=iri-1", "Prosjektområde": "Sørlige Nordsjø II, Generelt/Tversgående"},
+     "URL": "https://einnsyn.no/saksmappe?id=iri-1", "Prosjektområde": "Sørlige Nordsjø II, Generelt / Tversgående"},
     {"Name": "Leverandørnettverk Sørlige Nordsjø II", "Saksnummer": "2025/36902", "Status": "Aktiv", "URL": "u2",
      "Prosjektområde": "Sørlige Nordsjø II"},
     {"Name": "Avvist sak", "Saksnummer": "2025/1", "Status": "Ikke relevant", "URL": "u3", "Prosjektområde": "Sørlige Nordsjø II"},
-    {"Name": "Generell sak", "Saksnummer": "2025/2", "Status": "Aktiv", "URL": "u4", "Prosjektområde": "Generelt/Tversgående"},
+    {"Name": "Generell sak", "Saksnummer": "2025/2", "Status": "Aktiv", "URL": "u4", "Prosjektområde": "Generelt / Tversgående"},
 ]
 
 

@@ -93,6 +93,27 @@ def case_big_picture(payload: AccountRequest):
     return result
 
 
+class KeywordStatusRequest(BaseModel):
+    id: str
+    active: bool
+
+
+@router.post("/keywords/status")
+def keyword_status(payload: KeywordStatusRequest):
+    """Turn a search term or a suggested search term on (Aktiv) or off (Pause) in Notion.
+    The eInnsyn monitor uses the change from its next run."""
+    if not reader.configured():
+        raise HTTPException(status_code=503, detail="eInnsyn is not configured.")
+    try:
+        cache.get()
+        status = cache.set_keyword_status(payload.id, payload.active)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="No such search term. Refresh the page and try again.")
+    except Exception as exc:  # Notion down, or the integration may not edit the database
+        raise HTTPException(status_code=502, detail=f"Notion did not accept the change: {exc}")
+    return {"id": payload.id, "status": status}
+
+
 @router.get("/related")
 def related_cases(item_ids: list[int] = Query(default=[])):
     """eInnsyn cases naming the projects or companies of these news items (for the news page)."""

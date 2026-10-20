@@ -1,9 +1,10 @@
-"""Read-only view of the eInnsyn monitor's Notion databases.
+"""View of the eInnsyn monitor's Notion databases.
 
 The separate eInnsyn monitor (github.com/MadsArild77/eInnsyn) writes cases,
-journal posts and search terms to Notion. This module only reads those
-databases and builds an overview for the /einnsyn page; it never writes, so
-Notion stays the single source of truth.
+journal posts and search terms to Notion. This module reads those databases and
+builds an overview for the /einnsyn page. The one thing it writes is a search
+term's Status (Aktiv/Pause), from the switches on the page; Notion stays the
+single source of truth.
 """
 from __future__ import annotations
 
@@ -105,24 +106,28 @@ class EinnsynNotionReader:
     def configured(self) -> bool:
         return bool(self.api_key and all(self.dbs.values()))
 
-    def _query_all(self, database_id: str) -> list[dict[str, Any]]:
+    def _send(self, method: str, url: str, body: dict[str, Any]) -> dict[str, Any]:
+        """One Notion call, retried on rate limits, server errors and timeouts (both calls are idempotent)."""
         headers = {"Authorization": f"Bearer {self.api_key}", "Notion-Version": self.notion_version}
+        for attempt in range(1, 5):
+            try:
+                resp = self.client.request(method, url, headers=headers, json=body)
+            except (httpx.TimeoutException, httpx.NetworkError):
+                if attempt == 4:
+                    raise
+            else:
+                if resp.status_code not in RETRY_STATUS or attempt == 4:
+                    resp.raise_for_status()
+                    return resp.json()
+            time.sleep(2 ** attempt)
+        raise RuntimeError("unreachable")
+
+    def _query_all(self, database_id: str) -> list[dict[str, Any]]:
         url = f"{NOTION_BASE}/databases/{database_id}/query"
         body: dict[str, Any] = {"page_size": 100}
         pages: list[dict[str, Any]] = []
         while True:
-            for attempt in range(1, 5):
-                try:
-                    resp = self.client.post(url, headers=headers, json=body)
-                except (httpx.TimeoutException, httpx.NetworkError):
-                    if attempt == 4:
-                        raise
-                else:
-                    if resp.status_code not in RETRY_STATUS or attempt == 4:
-                        resp.raise_for_status()
-                        break
-                time.sleep(2 ** attempt)
-            data = resp.json()
+            data = self._send("POST", url, body)
             pages.extend(data.get("results") or [])
             if not data.get("has_more"):
                 return pages
@@ -130,6 +135,13 @@ class EinnsynNotionReader:
 
     def load(self) -> dict[str, list[dict[str, str]]]:
         return {name: [_row(p) for p in self._query_all(db)] for name, db in self.dbs.items()}
+
+    def set_status(self, page_id: str, status: str, note: str | None = None) -> None:
+        """Sets the Status select of one Notion page (a search term), and its Notat when given."""
+        properties: dict[str, Any] = {"Status": {"select": {"name": status}}}
+        if note is not None:
+            properties["Notat"] = {"rich_text": [{"text": {"content": note[:2000]}}]}
+        self._send("PATCH", f"{NOTION_BASE}/pages/{page_id}", {"properties": properties})
 
 
 def build_overview(data: dict[str, list[dict[str, str]]], today: date | None = None,
@@ -227,10 +239,12 @@ def build_overview(data: dict[str, list[dict[str, str]]], today: date | None = N
         "top_senders": [{"name": name, "journal_posts": n} for name, n in senders.most_common(15)],
         "keywords": sorted(
             ({"query": k.get("Name", ""), "status": k.get("Status", ""), "note": k.get("Notat", ""),
-              "last_run": k.get("Sist kjørt", ""), "notion_url": k.get("_url", "")} for k in keywords),
+              "last_run": k.get("Sist kjørt", ""), "notion_url": k.get("_url", ""), "id": k.get("_id", "")}
+             for k in keywords),
             key=lambda k: (k["status"] != "Aktiv", k["query"].lower())),
         "keyword_suggestions": [
-            {"query": k.get("Name", ""), "note": k.get("Notat", ""), "notion_url": k.get("_url", "")}
+            {"query": k.get("Name", ""), "note": k.get("Notat", ""), "notion_url": k.get("_url", ""),
+             "id": k.get("_id", "")}
             for k in keyword_suggestions
         ],
     }
@@ -258,6 +272,29 @@ class OverviewCache:
             filtered = build_overview(self._data, project=project, theme=theme)
             filtered["loaded_at"] = self._value["loaded_at"]
             return filtered
+
+    def set_keyword_status(self, page_id: str, active: bool) -> str:
+        """Turns a search term on (Aktiv) or off (Pause) in Notion and in the cached overview, so the
+        page shows the change at once. Only pages in the search-term database can be changed."""
+        status = "Aktiv" if active else "Pause"
+        with self._lock:
+            row = next((k for k in self._data.get("sok", []) if k.get("_id") == page_id), None)
+            if row is None:
+                raise KeyError(page_id)
+            # An accepted suggestion loses its suggestion mark, so pausing it later keeps it a (paused) search term
+            note = None
+            if active and SUGGESTION_MARK in row.get("Notat", ""):
+                note = (f"Tatt i bruk fra OWIS {datetime.now(timezone.utc).date().isoformat()}. "
+                        + row["Notat"].replace(SUGGESTION_MARK, SUGGESTION_MARK.lower()))
+            self.reader.set_status(page_id, status, note)
+            row["Status"] = status
+            if note is not None:
+                row["Notat"] = note
+            if self._value is not None:
+                loaded_at = self._value.get("loaded_at")
+                self._value = build_overview(self._data)
+                self._value["loaded_at"] = loaded_at
+        return status
 
     def saker(self) -> list[dict[str, str]]:
         """The case rows behind the current overview (loads them if needed)."""
