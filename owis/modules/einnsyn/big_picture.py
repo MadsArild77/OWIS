@@ -19,12 +19,17 @@ from owis.core.llm.client import AIClient
 from owis.core.storage.db import get_conn
 from owis.modules.einnsyn import case_accounts, links
 from owis.modules.einnsyn.case_source import case_ref
-from owis.modules.einnsyn.notion_reader import FOLLOWED, PROJECT_FIELD, UNTAGGED, _tags
+from owis.modules.einnsyn.notion_reader import FOLLOWED, PROJECT_FIELD, _tags
 
 logger = logging.getLogger(__name__)
 
-# Project areas too broad to make cases related just by sharing them
-BROAD_PROJECTS = {UNTAGGED, "Generelt/Tversgående"}
+# Project areas too broad to make cases related just by sharing them. Compared without case and the
+# spaces around «/», since Notion has «Generelt / Tversgående».
+BROAD_PROJECTS = {"uklassifisert", "generelt/tversgående"}
+
+
+def _broad(project: str) -> bool:
+    return re.sub(r"\s*/\s*", "/", project).strip().casefold() in BROAD_PROJECTS
 MAX_NEWS, MAX_CASES = 10, 15
 
 PROMPT = (
@@ -68,7 +73,7 @@ def project_cases(case: dict, saker: list[dict]) -> tuple[list[str], list[dict]]
     own = next((r for r in saker if r.get("URL") and case_ref(r["URL"]) == case.get("ref")), None)
     if not own:
         return [], []
-    projects = [p for p in _tags(own, PROJECT_FIELD) if p not in BROAD_PROJECTS]
+    projects = [p for p in _tags(own, PROJECT_FIELD) if not _broad(p)]
     others = [r for r in saker if r is not own and r.get("Status") in FOLLOWED
               and set(projects) & set(_tags(r, PROJECT_FIELD))]
     others.sort(key=lambda r: r.get("Saksnummer", ""), reverse=True)

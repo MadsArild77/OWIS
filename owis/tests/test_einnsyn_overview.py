@@ -1,3 +1,4 @@
+import json
 from datetime import date
 
 import httpx
@@ -91,6 +92,46 @@ def test_cache_reuses_value_until_refresh():
     assert len(loads) == 1
     cache.get(refresh=True)
     assert len(loads) == 2
+
+
+def test_switching_a_search_term_writes_status_to_notion_and_updates_the_overview():
+    sent = []
+
+    class Fake:
+        def load(self):
+            data = _data()
+            for i, k in enumerate(data["sok"]):
+                k["_id"] = f"kw{i}"
+            return data
+
+        def set_status(self, page_id, status):
+            sent.append((page_id, status))
+
+    cache = OverviewCache(Fake())
+    before = cache.get()
+    assert before["keyword_suggestions"][0]["id"] == "kw2"
+    assert cache.set_keyword_status("kw2", True) == "Aktiv"  # accept the suggestion
+    after = cache.get()
+    assert sent == [("kw2", "Aktiv")] and after["keyword_suggestions"] == []
+    assert {k["query"]: k["status"] for k in after["keywords"]}['"Windport"'] == "Aktiv"
+    assert after["loaded_at"] == before["loaded_at"]
+    cache.set_keyword_status("kw0", False)
+    assert sent[-1] == ("kw0", "Pause") and cache.get()["summary"]["active_keywords"] == 1
+    import pytest
+    with pytest.raises(KeyError):  # only search terms can be changed
+        cache.set_keyword_status("some-case-page", True)
+
+
+def test_reader_sets_status_with_a_page_patch():
+    seen = []
+
+    def handler(request):
+        seen.append((request.method, request.url.path, json.loads(request.read())))
+        return httpx.Response(200, json={"id": "kw1"})
+
+    reader = EinnsynNotionReader("key", "s", "l", "k", client=httpx.Client(transport=httpx.MockTransport(handler)))
+    reader.set_status("kw1", "Pause")
+    assert seen == [("PATCH", "/v1/pages/kw1", {"properties": {"Status": {"select": {"name": "Pause"}}}})]
 
 
 def test_api_explains_missing_configuration(monkeypatch):

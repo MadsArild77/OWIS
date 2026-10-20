@@ -390,3 +390,8 @@ beslutningen med lenke til den nye.
   (Journal posts, Cases, Suggested, Search terms). Journalposter vises som nyhetslisten, gruppert per
   dag, og en sak åpnes i det samme lesepanelet som en nyhetssak, med journalpostene som tidslinje.
   Menyvalgene Morning brief, Policy og Settings åpner riktig del av `/news` (`/news#morning` osv.).
+- **Brytere på søkeord (unntak fra «kun lesing»):** hvert søkeord og hvert søkeordforslag har en
+  av/på-bryter som setter *Status* til «Aktiv» eller «Pause» i Notion. Det er det eneste OWIS
+  skriver til eInnsyn-tabellene, og bare i søkeordtabellen. Endringen vises med en gang i OWIS og
+  brukes fra overvåkingens neste daglige kjøring. Integrasjonen må ha redigeringstilgang til
+  søkeordtabellen i Notion.
