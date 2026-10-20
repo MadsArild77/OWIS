@@ -52,11 +52,13 @@ def on_startup() -> None:
     app.state.morning_stop = start_scheduler()
     from owis.modules.news.processing.fetch_scheduler import start_scheduler as start_fetch_scheduler
     app.state.fetch_stop = start_fetch_scheduler()
+    from owis.modules.einnsyn import api as einnsyn_api, public_sources
+    app.state.public_stop = public_sources.start_scheduler(einnsyn_api.notion_rows)
 
 
 @app.on_event('shutdown')
 def on_shutdown():
-    for name in ('morning_stop', 'fetch_stop'):
+    for name in ('morning_stop', 'fetch_stop', 'public_stop'):
         stop = getattr(app.state, name, None)
         if stop:
             stop.set()

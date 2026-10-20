@@ -296,6 +296,11 @@ class OverviewCache:
                 self._value["loaded_at"] = loaded_at
         return status
 
+    def sok(self) -> list[dict[str, str]]:
+        """The search-term rows behind the current overview."""
+        self.get()
+        return self._data.get("sok", [])
+
     def saker(self) -> list[dict[str, str]]:
         """The case rows behind the current overview (loads them if needed)."""
         self.get()

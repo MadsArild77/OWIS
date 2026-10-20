@@ -172,6 +172,9 @@
     td.kw-status .muted { margin-left: 8px; font-size: 0.86rem; }
     .kw-row { display: flex; gap: 12px; align-items: flex-start; }
     .kw-row .switch { margin-top: 3px; }
+    .public-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .public-head p { margin: 0; }
+    .public-head button { flex: none; }
     .plain-list { list-style: none; margin: 0; padding: 0; }
     .plain-list li { padding: 10px 0; border-top: 1px solid var(--line); }
     .plain-list li:first-child { border-top: 0; }
@@ -329,6 +332,7 @@
               <button type="button" data-view="posts" class="active">Journal posts</button>
               <button type="button" data-view="cases">Cases <span id="casesCount"></span></button>
               <button type="button" data-view="suggested">Suggested <span id="suggestedCount"></span></button>
+              <button type="button" data-view="public">Storting &amp; minister</button>
               <button type="button" data-view="terms">Search terms</button>
             </div>
           </div>
@@ -349,6 +353,14 @@
         <section data-panel="suggested" hidden>
           <p class="muted">Found by the search terms. Set the status to «Aktiv» in Notion to follow a case, or «Ikke relevant» to hide it for good.</p>
           <div class="story-list" id="suggested"></div>
+        </section>
+
+        <section data-panel="public" hidden>
+          <div class="public-head">
+            <p class="muted" id="publicRuns"></p>
+            <button type="button" class="btn-secondary" id="publicRefresh">Fetch now</button>
+          </div>
+          <div class="story-list" id="publicList"></div>
         </section>
 
         <section data-panel="terms" hidden>
@@ -412,7 +424,7 @@
     // Project and theme filter, kept in the address so a filtered view can be bookmarked or shared
     const params = new URLSearchParams(location.search);
     const filter = {project: params.get('project') || '', theme: params.get('theme') || ''};
-    let view = ['posts', 'cases', 'suggested', 'terms'].includes(params.get('view')) ? params.get('view') : 'posts';
+    let view = ['posts', 'cases', 'suggested', 'public', 'terms'].includes(params.get('view')) ? params.get('view') : 'posts';
     const UNTAGGED = 'Uklassifisert';
 
     function boxLine(b) {
@@ -439,6 +451,7 @@
       filter[key] = value;
       // Choosing a project or theme is asking for its cases
       if (value && view === 'posts') view = 'cases';
+      if (view === 'public') loadPublic();
       syncUrl();
       load();
     }
@@ -459,6 +472,54 @@
     function showView(name) {
       view = name;
       syncUrl();
+      if (name === 'public') loadPublic();
+    }
+
+    // ---- The Storting and the minister's calendar for the selection (links open stortinget.no / regjeringen.no) ----
+    const SOURCE_NAMES = {stortinget: 'Stortinget', calendar: "Minister's calendar"};
+    function runsText(runs) {
+      return Object.entries(SOURCE_NAMES).map(([key, name]) => {
+        const r = runs[key];
+        if (!r) return `${name}: not fetched yet`;
+        const when = new Date(r.ran_at).toLocaleString('en-GB', {dateStyle: 'short', timeStyle: 'short'});
+        return r.ok ? `${name}: ${r.detail}, ${when}` : `${name}: not available (${r.detail})`;
+      }).join(' · ');
+    }
+    const publicRow = i => `<article class="story">
+        <div class="story-main">
+          <div class="story-source">
+            <span class="focus-badge">${esc(i.kind_label)}</span>
+            ${i.status ? `<span>${esc(i.status)}</span>` : ''}
+            ${i.person ? `<span class="source-name">${esc(i.person)}</span>` : ''}
+            ${i.body ? `<span>· ${esc(i.body)}</span>` : ''}
+          </div>
+          <h3>${link(i.url, i.title)}</h3>
+          ${i.projects.length ? `<div class="story-tags">${i.projects.map(t => `<span class="chip-tag">${esc(t)}</span>`).join('')}</div>` : ''}
+        </div>
+      </article>`;
+    let publicLoading = 0;
+    async function loadPublic() {
+      const mine = ++publicLoading;
+      const root = document.getElementById('publicList');
+      const q = new URLSearchParams();
+      if (filter.project) q.set('project', filter.project);
+      if (filter.theme) q.set('theme', filter.theme);
+      try {
+        const res = await fetch('/api/einnsyn/public' + (q.toString() ? '?' + q : ''));
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.detail || `HTTP ${res.status}`);
+        if (mine !== publicLoading) return;
+        document.getElementById('publicRuns').textContent = runsText(d.runs || {});
+        let html = '', last = null;
+        for (const i of d.items) {
+          const month = i.date ? new Date(i.date + 'T12:00:00').toLocaleDateString('en-GB', {month: 'long', year: 'numeric'}) : 'Undated';
+          if (month !== last) { html += `<h3 class="day-head">${esc(month)}</h3>`; last = month; }
+          html += publicRow(i);
+        }
+        root.innerHTML = html || emptyState('Nothing found', 'No Storting records or calendar entries name this selection.');
+      } catch (err) {
+        root.innerHTML = emptyState('Could not load', err.message || String(err));
+      }
     }
 
     const dirOf = type => /inng/i.test(type || '') ? 'In' : /utg/i.test(type || '') ? 'Out' : type ? 'Internal' : '';
@@ -615,12 +676,15 @@
         ${b.complete ? '' : '<p class="muted">Written before the latest news or journal posts; updating…</p>'}`;
     }
     function contextHtml(c) {
-      const news = c.related_news || [], others = c.project_cases || [];
+      const news = c.related_news || [], others = c.project_cases || [], records = c.public_records || [];
       const parts = [news.length && `${news.length} news ${news.length === 1 ? 'story' : 'stories'}`,
+        records.length && `${records.length} Storting and calendar record${records.length === 1 ? '' : 's'}`,
         others.length && `${others.length} other case${others.length === 1 ? '' : 's'} on ${esc((c.projects || []).join(', '))}`].filter(Boolean);
-      return `<details class="context"><summary>Based on ${parts.join(' and ')}</summary>
+      return `<details class="context"><summary>Based on ${new Intl.ListFormat('en-GB').format(parts)}</summary>
         ${news.length ? `<h4>News</h4><ul class="plain-list">${news.map(n => `<li>${link(n.url, n.title)}
           <div class="meta">${esc(n.source)} · ${esc(n.published)} · via ${esc(n.matched_on.join(', '))}</div></li>`).join('')}</ul>` : ''}
+        ${records.length ? `<h4>Storting and the minister's calendar</h4><ul class="plain-list">${records.map(r => `<li>${link(r.url, r.title)}
+          <div class="meta">${esc(r.kind_label)} · ${esc(r.date)}${r.status ? ' · ' + esc(r.status) : ''}${r.person ? ' · ' + esc(r.person) : ''}</div></li>`).join('')}</ul>` : ''}
         ${others.length ? `<h4>Other cases on the project</h4><ul class="plain-list">${others.map(o => `<li>${caseBtn(o.url, o.title)}
           <div class="meta">${esc(o.case_number)} · ${esc(o.status)}</div></li>`).join('')}</ul>` : ''}</details>`;
     }
@@ -651,7 +715,7 @@
       document.getElementById('detailTitle').textContent = c.account?.title || c.title;
       document.getElementById('detailMeta').innerHTML = `${esc(c.title)} · ${link(c.url, 'Open in eInnsyn')}`;
       const posts = c.journal_posts || [];
-      const hasContext = (c.related_news || []).length || (c.project_cases || []).length;
+      const hasContext = (c.related_news || []).length || (c.project_cases || []).length || (c.public_records || []).length;
       const postHtml = p => `<li class="is-${esc(p.direction)}">
           <time datetime="${esc(p.date)}">${esc(p.date)} · ${esc(dirLabel[p.direction] || p.direction)}</time>
           <span class="tl-title">${esc(p.title)}</span>
@@ -777,12 +841,26 @@
       if (tab) showView(tab.dataset.view);
     });
     document.addEventListener('change', e => { if (e.target.matches('input[data-kw]')) setKeyword(e.target); });
+    document.getElementById('publicRefresh').addEventListener('click', async e => {
+      e.target.disabled = true;
+      try {
+        const res = await fetch('/api/einnsyn/public/refresh', {method: 'POST'});
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(d.detail || `HTTP ${res.status}`);
+        document.getElementById('publicRuns').textContent = 'Fetching from the Storting and regjeringen.no … this takes a minute.';
+        setTimeout(() => { e.target.disabled = false; loadPublic(); }, 45000);
+      } catch (err) {
+        e.target.disabled = false;
+        document.getElementById('publicRuns').textContent = err.message || String(err);
+      }
+    });
     document.getElementById('moreCases').addEventListener('click', () => { casesShown += CASES_PAGE; renderCases(); });
     document.getElementById('themeSelect').addEventListener('change', e => setFilter('theme', e.target.value));
     document.getElementById('clearFilter').addEventListener('click', () => {
       filter.project = filter.theme = '';
       syncUrl();
       load();
+      if (view === 'public') loadPublic();
     });
     document.getElementById('detailCloseBtn').addEventListener('click', closeDrawer);
     overlay.addEventListener('click', e => { if (e.target === overlay) closeDrawer(); });
