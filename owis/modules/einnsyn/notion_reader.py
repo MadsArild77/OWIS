@@ -136,9 +136,12 @@ class EinnsynNotionReader:
     def load(self) -> dict[str, list[dict[str, str]]]:
         return {name: [_row(p) for p in self._query_all(db)] for name, db in self.dbs.items()}
 
-    def set_status(self, page_id: str, status: str) -> None:
-        """Sets the Status select of one Notion page (a search term)."""
-        self._send("PATCH", f"{NOTION_BASE}/pages/{page_id}", {"properties": {"Status": {"select": {"name": status}}}})
+    def set_status(self, page_id: str, status: str, note: str | None = None) -> None:
+        """Sets the Status select of one Notion page (a search term), and its Notat when given."""
+        properties: dict[str, Any] = {"Status": {"select": {"name": status}}}
+        if note is not None:
+            properties["Notat"] = {"rich_text": [{"text": {"content": note[:2000]}}]}
+        self._send("PATCH", f"{NOTION_BASE}/pages/{page_id}", {"properties": properties})
 
 
 def build_overview(data: dict[str, list[dict[str, str]]], today: date | None = None,
@@ -278,8 +281,15 @@ class OverviewCache:
             row = next((k for k in self._data.get("sok", []) if k.get("_id") == page_id), None)
             if row is None:
                 raise KeyError(page_id)
-            self.reader.set_status(page_id, status)
+            # An accepted suggestion loses its suggestion mark, so pausing it later keeps it a (paused) search term
+            note = None
+            if active and SUGGESTION_MARK in row.get("Notat", ""):
+                note = (f"Tatt i bruk fra OWIS {datetime.now(timezone.utc).date().isoformat()}. "
+                        + row["Notat"].replace(SUGGESTION_MARK, SUGGESTION_MARK.lower()))
+            self.reader.set_status(page_id, status, note)
             row["Status"] = status
+            if note is not None:
+                row["Notat"] = note
             if self._value is not None:
                 loaded_at = self._value.get("loaded_at")
                 self._value = build_overview(self._data)
