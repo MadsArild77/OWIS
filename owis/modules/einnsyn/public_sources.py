@@ -148,7 +148,7 @@ def _relevant(text: str, phrases: list[str]) -> bool:
 def _day(value) -> str:
     """Stortinget's «/Date(1790773419482+0200)/» as an Oslo date."""
     m = re.search(r"\((-?\d+)", str(value or ""))
-    if not m:
+    if not m or int(m.group(1)) < 0:  # «/Date(-62135596800000)/» (year 1) means no date, e.g. not answered yet
         return ""
     return datetime.fromtimestamp(int(m.group(1)) / 1000, tz=timezone.utc).astimezone(OSLO).date().isoformat()
 
@@ -172,7 +172,9 @@ def stortinget_items(client: httpx.Client, sessions: list[str], phrases: list[st
     items: list[dict] = []
     for session in sessions:
         for endpoint, (kind, path) in QUESTION_KINDS.items():
-            for q in client.get(f"{STORTINGET}/{endpoint}", params={"sesjonid": session, "format": "json"}).json().get("sporsmal_liste") or []:
+            # Without status=alle the API returns only answered questions
+            params = {"sesjonid": session, "status": "alle", "format": "json"}
+            for q in client.get(f"{STORTINGET}/{endpoint}", params=params).json().get("sporsmal_liste") or []:
                 text = " ".join([q.get("tittel") or ""] + [e.get("navn", "") for e in q.get("emne_liste") or []])
                 if not _relevant(text, phrases):
                     continue

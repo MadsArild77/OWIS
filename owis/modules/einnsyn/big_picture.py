@@ -105,7 +105,8 @@ def signature(case: dict, ctx: dict) -> str:
     parts = [case_accounts.signature(case), ",".join(ctx["projects"]),
              "\n".join(f'{n["id"]}:{n["title"]}' for n in ctx["news"]),
              "\n".join(f'{c["case_number"]}:{c["status"]}:{c["title"]}' for c in ctx["cases"]),
-             "\n".join(f'{p["id"]}:{p["status"]}' for p in ctx.get("public") or [])]
+             "\n".join(":".join(str(p.get(k, "")) for k in ("id", "title", "date", "status", "person", "body"))
+                       for p in ctx.get("public") or [])]
     return hashlib.sha1("|".join(parts).encode()).hexdigest()[:16]
 
 

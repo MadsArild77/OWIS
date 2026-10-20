@@ -860,6 +860,7 @@
       filter.project = filter.theme = '';
       syncUrl();
       load();
+      if (view === 'public') loadPublic();
     });
     document.getElementById('detailCloseBtn').addEventListener('click', closeDrawer);
     overlay.addEventListener('click', e => { if (e.target === overlay) closeDrawer(); });

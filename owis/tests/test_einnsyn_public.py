@@ -26,12 +26,15 @@ def _client():
                                              "sesjoner_liste": [{"id": "2026-2027"}, {"id": "2025-2026"}]})
         if request.url.params.get("sesjonid") != "2026-2027":
             return httpx.Response(200, json={})
+        if path.endswith("sporsmal") or path.endswith("interpellasjoner"):
+            assert request.url.params.get("status") == "alle"  # otherwise only answered questions come back
         if path.endswith("/skriftligesporsmal"):
             return httpx.Response(200, json={"sporsmal_liste": [
                 {"id": 1, "tittel": "Når kommer konsesjonen for Sørlige Nordsjø II?", "datert_dato": D, "besvart_dato": D,
                  "sporsmal_fra": {"fornavn": "Kari", "etternavn": "Nordmann", "parti": {"id": "H"}},
                  "sporsmal_til_minister_tittel": "energiministeren"},
-                {"id": 2, "tittel": "Om fiskekvoter", "datert_dato": D}]})
+                {"id": 2, "tittel": "Om fiskekvoter", "datert_dato": D},
+                {"id": 3, "tittel": "Hva skjer med SN2?", "datert_dato": D, "besvart_dato": "/Date(-62135596800000)/"}]})
         if path.endswith("/saker"):
             return httpx.Response(200, json={"saker_liste": [
                 {"id": 9, "tittel": "Representantforslag om havvindprosjektene", "korttittel": "Havvindprosjektene",
@@ -47,7 +50,7 @@ def _client():
 def test_refresh_keeps_relevant_storting_records_and_links_them_to_projects(monkeypatch):
     monkeypatch.delenv("TAVILY_API_KEY", raising=False)
     result = ps.refresh(SAKER, SOK, client=_client())
-    assert result == {"stortinget": 3}
+    assert result == {"stortinget": 4}
     runs = ps.runs()
     assert runs["stortinget"]["ok"] and not runs["calendar"]["ok"] and "TAVILY_API_KEY" in runs["calendar"]["detail"]
     found = {i["id"]: i for i in ps.items(SAKER, SOK)}
@@ -57,6 +60,7 @@ def test_refresh_keeps_relevant_storting_records_and_links_them_to_projects(monk
     assert found["stortinget:case-9"]["projects"] == [] and found["stortinget:case-9"]["status"] == "Dealt with"
     assert found["stortinget:hearing-5"]["projects"] == ["METCentre / Karmøy"]
     assert "stortinget:written_question-2" not in found  # names nothing we follow
+    assert found["stortinget:written_question-3"]["status"] == "Not answered yet"  # year-1 date means no answer
     assert [i["id"] for i in ps.items(SAKER, SOK, projects=["METCentre / Karmøy"])] == ["stortinget:hearing-5"]
 
 
