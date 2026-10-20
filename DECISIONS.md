@@ -415,3 +415,17 @@ beslutningen med lenke til den nye.
 - **Visning:** egen fane «Storting & minister» på `/einnsyn` som følger valgt prosjekt eller tema, og
   status for hver kilde (når den sist ble hentet, eller hvorfor den ikke er tilgjengelig). I sakspanelet
   inngår postene i «The big picture», nummerert etter nyhetene, og listes som kilder.
+
+## D26 – Helikopterbilde og prosjekttidslinje
+
+**Vedtatt og implementert 20. oktober 2026.**
+- **Helikopterbilde:** første fane på `/einnsyn`. For et valgt prosjekt (eller tema) skriver AI en oversikt på
+  tvers av alle kilder: hvor prosjektet står, hva som har skjedd sist, hvem som er involvert, hva som
+  sannsynligvis kommer, og hva som kan forsinke det, med kildehenvisninger til nyheter og Stortinget. Uten
+  valgt prosjekt er det en porteføljeoversikt med status og aktivitetsnivå per prosjekt (siste 60 dager).
+- **Grunnlag:** prosjektets fulgte saker og journalposter fra Notion, saksomtaler som allerede er skrevet,
+  nyheter som nevner prosjektet eller søkeord-aliasene, og Stortinget og ministerens kalender (D25). Ingen
+  ekstra oppslag i eInnsyn. Oversikten lagres med en signatur av hele grunnlaget og skrives bare på nytt når
+  grunnlaget endres.
+- **Tidslinje:** under oversikten, alle kildene i én liste etter dato, med filter for journalposter, nyheter,
+  Stortinget og kalender. Journalposter åpner saken i sakspanelet.

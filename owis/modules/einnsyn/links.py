@@ -92,3 +92,19 @@ def cases_for_news(item_ids: list[int], saker: list[dict], limit: int = 8) -> li
                           "status": row.get("Status", ""), "url": row.get("URL", ""), "matched_on": matched})
     found.sort(key=lambda r: (r["status"] != "Aktiv", r["case_number"]), reverse=False)
     return found[:limit]
+
+
+def news_for_phrases(phrases: set[str] | list[str], limit: int = 20) -> list[dict]:
+    """News stories whose project or companies, or title, name one of these folded phrases (a project's name
+    and its search-term aliases), newest first."""
+    phrases = [p for p in phrases if p]
+    found, seen = [], set()
+    for item in recent_cards():
+        title = fold(item["title"])
+        matched = sorted({p for p in phrases if _contains(title, p) or any(_contains(k, p) or _contains(p, k) for k in item["keys"])})
+        if matched and item["title"] not in seen:
+            seen.add(item["title"])
+            found.append({k: item[k] for k in ("id", "title", "url", "source", "published")} | {"matched_on": matched})
+        if len(found) >= limit:
+            break
+    return found

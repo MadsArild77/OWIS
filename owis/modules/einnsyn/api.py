@@ -8,7 +8,7 @@ from owis.core.config.settings import (
     NOTION_API_KEY,
     NOTION_VERSION,
 )
-from owis.modules.einnsyn import big_picture, case_accounts, case_chat, links, public_sources
+from owis.modules.einnsyn import big_picture, case_accounts, case_chat, links, project_view, public_sources
 from owis.modules.einnsyn.case_source import CaseSource
 from owis.modules.einnsyn.notion_reader import PROJECT_FIELD, THEME_FIELD, EinnsynNotionReader, OverviewCache, _tags
 
@@ -118,6 +118,41 @@ def keyword_status(payload: KeywordStatusRequest):
     except Exception as exc:  # Notion down, or the integration may not edit the database
         raise HTTPException(status_code=502, detail=f"Notion did not accept the change: {exc}")
     return {"id": payload.id, "status": status}
+
+
+def _notion_data() -> dict:
+    if not reader.configured():
+        raise HTTPException(status_code=503, detail="eInnsyn is not configured.")
+    try:
+        return cache.data()
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Could not read eInnsyn data from Notion: {exc}")
+
+
+@router.get("/project")
+def project_overview(project: str = "", theme: str = ""):
+    """The helicopter view for a project, theme or all projects: the stored overview (if any) and the timeline of
+    journal posts, news, Storting records and the minister's calendar."""
+    m = project_view.material(_notion_data(), project.strip(), theme.strip())
+    return {"view": project_view.stored(m), "timeline": project_view.timeline(m),
+            "counts": {"cases": len(m["cases"]), "journal_posts": len(m["posts"]), "news": len(m["news"]),
+                       "public": len(m["public"])},
+            "portfolio": not (project.strip() or theme.strip())}
+
+
+class ProjectRequest(BaseModel):
+    project: str = ""
+    theme: str = ""
+
+
+@router.post("/project/view")
+def project_view_write(payload: ProjectRequest):
+    """Write the helicopter view now, when it is missing or older than its material."""
+    m = project_view.material(_notion_data(), payload.project.strip(), payload.theme.strip())
+    view = project_view.write(m)
+    if not view:
+        raise HTTPException(status_code=503, detail="The overview could not be written now (is AI enabled, and is there material?).")
+    return view
 
 
 @router.get("/public")
