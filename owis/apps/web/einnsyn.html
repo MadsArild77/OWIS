@@ -580,6 +580,9 @@
       if (filter.project) q.set('project', filter.project);
       if (filter.theme) q.set('theme', filter.theme);
       box.innerHTML = '<p class="muted">Loading …</p>';
+      tlEntries = []; tlShown = TL_PAGE;  // never show the previous selection's timeline under the new filter
+      document.getElementById('timelineList').innerHTML = '<p class="muted" style="padding:16px 20px">Loading …</p>';
+      document.getElementById('moreTimeline').hidden = true;
       try {
         const res = await fetch('/api/einnsyn/project' + (q.toString() ? '?' + q : ''));
         const d = await res.json();

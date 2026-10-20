@@ -54,6 +54,28 @@ def test_portfolio_covers_followed_cases_of_the_last_60_days():
     assert {p["title"] for p in m["public"]} == {"Når får SN2 konsesjon?", "Om havvind generelt"}
 
 
+def test_cases_with_the_same_number_at_two_agencies_keep_their_own_activity(monkeypatch):
+    _store_public()
+    data = _data()
+    data["saker"].append({"Name": "Annen etat, samme nummer", "Saksnummer": "2024/1", "Status": "Aktiv", "_id": "p9",
+                          "URL": "https://einnsyn.no/saksmappe?id=iri-9", "Prosjektområde": "Utsira Nord"})
+    data["logg"].append({"Name": "Post i den andre saken", "Saksnummer": "2024/1", "Sak": "p9", "Publisert": "2026-10-12"})
+    sent = []
+
+    class FakeAI:
+        enabled = True
+
+        def _post_json_prompt(self, prompt, text, **kw):
+            sent.append(json.loads(text))
+            return {"headline": "h", "summary": "s", "projects": []}
+
+    monkeypatch.setattr(project_view, "AIClient", FakeAI)
+    project_view.write(project_view.material(data, today=TODAY), TODAY)
+    areas = {p["name"]: p for p in sent[0]["projects"]}
+    assert areas["Sørlige Nordsjø II"]["latest_journal_posts"] == ["Svar fra NVE", "Søknad om konsesjon"]
+    assert areas["Utsira Nord"]["latest_journal_posts"] == ["Post i den andre saken"]
+
+
 def test_view_is_written_once_and_rewritten_when_the_material_changes(monkeypatch):
     _store_public()
     calls = []

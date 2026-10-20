@@ -67,6 +67,11 @@ def _key(project: str, theme: str) -> str:
     return f"{project}|{theme}"
 
 
+def _case_key(case: dict) -> str:
+    """A case's identity: its Notion page (case numbers repeat across agencies)."""
+    return case.get("_id") or "#" + case.get("Saksnummer", "")
+
+
 def _account(url: str) -> dict | None:
     """A case's stored account, if one has been written (no eInnsyn call)."""
     ref = case_ref(url)
@@ -101,7 +106,7 @@ def material(data: dict, project: str = "", theme: str = "", today: date | None 
         if case is None or not day or day < since:
             continue
         posts.append({"date": day.isoformat(), "kind": "journal_post", "label": "Journal post", "title": r.get("Name", ""),
-                      "case_title": case.get("Name", ""), "case_number": case.get("Saksnummer", ""),
+                      "case_key": _case_key(case), "case_title": case.get("Name", ""), "case_number": case.get("Saksnummer", ""),
                       "case_url": case.get("URL", ""), "from": r.get("Fra", ""), "to": r.get("Til", ""),
                       "url": r.get("URL", "")})
     posts.sort(key=lambda p: p["date"], reverse=True)
@@ -154,12 +159,12 @@ def _payload(m: dict, today: date) -> dict:
     if m["project"] or m["theme"]:
         latest = {}
         for p in m["posts"]:
-            latest.setdefault(p["case_number"], p["date"])
-        cases = sorted(m["cases"], key=lambda c: latest.get(c.get("Saksnummer", ""), ""), reverse=True)[:40]
+            latest.setdefault(p["case_key"], p["date"])
+        cases = sorted(m["cases"], key=lambda c: latest.get(_case_key(c), ""), reverse=True)[:40]
         case_rows = []
         for c in cases:
             row = {"title": c.get("Name", ""), "case_number": c.get("Saksnummer", ""), "status": c.get("Status", ""),
-                   "latest": latest.get(c.get("Saksnummer", ""), ""), "themes": [t for t in _tags(c, THEME_FIELD) if t != UNTAGGED]}
+                   "latest": latest.get(_case_key(c), ""), "themes": [t for t in _tags(c, THEME_FIELD) if t != UNTAGGED]}
             account = _account(c.get("URL", "")) if len(case_rows) < 15 else None
             if account:
                 row.update(account_stage=account.get("stage", ""), account=str(account.get("summary", ""))[:500])
@@ -175,8 +180,8 @@ def _payload(m: dict, today: date) -> dict:
     cut = (today - timedelta(days=30)).isoformat()
     projects = []
     for name, cases in sorted(areas.items(), key=lambda kv: -len(kv[1])):
-        numbers = {c.get("Saksnummer") for c in cases}
-        posts = [p for p in m["posts"] if p["case_number"] in numbers]
+        keys = {_case_key(c) for c in cases}
+        posts = [p for p in m["posts"] if p["case_key"] in keys]
         projects.append({"name": name, "cases": len(cases), "journal_posts_30d": sum(1 for p in posts if p["date"] >= cut),
                          "latest": posts[0]["date"] if posts else "",
                          "latest_journal_posts": [p["title"][:200] for p in posts[:5]],
