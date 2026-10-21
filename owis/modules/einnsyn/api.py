@@ -8,7 +8,7 @@ from owis.core.config.settings import (
     NOTION_API_KEY,
     NOTION_VERSION,
 )
-from owis.modules.einnsyn import big_picture, case_accounts, case_chat, links, project_view, public_sources
+from owis.modules.einnsyn import big_picture, case_accounts, case_chat, feedback, links, project_view, public_sources
 from owis.modules.einnsyn.case_source import CaseSource
 from owis.modules.einnsyn.notion_reader import PROJECT_FIELD, THEME_FIELD, EinnsynNotionReader, OverviewCache, _tags
 
@@ -54,6 +54,7 @@ def case_detail(ref: str):
     ctx = big_picture.context(case, saker, sok)
     case["related_news"], case["project_cases"], case["projects"] = ctx["news"], ctx["cases"], ctx["projects"]
     case["public_records"] = ctx["public"]
+    case["feedback"] = feedback.public(ctx["feedback"])
     case["big_picture"] = big_picture.stored(case, ctx)
     return case
 
@@ -137,7 +138,8 @@ def project_overview(project: str = "", theme: str = ""):
     return {"view": project_view.stored(m), "timeline": project_view.timeline(m),
             "counts": {"cases": len(m["cases"]), "journal_posts": len(m["posts"]), "news": len(m["news"]),
                        "public": len(m["public"])},
-            "portfolio": not (project.strip() or theme.strip())}
+            "portfolio": not (project.strip() or theme.strip()),
+            "scope": list(project_view.scope(project.strip(), theme.strip())), "feedback": feedback.public(m["feedback"])}
 
 
 class ProjectRequest(BaseModel):
@@ -153,6 +155,80 @@ def project_view_write(payload: ProjectRequest):
     if not view:
         raise HTTPException(status_code=503, detail="The overview could not be written now (is AI enabled, and is there material?).")
     return view
+
+
+# ---- The reader's corrections (see feedback.py) ----
+
+class InterpretRequest(BaseModel):
+    target_type: str
+    label: str = ""
+    context: str = ""
+    text: str
+
+
+@router.post("/feedback/interpret")
+def feedback_interpret(payload: InterpretRequest):
+    """What the AI understands the reader to mean. Nothing is stored until the reader confirms."""
+    if not payload.text.strip():
+        raise HTTPException(status_code=400, detail="Write what is wrong first.")
+    try:
+        return feedback.interpret(payload.model_dump(), payload.text.strip())
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=str(exc) or "The correction could not be interpreted now.")
+
+
+class FeedbackRequest(BaseModel):
+    scope_type: str
+    scope_id: str = ""
+    target_type: str
+    target_id: str = ""
+    target_label: str = ""
+    action: str
+    text: str = ""
+    correction: str = ""
+
+
+@router.post("/feedback")
+def feedback_save(payload: FeedbackRequest):
+    """Store a confirmed correction or a «not relevant» mark."""
+    try:
+        saved = feedback.save(**payload.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return saved | {"items": feedback.public(feedback.for_scopes([(payload.scope_type, payload.scope_id)]))}
+
+
+@router.get("/feedback")
+def feedback_list(scope_type: str, scope_id: str = ""):
+    return {"items": feedback.public(feedback.for_scopes([(scope_type, scope_id)]))}
+
+
+@router.delete("/feedback/{feedback_id}")
+def feedback_remove(feedback_id: int):
+    feedback.remove(feedback_id)
+    return {"ok": True}
+
+
+class CaseStatusRequest(BaseModel):
+    ref: str
+    status: str
+
+
+@router.post("/case/status")
+def case_status(payload: CaseStatusRequest):
+    """Mark a case «Ikke relevant» (or back to «Aktiv») in Notion; the eInnsyn monitor stops following it."""
+    from owis.modules.einnsyn.case_source import case_ref
+    if payload.status not in ("Ikke relevant", "Aktiv"):
+        raise HTTPException(status_code=400, detail="Status must be «Ikke relevant» or «Aktiv».")
+    ref = case_ref(payload.ref)
+    row = next((r for r in _saker() if r.get("URL") and case_ref(r["URL"]) == ref), None)
+    if not row:
+        raise HTTPException(status_code=404, detail="This case is not in the Notion case list.")
+    try:
+        cache.set_case_status(row["_id"], payload.status)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Notion did not accept the change: {exc}")
+    return {"status": payload.status}
 
 
 @router.get("/public")
@@ -210,6 +286,7 @@ def case_chat_answer(payload: ChatRequest):
     case = dict(_load_case(payload.ref))
     case["account"] = case_accounts.stored(case)
     case["related_news"] = links.news_for_case(case)
+    case["corrections"] = feedback.corrections(feedback.for_scopes([("case", case["ref"])]))
     result = case_chat.answer(case, payload.question, document_texts)
     if result.get("error"):
         raise HTTPException(status_code=503, detail=result["error"])

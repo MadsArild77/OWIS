@@ -180,11 +180,12 @@ def answer(case: dict, question: str, texts: DocumentTexts) -> dict:
         "documents": [{"n": i + 1, "title": d["title"], "journal_post": d["journal_post"], "date": d["date"],
                        "text": d["excerpt"] or "(no readable text)"} for i, d in enumerate(documents)],
         "related_news": [n.get("title") for n in case.get("related_news") or []][:8],
+        "reader_corrections": case.get("corrections") or [],
         "conversation": [{"role": h.get("role"), "content": str(h.get("content", ""))[:1500]} for h in history[-6:]],
         "question": question[:1000],
     }
     try:
-        data = ai._post_json_prompt(PROMPT, json.dumps(payload, ensure_ascii=False), max_tokens=700, input_max_chars=24000)
+        data = ai._post_json_prompt(PROMPT + (" Where reader_corrections are given, treat them as authoritative and follow them over the other sources." if case.get("corrections") else ""), json.dumps(payload, ensure_ascii=False), max_tokens=700, input_max_chars=24000)
     except Exception:
         logger.exception("eInnsyn case chat failed")
         data = None

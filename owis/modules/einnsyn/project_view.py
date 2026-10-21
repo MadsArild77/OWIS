@@ -20,7 +20,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from owis.core.llm.client import AIClient
 from owis.core.storage.db import get_conn
-from owis.modules.einnsyn import links, public_sources
+from owis.modules.einnsyn import feedback, links, public_sources
 from owis.modules.einnsyn.case_source import case_ref
 from owis.modules.einnsyn.notion_reader import (FOLLOWED, PROJECT_FIELD, THEME_FIELD, UNTAGGED, _log_case_ids,
                                                 _tags, published, select)
@@ -105,7 +105,9 @@ def material(data: dict, project: str = "", theme: str = "", today: date | None 
         day, case = published(r), case_of(r)
         if case is None or not day or day < since:
             continue
-        posts.append({"date": day.isoformat(), "kind": "journal_post", "label": "Journal post", "title": r.get("Name", ""),
+        # The log row's own Notion page; a link alone can be shared by several posts
+        posts.append({"id": "post:" + (r.get("_id") or f'{r.get("URL", "")}:{_case_key(case)}:{day.isoformat()}:{r.get("Name", "")}'),
+                      "date": day.isoformat(), "kind": "journal_post", "label": "Journal post", "title": r.get("Name", ""),
                       "case_key": _case_key(case), "case_title": case.get("Name", ""), "case_number": case.get("Saksnummer", ""),
                       "case_url": case.get("URL", ""), "from": r.get("Fra", ""), "to": r.get("Til", ""),
                       "url": r.get("URL", "")})
@@ -125,13 +127,26 @@ def material(data: dict, project: str = "", theme: str = "", today: date | None 
     if since != date.min:
         public = [p for p in public if p["date"] >= since.isoformat()]
         news = [n for n in news if str(n["published"])[:10] >= since.isoformat()]
-    return {"project": project, "theme": theme, "cases": followed, "posts": posts, "news": news, "public": public}
+    # The reader's «not relevant» marks and corrections for this selection
+    rows = feedback.for_scopes([scope(project, theme)])
+    skip = feedback.excluded(rows)
+    posts = [p for p in posts if p["id"] not in skip]
+    news = [n for n in news if f"news:{n['id']}" not in skip]
+    public = [p for p in public if p["id"] not in skip]
+    return {"project": project, "theme": theme, "cases": followed, "posts": posts, "news": news, "public": public,
+            "feedback": rows}
+
+
+def scope(project: str, theme: str) -> tuple[str, str]:
+    """Where a correction made in the helicopter view applies: the project (or theme), or the portfolio."""
+    return ("project", project or theme) if (project or theme) else ("portfolio", "")
 
 
 def timeline(m: dict, limit: int = 400) -> list[dict]:
-    news = [{"date": str(n["published"])[:10], "kind": "news", "label": n["source"] or "News", "title": n["title"],
+    news = [{"id": f"news:{n['id']}", "date": str(n["published"])[:10], "kind": "news", "label": n["source"] or "News", "title": n["title"],
              "url": n["url"], "matched_on": n.get("matched_on", [])} for n in m["news"]]
-    public = [{"date": p["date"], "kind": p["kind"], "label": p["kind_label"], "title": p["title"], "url": p["url"],
+    public = [{"id": p["id"], "date": p["date"], "kind": p["kind"], "label": p["kind_label"], "title": p["title"], "url": p["url"],
+               "question": p.get("question", ""), "answer": p.get("answer", ""),
                "status": p["status"], "person": p["person"], "body": p["body"], "projects": p["projects"]}
               for p in m["public"]]
     entries = m["posts"] + news + public
@@ -156,6 +171,10 @@ def _payload(m: dict, today: date) -> dict:
         extra = details.get(m["news"][i - 1]["id"], {}) if i <= min(15, len(m["news"])) else {}
         sources.append({"n": i, "date": s["published"], "kind": s["source"], "title": s["title"][:400],
                         **{k: str(v)[:400] for k, v in extra.items()}})
+        public_item = m["public"][i - 1 - min(15, len(m["news"]))] if i > min(15, len(m["news"])) else None
+        if public_item and public_item.get("answer"):
+            sources[-1]["answer"] = public_item["answer"][:600]
+    fixes = feedback.corrections(m.get("feedback") or [])
     if m["project"] or m["theme"]:
         latest = {}
         for p in m["posts"]:
@@ -171,7 +190,7 @@ def _payload(m: dict, today: date) -> dict:
             case_rows.append(row)
         return {"project": m["project"] or m["theme"], "cases": case_rows,
                 "latest_journal_posts": [{k: p[k] for k in ("date", "title", "case_number", "from", "to")} for p in m["posts"][:40]],
-                "sources": sources}
+                "sources": sources, **({"reader_corrections": fixes} if fixes else {})}
     areas = {}
     for c in m["cases"]:
         for name in _tags(c, PROJECT_FIELD):
@@ -186,7 +205,7 @@ def _payload(m: dict, today: date) -> dict:
                          "latest": posts[0]["date"] if posts else "",
                          "latest_journal_posts": [p["title"][:200] for p in posts[:5]],
                          "case_titles": [c.get("Name", "")[:160] for c in cases[:5]]})
-    return {"projects": projects, "sources": sources}
+    return {"projects": projects, "sources": sources, **({"reader_corrections": fixes} if fixes else {})}
 
 
 def signature(payload: dict) -> str:
@@ -218,7 +237,8 @@ def write(m: dict, today: date | None = None) -> dict | None:
     payload = _payload(m, today)
     portfolio = not (m["project"] or m["theme"])
     try:
-        data = ai._post_json_prompt(PORTFOLIO_PROMPT if portfolio else PROJECT_PROMPT,
+        prompt = (PORTFOLIO_PROMPT if portfolio else PROJECT_PROMPT) + (" " + feedback.CORRECTIONS_NOTE if payload.get("reader_corrections") else "")
+        data = ai._post_json_prompt(prompt,
                                     json.dumps(payload, ensure_ascii=False), max_tokens=1400, input_max_chars=30000)
     except Exception:
         logger.exception("Helicopter view failed")

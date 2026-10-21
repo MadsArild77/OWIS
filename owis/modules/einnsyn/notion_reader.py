@@ -308,6 +308,21 @@ class OverviewCache:
                 self._value["loaded_at"] = loaded_at
         return status
 
+    def set_case_status(self, page_id: str, status: str) -> str:
+        """Sets a followed case's Status in Notion (e.g. «Ikke relevant») and in the cached overview.
+        Only pages in the case database can be changed."""
+        with self._lock:
+            row = next((s for s in self._data.get("saker", []) if s.get("_id") == page_id), None)
+            if row is None:
+                raise KeyError(page_id)
+            self.reader.set_status(page_id, status)
+            row["Status"] = status
+            if self._value is not None:
+                loaded_at = self._value.get("loaded_at")
+                self._value = build_overview(self._data)
+                self._value["loaded_at"] = loaded_at
+        return status
+
     def data(self) -> dict[str, list[dict[str, str]]]:
         """All three databases behind the current overview."""
         self.get()

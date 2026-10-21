@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 
 from owis.core.llm.client import AIClient
 from owis.core.storage.db import get_conn
+from owis.modules.einnsyn import feedback
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +43,10 @@ def _ensure_table() -> None:
 
 
 def signature(case: dict) -> str:
+    """The journal posts the account covers, and the reader's corrections to it."""
     ids = sorted(p["id"] for p in case.get("journal_posts") or [])
-    return hashlib.sha1(",".join(ids).encode()).hexdigest()[:16]
+    rows = feedback.for_scopes([("case", case.get("ref", ""))])
+    return hashlib.sha1((",".join(ids) + feedback.digest(rows)).encode()).hexdigest()[:16]
 
 
 def stored(case: dict) -> dict | None:
@@ -71,8 +74,12 @@ def write(case: dict) -> dict | None:
         "journal_posts": [{"date": p["date"], "direction": p["direction"], "title": p["title"][:300],
                            "from": p["from"], "to": p["to"], "open_document": bool(p["documents"])} for p in posts],
     }
+    fixes = feedback.corrections(feedback.for_scopes([("case", case.get("ref", ""))]))
+    if fixes:
+        payload["reader_corrections"] = fixes
     try:
-        data = ai._post_json_prompt(PROMPT, json.dumps(payload, ensure_ascii=False), max_tokens=900, input_max_chars=20000)
+        data = ai._post_json_prompt(PROMPT + (" " + feedback.CORRECTIONS_NOTE if fixes else ""),
+                                    json.dumps(payload, ensure_ascii=False), max_tokens=900, input_max_chars=20000)
     except Exception:
         logger.exception("eInnsyn case account failed")
         return None

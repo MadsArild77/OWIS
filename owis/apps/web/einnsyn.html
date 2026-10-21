@@ -196,6 +196,27 @@
     .tl-news { background: var(--tag-actor-bg); color: var(--tag-actor-ink); }
     .tl-storting { background: var(--tag-bg); color: var(--tag-ink); }
     .tl-calendar { background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line-strong); }
+    .adjust-btn { margin: 0 0 0 auto; padding: 2px 9px; border-radius: 999px; font-size: 0.78rem; font-weight: 600;
+      background: transparent; color: var(--muted); border: 1px solid var(--line-strong); box-shadow: none; position: relative; z-index: 1; }
+    .adjust-btn:hover:not([disabled]) { background: var(--surface-hover); color: var(--ink); border-color: var(--line-strong); }
+    .meta .adjust-btn { margin-left: 6px; }
+    .row-links { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+    .row-links .qa { flex: 1 1 auto; }
+    .adjust-host { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .adjust-form { position: relative; z-index: 2; margin-top: 10px; padding: 12px 14px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); flex-basis: 100%; }
+    .adjust-form textarea { min-height: 70px; margin: 8px 0; resize: vertical; }
+    .adjust-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .adjust-actions button, .adjust-confirm button, .adjust-write button { padding: 5px 12px; font-size: 0.86rem; }
+    .adjust-understood { margin: 0 0 10px; padding: 10px 12px; border-left: 3px solid var(--brand); background: var(--surface); border-radius: 6px; }
+    .adjust-status { margin: 8px 0 0; font-size: 0.86rem; }
+    .adjust-status:empty { display: none; }
+    .feedback-list { margin-top: 12px; font-size: 0.92rem; }
+    .feedback-list summary { cursor: pointer; color: var(--muted); font-weight: 600; }
+    .case-actions { margin-top: 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+    .case-actions .feedback-list { flex-basis: 100%; margin-top: 0; }
+    .qa { font-size: 0.92rem; }
+    .qa summary { cursor: pointer; color: var(--brand); font-weight: 600; }
+    .qa p { margin: 6px 0; line-height: 1.55; }
     .plain-list { list-style: none; margin: 0; padding: 0; }
     .plain-list li { padding: 10px 0; border-top: 1px solid var(--line); }
     .plain-list li:first-child { border-top: 0; }
@@ -444,6 +465,98 @@
     const initial = name => esc(String(name || '?').trim().charAt(0).toUpperCase());
     const emptyState = (title, text) => `<div class="empty-state"><strong>${esc(title)}</strong>${esc(text)}</div>`;
 
+    // ---- Adjust: «not relevant here», or a free-text correction the AI restates and the reader confirms ----
+    // target: {scope_type, scope_id, target_type, target_id, label, context, can_drop}
+    const adjustBtn = (target, text = 'Adjust') =>
+      `<button type="button" class="adjust-btn" data-adjust="${esc(JSON.stringify(target))}">${esc(text)}</button>`;
+    function afterAdjust(target) {
+      if (target.scope_type === 'case' && currentCase) openCase(currentCase);
+      else { loadHelicopter(); if (view === 'public') loadPublic(); }
+    }
+    async function saveFeedback(target, action, text = '', correction = '') {
+      const res = await fetch('/api/einnsyn/feedback', {method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({scope_type: target.scope_type, scope_id: target.scope_id || '', target_type: target.target_type,
+          target_id: target.target_id || '', target_label: target.label || '', action, text, correction})});
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.detail || `HTTP ${res.status}`);
+      return d;
+    }
+    function openAdjust(btn) {
+      const target = JSON.parse(btn.dataset.adjust);
+      const host = btn.closest('.story, li, .adjust-host') || btn.parentElement;
+      host.querySelector(':scope > .adjust-form')?.remove();
+      const form = document.createElement('div');
+      form.className = 'adjust-form';
+      const where = target.scope_type === 'case' ? 'this case' : target.scope_type === 'project' ? target.scope_id
+        : target.scope_type === 'portfolio' ? 'the portfolio view' : 'everywhere';
+      form.innerHTML = `
+        <div class="adjust-actions">
+          ${target.can_drop ? `<button type="button" class="btn-secondary" data-act="drop">Not relevant for ${esc(where)}</button>` : ''}
+          <button type="button" class="btn-secondary" data-act="write">Write a correction</button>
+          <button type="button" class="btn-ghost" data-act="close">Cancel</button>
+        </div>
+        <div class="adjust-write" hidden>
+          <textarea placeholder="What is wrong, or what should be added? In Norwegian or English." aria-label="Correction"></textarea>
+          <button type="button" data-act="interpret">Check what you mean</button>
+        </div>
+        <div class="adjust-confirm" hidden>
+          <p class="adjust-understood"></p>
+          <button type="button" data-act="save">Save correction</button>
+          <button type="button" class="btn-secondary" data-act="edit">Change it</button>
+        </div>
+        <p class="muted adjust-status" role="status" aria-live="polite"></p>`;
+      host.appendChild(form);
+      let understood = null;
+      const status = form.querySelector('.adjust-status');
+      const text = () => form.querySelector('textarea').value.trim();
+      form.addEventListener('click', async e => {
+        const act = e.target.dataset.act;
+        if (!act) return;
+        e.stopPropagation();
+        try {
+          if (act === 'close') form.remove();
+          if (act === 'write') { form.querySelector('.adjust-write').hidden = false; form.querySelector('textarea').focus(); }
+          if (act === 'edit') { form.querySelector('.adjust-confirm').hidden = true; form.querySelector('.adjust-write').hidden = false; }
+          if (act === 'drop') {
+            status.textContent = 'Saving …';
+            await saveFeedback(target, 'not_relevant', '', `Not relevant: ${target.label || ''}`);
+            status.textContent = 'Saved. It is left out from now on.';
+            afterAdjust(target);
+          }
+          if (act === 'interpret') {
+            if (!text()) { status.textContent = 'Write what is wrong first.'; return; }
+            status.textContent = 'Reading your correction …';
+            const res = await fetch('/api/einnsyn/feedback/interpret', {method: 'POST', headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({target_type: target.target_type, label: target.label || '', context: target.context || '', text: text()})});
+            understood = await res.json();
+            if (!res.ok) throw new Error(understood.detail || `HTTP ${res.status}`);
+            status.textContent = '';
+            form.querySelector('.adjust-understood').textContent = understood.unclear || understood.interpretation;
+            form.querySelector('[data-act="save"]').hidden = Boolean(understood.unclear);
+            form.querySelector('.adjust-write').hidden = true;
+            form.querySelector('.adjust-confirm').hidden = false;
+          }
+          if (act === 'save' && understood) {
+            status.textContent = 'Saving …';
+            await saveFeedback(target, understood.action === 'not_relevant' && target.can_drop ? 'not_relevant' : 'correction',
+                               text(), understood.correction);
+            status.textContent = 'Saved. The texts here are rewritten with your correction.';
+            afterAdjust(target);
+          }
+        } catch (err) { status.textContent = err.message || String(err); }
+      });
+    }
+    // The corrections already made here, with undo
+    function feedbackHtml(items) {
+      if (!(items || []).length) return '';
+      return `<details class="feedback-list"><summary>Your corrections here (${items.length})</summary><ul class="plain-list">
+        ${items.map(f => `<li><span class="tl-badge ${f.action === 'not_relevant' ? 'tl-calendar' : 'tl-journal_post'}">${f.action === 'not_relevant' ? 'Not relevant' : 'Correction'}</span>
+          ${esc(f.action === 'not_relevant' ? f.target_label : f.correction)}
+          <div class="meta">${esc(f.scope_type === 'all' ? 'Everywhere' : f.scope_id || f.scope_type)} · ${esc(String(f.created_at).slice(0, 10))}
+            · <button type="button" class="case-link" data-unfeedback="${esc(f.id)}" data-scope="${esc(f.scope_type)}">Remove</button></div></li>`).join('')}
+      </ul></details>`;
+    }
+
     function setStatus(msg, warn = false) {
       const el = document.getElementById('status');
       el.textContent = msg;
@@ -526,6 +639,11 @@
         ? `<button type="button" class="story-open" data-case="${esc(e.case_url)}">${esc(e.title)}</button>` : link(e.url, e.title);
       const sub = e.kind === 'journal_post' ? e.case_title
         : group === 'storting' || group === 'calendar' ? [e.status, e.person, e.body].filter(Boolean).join(' · ') : '';
+      const [scopeType, scopeId] = heliScope;
+      const adjust = adjustBtn({scope_type: scopeType, scope_id: scopeId, target_type: e.kind, target_id: e.id, label: e.title,
+                                context: sub, can_drop: true});
+      const qa = e.answer ? `<details class="qa"><summary>Question and answer</summary>
+          ${e.question ? `<p><b>Question:</b> ${esc(e.question)}</p>` : ''}<p><b>Answer:</b></p>${paragraphs(e.answer)}</details>` : '';
       return `<article class="story${e.kind === 'journal_post' && e.case_url ? ' is-clickable' : ''}">
           <div class="story-main">
             <div class="story-source">
@@ -535,9 +653,11 @@
             </div>
             <h3>${title}</h3>
             ${sub ? `<p class="story-description">${esc(sub)}</p>` : ''}
+            <div class="row-links">${qa}${adjust}</div>
           </div>
         </article>`;
     }
+    let heliScope = ['portfolio', ''];
     function renderTimeline() {
       const list = tlEntries.filter(e => !tlKind || tlGroup(e) === tlKind);
       let html = '', last = null;
@@ -555,7 +675,7 @@
       const name = filter.project || filter.theme || 'All projects';
       const c = d.counts;
       const basis = `Built from ${c.cases} followed cases, ${c.journal_posts} journal posts${d.portfolio ? ' (last 60 days)' : ''}, ${c.news} news stories and ${c.public} Storting and calendar records.`;
-      if (!v) return `<p class="heli-kicker">Helicopter view · ${esc(name)}</p><p class="muted">${c.cases || c.news || c.public ? 'Writing the overview …' : 'Nothing to write an overview from yet.'}</p><p class="meta">${esc(basis)}</p>`;
+      if (!v) return `<p class="heli-kicker">Helicopter view · ${esc(name)}</p><p class="muted">${c.cases || c.news || c.public ? 'Writing the overview …' : 'Nothing to write an overview from yet.'}</p><p class="meta">${esc(basis)}</p>${feedbackHtml(d.feedback)}`;
       const projects = (v.projects || []).length ? `<table class="heli-projects"><thead><tr><th>Project</th><th>Where it stands</th><th>Activity</th></tr></thead><tbody>
           ${v.projects.map(p => `<tr><td><button type="button" class="case-link" data-project="${esc(p.name)}">${esc(p.name)}</button></td><td>${esc(p.status)}</td>
             <td><span class="momentum m-${esc(p.momentum)}">${esc(p.momentum || '–')}</span></td></tr>`).join('')}</tbody></table>` : '';
@@ -570,7 +690,10 @@
         </div>` : ''}
         ${v.next || v.risks ? `<div class="detail-why"><strong>What comes next</strong>${v.next ? `<p>${cite(v.next)}</p>` : ''}${v.risks ? `<p class="muted">${cite(v.risks)}</p>` : ''}</div>` : ''}
         ${(v.sources || []).length ? `<ol class="sources">${v.sources.map(x => `<li value="${esc(x.n)}">${link(x.url, x.title)} <span class="muted">· ${esc(x.source)} · ${esc(x.published)}</span></li>`).join('')}</ol>` : ''}
-        <p class="meta">${esc(basis)}${v.complete ? '' : ' Written before the latest material; updating …'}</p>`;
+        <p class="meta">${esc(basis)}${v.complete ? '' : ' Written before the latest material; updating …'}</p>
+        <div class="adjust-host">${adjustBtn({scope_type: heliScope[0], scope_id: heliScope[1], target_type: 'helicopter', target_id: 'helicopter',
+          label: v.headline, context: String(v.summary || '').slice(0, 1500)}, 'Correct this overview')}</div>
+        ${feedbackHtml(d.feedback)}`;
     }
     let heliLoading = 0;
     async function loadHelicopter() {
@@ -588,6 +711,7 @@
         const d = await res.json();
         if (!res.ok) throw new Error(d.detail || `HTTP ${res.status}`);
         if (mine !== heliLoading) return;
+        heliScope = d.scope || ['portfolio', ''];
         tlEntries = d.timeline || []; tlShown = TL_PAGE;
         renderTimeline();
         box.innerHTML = heliHtml(d.view, d);
@@ -615,7 +739,12 @@
         return r.ok ? `${name}: ${r.detail}, ${when}` : `${name}: not available (${r.detail})`;
       }).join(' · ');
     }
-    const publicRow = i => `<article class="story">
+    const publicRow = i => {
+      const scope = filter.project ? ['project', filter.project] : ['all', ''];
+      const qa = i.answer ? `<details class="qa"><summary>Question and answer</summary>
+          ${i.question ? `<p><b>Question:</b> ${esc(i.question)}</p>` : ''}${i.reasoning ? `<p class="muted">${esc(i.reasoning)}</p>` : ''}
+          <p><b>Answer:</b></p>${paragraphs(i.answer)}</details>` : '';
+      return `<article class="story">
         <div class="story-main">
           <div class="story-source">
             <span class="focus-badge">${esc(i.kind_label)}</span>
@@ -625,8 +754,11 @@
           </div>
           <h3>${link(i.url, i.title)}</h3>
           ${i.projects.length ? `<div class="story-tags">${i.projects.map(t => `<span class="chip-tag">${esc(t)}</span>`).join('')}</div>` : ''}
+          <div class="row-links">${qa}${adjustBtn({scope_type: scope[0], scope_id: scope[1], target_type: i.kind, target_id: i.id,
+            label: i.title, context: [i.status, i.person, i.body].filter(Boolean).join(' · '), can_drop: true})}</div>
         </div>
       </article>`;
+    };
     let publicLoading = 0;
     async function loadPublic() {
       const mine = ++publicLoading;
@@ -793,7 +925,9 @@
         ${a.next_steps || a.documents ? `<div class="detail-why"><strong>Likely next step</strong>
           ${a.next_steps ? `<p>${esc(a.next_steps)}</p>` : ''}
           ${a.documents ? `<p class="muted">${esc(a.documents)}</p>` : ''}</div>` : ''}
-        ${a.complete ? '' : '<p class="muted">Written before the latest journal posts; updating…</p>'}`;
+        ${a.complete ? '' : '<p class="muted">Written before the latest journal posts or your corrections; updating…</p>'}
+        <div class="adjust-host">${adjustBtn({scope_type: 'case', scope_id: caseRef, target_type: 'account', target_id: 'account',
+          label: a.title, context: String(a.summary || '').slice(0, 1500)}, 'Correct the case summary')}</div>`;
     }
     // The big picture: the case with its news and the other cases on the same project
     function bigPictureHtml(b) {
@@ -803,7 +937,9 @@
         ${b.watch ? `<div class="detail-why"><strong>What to watch</strong><p>${cite(b.watch)}</p></div>` : ''}
         ${(b.sources || []).length ? `<ol class="sources">${b.sources.map(x => `<li value="${esc(x.n)}">${link(x.url, x.title)}
           <span class="muted">· ${esc(x.source)} · ${esc(x.published)}</span></li>`).join('')}</ol>` : ''}
-        ${b.complete ? '' : '<p class="muted">Written before the latest news or journal posts; updating…</p>'}`;
+        ${b.complete ? '' : '<p class="muted">Written before the latest news, journal posts or your corrections; updating…</p>'}
+        <div class="adjust-host">${adjustBtn({scope_type: 'case', scope_id: caseRef, target_type: 'big_picture', target_id: 'big_picture',
+          label: b.headline, context: String(b.summary || '').slice(0, 1500)}, 'Correct the big picture')}</div>`;
     }
     function contextHtml(c) {
       const news = c.related_news || [], others = c.project_cases || [], records = c.public_records || [];
@@ -812,13 +948,15 @@
         others.length && `${others.length} other case${others.length === 1 ? '' : 's'} on ${esc((c.projects || []).join(', '))}`].filter(Boolean);
       return `<details class="context"><summary>Based on ${new Intl.ListFormat('en-GB').format(parts)}</summary>
         ${news.length ? `<h4>News</h4><ul class="plain-list">${news.map(n => `<li>${link(n.url, n.title)}
-          <div class="meta">${esc(n.source)} · ${esc(n.published)} · via ${esc(n.matched_on.join(', '))}</div></li>`).join('')}</ul>` : ''}
+          <div class="meta">${esc(n.source)} · ${esc(n.published)} · via ${esc(n.matched_on.join(', '))}
+            ${adjustBtn({scope_type: 'case', scope_id: caseRef, target_type: 'news', target_id: 'news:' + n.id, label: n.title, can_drop: true})}</div></li>`).join('')}</ul>` : ''}
         ${records.length ? `<h4>Storting and the minister's calendar</h4><ul class="plain-list">${records.map(r => `<li>${link(r.url, r.title)}
-          <div class="meta">${esc(r.kind_label)} · ${esc(r.date)}${r.status ? ' · ' + esc(r.status) : ''}${r.person ? ' · ' + esc(r.person) : ''}</div></li>`).join('')}</ul>` : ''}
+          <div class="meta">${esc(r.kind_label)} · ${esc(r.date)}${r.status ? ' · ' + esc(r.status) : ''}${r.person ? ' · ' + esc(r.person) : ''}
+            ${adjustBtn({scope_type: 'case', scope_id: caseRef, target_type: r.kind, target_id: r.id, label: r.title, can_drop: true})}</div></li>`).join('')}</ul>` : ''}
         ${others.length ? `<h4>Other cases on the project</h4><ul class="plain-list">${others.map(o => `<li>${caseBtn(o.url, o.title)}
           <div class="meta">${esc(o.case_number)} · ${esc(o.status)}</div></li>`).join('')}</ul>` : ''}</details>`;
     }
-    let currentCase = '';
+    let currentCase = '', caseRef = '';  // as opened (often a link), and the case id the server uses for corrections
     const stillOpen = ref => currentCase === ref && overlay.classList.contains('open');
     async function openCase(ref) {
       currentCase = ref;
@@ -841,6 +979,7 @@
         return;
       }
       if (!stillOpen(ref)) return;  // another case was opened meanwhile
+      caseRef = c.ref || ref;
       document.getElementById('detailKicker').textContent = [c.case_number, c.agency].filter(Boolean).join(' · ');
       document.getElementById('detailTitle').textContent = c.account?.title || c.title;
       document.getElementById('detailMeta').innerHTML = `${esc(c.title)} · ${link(c.url, 'Open in eInnsyn')}`;
@@ -863,6 +1002,11 @@
         ${hasContext ? `<div class="detail-summary"><strong>The big picture</strong>
           <div id="bigPicture">${c.big_picture ? bigPictureHtml(c.big_picture) : '<p class="muted">Putting the case in context …</p>'}</div>
           ${contextHtml(c)}</div>` : ''}
+        <div class="case-actions">
+          ${feedbackHtml(c.feedback)}
+          <button type="button" class="btn-secondary" id="caseNotRelevant">This case is not relevant</button>
+          <span class="muted" id="caseStatusMsg" role="status" aria-live="polite"></span>
+        </div>
         <div class="detail-summary">
           <strong>Journal posts</strong>
           ${c.open_documents ? `<label class="toggle-label"><input type="checkbox" id="onlyDocs"> Only posts with open documents (${esc(c.posts_with_documents)})</label>` : ''}
@@ -885,6 +1029,19 @@
               <button type="button" class="btn-ghost" id="chatClear" hidden>Clear conversation</button></div></form>
         </div>`;
       mountChat(ref);
+      document.getElementById('caseNotRelevant').addEventListener('click', async e => {
+        if (!confirm('Mark this case «Ikke relevant» in Notion? The eInnsyn monitor stops following it, and it leaves the lists here.')) return;
+        e.target.disabled = true;
+        const msg = document.getElementById('caseStatusMsg');
+        try {
+          const res = await fetch('/api/einnsyn/case/status', {method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ref, status: 'Ikke relevant'})});
+          const d = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(d.detail || `HTTP ${res.status}`);
+          msg.textContent = 'Marked «Ikke relevant» in Notion.';
+          load();
+        } catch (err) { e.target.disabled = false; msg.textContent = err.message || String(err); }
+      });
       let showAll = false;
       const redraw = () => {
         const only = document.getElementById('onlyDocs')?.checked;
@@ -962,7 +1119,16 @@
         show([]);
       });
     }
-    document.addEventListener('click', e => {
+    document.addEventListener('click', async e => {
+      const adjust = e.target.closest('[data-adjust]');
+      if (adjust) { e.stopPropagation(); openAdjust(adjust); return; }
+      const undo = e.target.closest('[data-unfeedback]');
+      if (undo) {
+        await fetch('/api/einnsyn/feedback/' + encodeURIComponent(undo.dataset.unfeedback), {method: 'DELETE'});
+        afterAdjust({scope_type: undo.dataset.scope});
+        return;
+      }
+      if (e.target.closest('.adjust-form')) return;
       const btn = e.target.closest('[data-case]');
       if (btn) { openCase(btn.dataset.case); return; }
       const project = e.target.closest('[data-project]');
