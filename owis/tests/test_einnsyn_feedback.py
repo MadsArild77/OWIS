@@ -90,3 +90,20 @@ def test_answers_to_storting_questions_are_read_once(monkeypatch):
     assert public_sources.fetch_answers(client) == 0 and calls == ["1"]
     item = next(i for i in public_sources.items([], []) if i["id"] == "stortinget:written_question-1")
     assert item["answer"] == "Konsesjonen behandles av NVE.\n\nVedtak ventes i 2027." and item["reasoning"] == "Fordi."
+
+
+def test_storting_tab_leaves_out_records_marked_not_relevant(monkeypatch):
+    _clear()
+    _store_public()
+    from fastapi.testclient import TestClient
+    from owis.apps.api.main import app
+    from owis.modules.einnsyn import api
+    monkeypatch.setattr(api, "notion_rows", lambda: (_data()["saker"], _data()["sok"]))
+    client = TestClient(app)
+    ids = [i["id"] for i in client.get("/api/einnsyn/public").json()["items"]]
+    assert "stortinget:written_question-2" in ids
+    feedback.save("all", "", "written_question", "stortinget:written_question-2", "not_relevant")
+    ids = [i["id"] for i in client.get("/api/einnsyn/public").json()["items"]]
+    assert "stortinget:written_question-2" not in ids
+    feedback.save("project", "Sørlige Nordsjø II", "written_question", "stortinget:written_question-1", "not_relevant")
+    assert client.get("/api/einnsyn/public", params={"project": "Sørlige Nordsjø II"}).json()["items"] == []

@@ -1125,7 +1125,9 @@
       const undo = e.target.closest('[data-unfeedback]');
       if (undo) {
         await fetch('/api/einnsyn/feedback/' + encodeURIComponent(undo.dataset.unfeedback), {method: 'DELETE'});
-        afterAdjust({scope_type: undo.dataset.scope});
+        // In the case pane the list also holds the case's project and global corrections: reload the case
+        if (undo.closest('#detailOverlay') && currentCase) openCase(currentCase);
+        else afterAdjust({scope_type: undo.dataset.scope});
         return;
       }
       if (e.target.closest('.adjust-form')) return;

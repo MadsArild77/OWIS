@@ -241,7 +241,9 @@ def public_records(project: str = "", theme: str = ""):
         wanted = sorted({p for r in saker if theme in _tags(r, THEME_FIELD) for p in _tags(r, PROJECT_FIELD)})
     else:
         wanted = None
-    items = public_sources.items(saker, sok, projects=wanted)
+    # The reader's «not relevant» marks for this selection (and for everything)
+    skip = feedback.excluded(feedback.for_scopes([project_view.scope(project.strip(), theme.strip())]))
+    items = [i for i in public_sources.items(saker, sok, projects=wanted) if i["id"] not in skip]
     if project and wanted is None:  # «Generelt» or «Uklassifisert»: the records naming no project
         items = [i for i in items if not i["projects"]]
     return {"items": items[:300], "total": len(items), "runs": public_sources.runs()}

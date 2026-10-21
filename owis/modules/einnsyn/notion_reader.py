@@ -23,6 +23,7 @@ PROJECT_FIELD, THEME_FIELD = "Prosjektområde", "Tema"
 UNTAGGED = "Uklassifisert"
 TAG_SEP = ", "
 FOLLOWED = ("Aktiv", "Foreslått")
+DROPPED = ("Ikke relevant", "Arkivert")
 
 
 def _text(prop: dict[str, Any] | None) -> str:
@@ -155,7 +156,12 @@ def select(data: dict[str, list[dict[str, str]]], project: str = "", theme: str 
     def has(row: dict[str, str], field: str, value: str) -> bool:
         return not value or value in _tags(row, field)
 
-    all_logg = data.get("logg", [])
+    # Journal posts of cases the reader has dropped («Ikke relevant») or archived leave every list and count
+    dropped = [s for s in data.get("saker", []) if s.get("Status") in DROPPED]
+    dropped_ids = {s.get("_id") for s in dropped if s.get("_id")}
+    dropped_numbers = {s.get("Saksnummer") for s in dropped if s.get("Saksnummer")}
+    all_logg = [r for r in data.get("logg", [])
+                if not (set(_log_case_ids(r)) & dropped_ids if _log_case_ids(r) else r.get("Saksnummer") in dropped_numbers)]
     saker = [s for s in data.get("saker", []) if has(s, PROJECT_FIELD, project) and has(s, THEME_FIELD, theme)]
     if not (project or theme):
         return saker, all_logg
@@ -170,7 +176,8 @@ def build_overview(data: dict[str, list[dict[str, str]]], today: date | None = N
     """Summarise the three databases, optionally for one project and/or theme.
     Pure function, so it is easy to test."""
     today = today or datetime.now(timezone.utc).date()
-    all_saker, all_logg, sok = data.get("saker", []), data.get("logg", []), data.get("sok", [])
+    all_saker, sok = data.get("saker", []), data.get("sok", [])
+    all_logg = select(data)[1]  # without dropped cases' posts
 
     def has(row: dict[str, str], field: str, value: str) -> bool:
         return not value or value in _tags(row, field)
