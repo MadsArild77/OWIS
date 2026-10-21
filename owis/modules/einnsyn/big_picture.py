@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 
 from owis.core.llm.client import AIClient
 from owis.core.storage.db import get_conn
-from owis.modules.einnsyn import case_accounts, links, public_sources
+from owis.modules.einnsyn import case_accounts, feedback, links, public_sources
 from owis.modules.einnsyn.case_source import case_ref
 from owis.modules.einnsyn.notion_reader import FOLLOWED, PROJECT_FIELD, _tags
 
@@ -86,10 +86,14 @@ def project_cases(case: dict, saker: list[dict]) -> tuple[list[str], list[dict]]
 def context(case: dict, saker: list[dict], sok: list[dict] | None = None) -> dict:
     """What the big picture is written from: linked news, the other cases on the same project, and the
     Storting's questions, cases and hearings and the minister's calendar entries that name the project."""
-    news = links.news_for_case(case, limit=MAX_NEWS)
     projects, cases = project_cases(case, saker)
-    public = public_sources.items(saker, sok or [], projects=projects)[:MAX_PUBLIC] if projects else []
-    return {"projects": projects, "news": news, "cases": cases, "public": public}
+    # The reader's «not relevant» marks and corrections, for the case and its projects
+    rows = feedback.for_scopes([("case", case.get("ref", ""))] + [("project", p) for p in projects])
+    skip = feedback.excluded(rows)
+    news = [n for n in links.news_for_case(case, limit=MAX_NEWS + 10) if f"news:{n['id']}" not in skip][:MAX_NEWS]
+    public = [p for p in (public_sources.items(saker, sok or [], projects=projects) if projects else [])
+              if p["id"] not in skip][:MAX_PUBLIC]
+    return {"projects": projects, "news": news, "cases": cases, "public": public, "feedback": rows}
 
 
 def _numbered(ctx: dict) -> list[dict]:
@@ -106,7 +110,8 @@ def signature(case: dict, ctx: dict) -> str:
              "\n".join(f'{n["id"]}:{n["title"]}' for n in ctx["news"]),
              "\n".join(f'{c["case_number"]}:{c["status"]}:{c["title"]}' for c in ctx["cases"]),
              "\n".join(":".join(str(p.get(k, "")) for k in ("id", "title", "date", "status", "person", "body"))
-                       for p in ctx.get("public") or [])]
+                       + ":" + str(len(p.get("answer") or "")) for p in ctx.get("public") or []),
+             feedback.digest(ctx.get("feedback") or [])]
     return hashlib.sha1("|".join(parts).encode()).hexdigest()[:16]
 
 
@@ -142,13 +147,16 @@ def write(case: dict, ctx: dict, account: dict | None = None) -> dict | None:
                   **{k: str(v)[:600] for k, v in details.get(n["id"], {}).items()}}
                  for i, n in enumerate(ctx["news"], 1)],
         "public_records": [{"n": i, "date": p["date"], "kind": p["kind_label"], "title": p["title"][:500],
-                            "status": p["status"], "by": p["person"], "to_or_where": p["body"]}
+                            "status": p["status"], "by": p["person"], "to_or_where": p["body"],
+                            **({"answer": p["answer"][:700]} if p.get("answer") else {})}
                            for i, p in enumerate(ctx.get("public") or [], len(ctx["news"]) + 1)],
         "project_areas": ctx["projects"],
+        "reader_corrections": feedback.corrections(ctx.get("feedback") or []),
         "other_cases": [{k: c[k] for k in ("title", "case_number", "status")} for c in ctx["cases"]],
     }
     try:
-        data = ai._post_json_prompt(PROMPT, json.dumps(payload, ensure_ascii=False), max_tokens=900, input_max_chars=24000)
+        data = ai._post_json_prompt(PROMPT + " " + feedback.CORRECTIONS_NOTE, json.dumps(payload, ensure_ascii=False),
+                                    max_tokens=900, input_max_chars=24000)
     except Exception:
         logger.exception("eInnsyn big picture failed")
         return None

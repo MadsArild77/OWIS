@@ -429,3 +429,21 @@ beslutningen med lenke til den nye.
   grunnlaget endres.
 - **Tidslinje:** under oversikten, alle kildene i én liste etter dato, med filter for journalposter, nyheter,
   Stortinget og kalender. Journalposter åpner saken i sakspanelet.
+
+## D27 – Leseren kan rette AI-en, og Stortingets svar hentes inn
+
+**Vedtatt og implementert 21. oktober 2026.**
+- **«Adjust» på alle elementer:** journalposter, nyheter, Stortinget- og kalenderposter (i tidslinjen, i
+  Storting-fanen og som kilder i sakspanelet), og på AI-tekstene (saksomtale, «The big picture»,
+  helikopterbildet).
+- **«Not relevant»:** elementet tas ut av sakens eller prosjektets sammenheng (tidslinje, «The big
+  picture», helikopterbilde). Gjelder der det ble merket: saken, prosjektet, porteføljen eller (i
+  Storting-fanen uten valgt prosjekt) overalt.
+- **Rettelse med fritekst:** AI skriver først «Jeg oppfatter at du mener …». Bare det leseren bekrefter
+  lagres. Bekreftede rettelser gis til alle senere AI-tekster for saken eller prosjektet som autoritative
+  fakta, og tekstene skrives på nytt. Rettelsene vises under «Your corrections here» og kan fjernes.
+- **Hele saken er ikke relevant:** knapp i sakspanelet setter *Status* til «Ikke relevant» i Notion
+  (krever redigeringstilgang), så eInnsyn-overvåkingen slutter å følge saken.
+- **Svar fra Stortinget:** for besvarte spørsmål hentes spørsmålstekst, begrunnelse og statsrådens svar
+  (data.stortinget.no/eksport/enkeltsporsmal), én gang per spørsmål. Vises under «Question and answer» og
+  brukes i «The big picture» og helikopterbildet.

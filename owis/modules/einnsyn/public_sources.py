@@ -23,6 +23,7 @@ import logging
 import os
 import re
 import threading
+import time
 from datetime import date, datetime, timedelta, timezone
 from threading import Event, Thread
 from zoneinfo import ZoneInfo
@@ -69,6 +70,9 @@ def _ensure_tables() -> None:
             fetched_at TEXT NOT NULL, PRIMARY KEY(source, id))''')
         conn.execute('''CREATE TABLE IF NOT EXISTS public_source_runs (
             source TEXT PRIMARY KEY, ran_at TEXT NOT NULL, ok INTEGER NOT NULL, detail TEXT NOT NULL)''')
+        conn.execute('''CREATE TABLE IF NOT EXISTS public_details (
+            source TEXT NOT NULL, id TEXT NOT NULL, question TEXT NOT NULL, reasoning TEXT NOT NULL, answer TEXT NOT NULL,
+            fetched_at TEXT NOT NULL, PRIMARY KEY(source, id))''')
         conn.execute('''CREATE TABLE IF NOT EXISTS public_calendar_pages (
             url TEXT PRIMARY KEY, title TEXT NOT NULL, entries TEXT NOT NULL, read_at TEXT NOT NULL)''')
 
@@ -208,6 +212,41 @@ def stortinget_items(client: httpx.Client, sessions: list[str], phrases: list[st
     return items
 
 
+def _plain(html: str) -> str:
+    text = re.sub(r"<br\s*/?>|</p>", "\n", str(html or ""), flags=re.I)
+    text = re.sub(r"<[^>]+>", "", text).replace("&nbsp;", " ").replace("&amp;", "&").replace("&quot;", '"')
+    return re.sub(r"\n{3,}", "\n\n", re.sub(r"[ \t]+", " ", text)).strip()
+
+
+ANSWERS_PER_RUN = 80
+
+
+def fetch_answers(client: httpx.Client, limit: int = ANSWERS_PER_RUN) -> int:
+    """The question text, the reasoning and the minister's answer for answered questions not read yet
+    (data.stortinget.no/eksport/enkeltsporsmal, one call per question, once)."""
+    with get_conn() as conn:
+        rows = conn.execute('''SELECT i.id FROM public_items i LEFT JOIN public_details d ON d.source=i.source AND d.id=i.id
+            WHERE i.source='stortinget' AND i.kind IN ('written_question','oral_question','interpellation')
+            AND i.status LIKE 'Answered%' AND d.id IS NULL ORDER BY i.day DESC LIMIT ?''', (limit,)).fetchall()
+    done = 0
+    for row in rows:
+        qid = row["id"].rsplit("-", 1)[-1]
+        try:
+            d = client.get(f"{STORTINGET}/enkeltsporsmal", params={"NSporsmalId": qid, "format": "json"}).json()
+        except Exception:
+            logger.warning("Could not read Storting question %s", qid)
+            continue
+        if not (d.get("svar") or d.get("sporsmal")):
+            continue
+        with get_conn() as conn:
+            conn.execute("INSERT OR REPLACE INTO public_details(source, id, question, reasoning, answer, fetched_at) VALUES(?,?,?,?,?,?)",
+                         ("stortinget", row["id"], _plain(d.get("sporsmal"))[:4000], _plain(d.get("begrunnelse"))[:4000],
+                          _plain(d.get("svar"))[:12000], datetime.now(timezone.utc).isoformat(timespec="seconds")))
+        done += 1
+        time.sleep(0.2)
+    return done
+
+
 # ---------- The minister's calendar ----------
 
 def _tavily_search(query: str) -> list[dict]:
@@ -279,7 +318,8 @@ def refresh(saker: list[dict], sok: list[dict], client: httpx.Client | None = No
         try:
             items = stortinget_items(client, _sessions(client), phrases)
             _replace("stortinget", items)
-            _record_run("stortinget", True, f"{len(items)} relevant items")
+            answers = fetch_answers(client)
+            _record_run("stortinget", True, f"{len(items)} relevant items" + (f", {answers} answers read" if answers else ""))
             result["stortinget"] = len(items)
         except Exception as exc:
             logger.exception("Stortinget refresh failed")
@@ -338,7 +378,8 @@ def items(saker: list[dict], sok: list[dict], projects: list[str] | None = None,
     found = terms(saker, sok)["projects"]
     since = (date.today() - timedelta(days=since_days)).isoformat()
     with get_conn() as conn:
-        rows = [dict(r) for r in conn.execute("SELECT * FROM public_items WHERE day >= ? ORDER BY day DESC, id", (since,))]
+        rows = [dict(r) for r in conn.execute('''SELECT i.*, d.question, d.reasoning, d.answer FROM public_items i
+            LEFT JOIN public_details d ON d.source=i.source AND d.id=i.id WHERE i.day >= ? ORDER BY i.day DESC, i.id''', (since,))]
     out = []
     for r in rows:
         text = fold(r["text"])
@@ -347,5 +388,6 @@ def items(saker: list[dict], sok: list[dict], projects: list[str] | None = None,
             continue
         out.append({"id": f"{r['source']}:{r['id']}", "source": r["source"], "kind": r["kind"],
                     "kind_label": KIND_LABELS.get(r["kind"], r["kind"]), "title": r["title"], "date": r["day"],
-                    "status": r["status"], "person": r["person"], "body": r["body"], "url": r["url"], "projects": named})
+                    "status": r["status"], "person": r["person"], "body": r["body"], "url": r["url"], "projects": named,
+                    "question": r.get("question") or "", "reasoning": r.get("reasoning") or "", "answer": r.get("answer") or ""})
     return out

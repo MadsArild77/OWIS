@@ -222,3 +222,13 @@ def test_cases_list_every_followed_case_in_the_selection():
     assert case["projects"] == ["Utsira Nord"] and case["themes"] == ["Konsesjon/Tildeling", "Støtte/Finansiering"]
     # Unfiltered: followed cases only (not «Ikke relevant»), most recently active first, cases without posts last
     assert [c["case_number"] for c in build_overview(_tagged(), today=TODAY)["cases"]] == ["2025/1", "2025/2", "2026/9"]
+
+
+def test_posts_of_cases_marked_not_relevant_leave_the_lists_and_counts():
+    data = _data()
+    data["saker"][1]["Status"] = "Ikke relevant"  # 2025/2
+    o = build_overview(data, today=TODAY)
+    assert "2025/2" not in [p["case_number"] for p in o["recent_journal_posts"]]
+    assert "2025/2" not in [c["case_number"] for c in o["most_active_cases"]]
+    assert "Ventyr SN II AS" not in [s["name"] for s in o["top_senders"]]
+    assert o["summary"]["journal_posts_30d"] == 2
