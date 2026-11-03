@@ -23,7 +23,7 @@ Registeret (trinn 1, D04) kan lagre kilder med innholdstypene `regulation`, `con
 
 ## Design (bestemt av Claude – ikke endre)
 **Seksjonen «From monitored sources»** (øverst på Policy & regulation, over dagens innhold):
-- Den eksisterende regionvelgeren filtrerer også denne listen. Kart fra jurisdiksjon: `NO` → Norway, `EU` → EU, `DK`/`SE`/`FI`/`IS` → Nordics, alt annet → Europe.
+- Den eksisterende regionvelgeren filtrerer også denne listen, og får tre nye valg: **Asia-Pacific**, **Americas** og **Middle East**. Kart fra jurisdiksjon: `NO` → Norway, `EU` → EU, ellers etter jurisdiksjonens `groups` i registeret: `Nordics` → Nordics, `Asia-Pacific`/`Americas`/`Middle East` → samme navn, alt annet → Europe. (De nye valgene skal også virke for dagens søkebaserte politikkdel når kort 006 er gjort; til da viser de bare denne listen.)
 - Knapper for innholdstype: **All**, **Consultations**, **Regulation**, **Calendar**.
 - Postene grupperes per dag (`published_at`, ellers `first_seen_at`), nyeste først, de siste 30 dagene. Høyst 100 vises, med «Show more».
 - Hver rad: tittel som lenke til originalen (åpnes i ny fane), deretter en grå linje med `organisasjon · land/EU · type · klokkeslett`. Høringer får merkelappen **Consultation**, kalenderposter **Calendar**.

@@ -1,6 +1,147 @@
 {
   "version": 1,
-  "jurisdictions": [],
+  "jurisdictions": [
+    {
+      "id": "JP",
+      "code": "JP",
+      "name": "Japan",
+      "kind": "country",
+      "groups": [
+        "Asia-Pacific"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "KR",
+      "code": "KR",
+      "name": "South Korea",
+      "kind": "country",
+      "groups": [
+        "Asia-Pacific"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "TW",
+      "code": "TW",
+      "name": "Taiwan",
+      "kind": "country",
+      "groups": [
+        "Asia-Pacific"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "AU",
+      "code": "AU",
+      "name": "Australia",
+      "kind": "country",
+      "groups": [
+        "Asia-Pacific"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "PH",
+      "code": "PH",
+      "name": "Philippines",
+      "kind": "country",
+      "groups": [
+        "Asia-Pacific"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "VN",
+      "code": "VN",
+      "name": "Vietnam",
+      "kind": "country",
+      "groups": [
+        "Asia-Pacific"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "IN",
+      "code": "IN",
+      "name": "India",
+      "kind": "country",
+      "groups": [
+        "Asia-Pacific"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "US",
+      "code": "US",
+      "name": "United States",
+      "kind": "country",
+      "groups": [
+        "Americas"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "BR",
+      "code": "BR",
+      "name": "Brazil",
+      "kind": "country",
+      "groups": [
+        "Americas"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "CO",
+      "code": "CO",
+      "name": "Colombia",
+      "kind": "country",
+      "groups": [
+        "Americas"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "TR",
+      "code": "TR",
+      "name": "Türkiye",
+      "kind": "country",
+      "groups": [
+        "Middle East"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "SA",
+      "code": "SA",
+      "name": "Saudi Arabia",
+      "kind": "country",
+      "groups": [
+        "Middle East"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "OM",
+      "code": "OM",
+      "name": "Oman",
+      "kind": "country",
+      "groups": [
+        "Middle East"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "AE",
+      "code": "AE",
+      "name": "United Arab Emirates",
+      "kind": "country",
+      "groups": [
+        "Middle East"
+      ],
+      "enabled": true
+    }
+  ],
   "organisations": [
     {
       "id": "no-regjeringen",
@@ -707,6 +848,957 @@
         "tender",
         "CCS",
         "elektriciteitsmarkt"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "se-regeringen",
+      "jurisdiction_id": "SE",
+      "parent_id": null,
+      "name": "Regeringskansliet",
+      "kind": "government",
+      "follow": "topics",
+      "topics": [
+        "havsbaserad vindkraft",
+        "havsvind",
+        "vindkraft",
+        "elnät",
+        "stamnät",
+        "elmarknad",
+        "energi",
+        "vätgas",
+        "Östersjön",
+        "Västerhavet",
+        "Kattegatt",
+        "offshore wind"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "se-riksdagen",
+      "jurisdiction_id": "SE",
+      "parent_id": null,
+      "name": "Riksdagen",
+      "kind": "parliament",
+      "follow": "topics",
+      "topics": [
+        "havsbaserad vindkraft",
+        "havsvind",
+        "vindkraft",
+        "elnät",
+        "stamnät",
+        "elmarknad",
+        "energi",
+        "vätgas",
+        "Östersjön",
+        "Västerhavet",
+        "Kattegatt",
+        "offshore wind"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "se-nu",
+      "jurisdiction_id": "SE",
+      "parent_id": "se-riksdagen",
+      "name": "Näringsutskottet",
+      "kind": "committee",
+      "follow": "all",
+      "topics": [],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "se-svk",
+      "jurisdiction_id": "SE",
+      "parent_id": null,
+      "name": "Svenska kraftnät",
+      "kind": "authority",
+      "follow": "topics",
+      "topics": [
+        "havsbaserad vindkraft",
+        "havsvind",
+        "vindkraft",
+        "elnät",
+        "stamnät",
+        "elmarknad",
+        "energi",
+        "vätgas",
+        "Östersjön",
+        "Västerhavet",
+        "Kattegatt",
+        "offshore wind"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "se-havochvatten",
+      "jurisdiction_id": "SE",
+      "parent_id": null,
+      "name": "Havs- och vattenmyndigheten",
+      "kind": "authority",
+      "follow": "topics",
+      "topics": [
+        "havsbaserad vindkraft",
+        "havsvind",
+        "vindkraft",
+        "elnät",
+        "stamnät",
+        "elmarknad",
+        "energi",
+        "vätgas",
+        "Östersjön",
+        "Västerhavet",
+        "Kattegatt",
+        "offshore wind"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "se-energimyndigheten",
+      "jurisdiction_id": "SE",
+      "parent_id": null,
+      "name": "Energimyndigheten",
+      "kind": "authority",
+      "follow": "topics",
+      "topics": [
+        "havsbaserad vindkraft",
+        "havsvind",
+        "vindkraft",
+        "elnät",
+        "stamnät",
+        "elmarknad",
+        "energi",
+        "vätgas",
+        "Östersjön",
+        "Västerhavet",
+        "Kattegatt",
+        "offshore wind"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "fi-valtioneuvosto",
+      "jurisdiction_id": "FI",
+      "parent_id": null,
+      "name": "Valtioneuvosto / TEM",
+      "kind": "government",
+      "follow": "topics",
+      "topics": [
+        "merituulivoima",
+        "tuulivoima",
+        "sähköverkko",
+        "sähkömarkkina",
+        "energia",
+        "vety",
+        "offshore wind",
+        "Itämeri",
+        "Pohjanlahti"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "fi-eduskunta",
+      "jurisdiction_id": "FI",
+      "parent_id": null,
+      "name": "Eduskunta",
+      "kind": "parliament",
+      "follow": "topics",
+      "topics": [
+        "merituulivoima",
+        "tuulivoima",
+        "sähköverkko",
+        "sähkömarkkina",
+        "energia",
+        "vety",
+        "offshore wind",
+        "Itämeri",
+        "Pohjanlahti"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "fi-fingrid",
+      "jurisdiction_id": "FI",
+      "parent_id": null,
+      "name": "Fingrid",
+      "kind": "authority",
+      "follow": "topics",
+      "topics": [
+        "merituulivoima",
+        "tuulivoima",
+        "sähköverkko",
+        "sähkömarkkina",
+        "energia",
+        "vety",
+        "offshore wind",
+        "Itämeri",
+        "Pohjanlahti"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "fi-metsahallitus",
+      "jurisdiction_id": "FI",
+      "parent_id": null,
+      "name": "Metsähallitus (havbunnsutlysninger)",
+      "kind": "authority",
+      "follow": "all",
+      "topics": [],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "pl-government",
+      "jurisdiction_id": "PL",
+      "parent_id": null,
+      "name": "Rząd RP (Ministerstwo Klimatu, Ministerstwo Infrastruktury)",
+      "kind": "government",
+      "follow": "topics",
+      "topics": [
+        "morska energetyka wiatrowa",
+        "morskie farmy wiatrowe",
+        "offshore",
+        "wiatr",
+        "sieć przesyłowa",
+        "rynek energii",
+        "energia",
+        "wodór",
+        "Bałtyk",
+        "aukcja"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "pl-ure",
+      "jurisdiction_id": "PL",
+      "parent_id": null,
+      "name": "Urząd Regulacji Energetyki (URE)",
+      "kind": "authority",
+      "follow": "topics",
+      "topics": [
+        "morska energetyka wiatrowa",
+        "morskie farmy wiatrowe",
+        "offshore",
+        "wiatr",
+        "sieć przesyłowa",
+        "rynek energii",
+        "energia",
+        "wodór",
+        "Bałtyk",
+        "aukcja"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "pl-pse",
+      "jurisdiction_id": "PL",
+      "parent_id": null,
+      "name": "Polskie Sieci Elektroenergetyczne (PSE)",
+      "kind": "authority",
+      "follow": "topics",
+      "topics": [
+        "morska energetyka wiatrowa",
+        "morskie farmy wiatrowe",
+        "offshore",
+        "wiatr",
+        "sieć przesyłowa",
+        "rynek energii",
+        "energia",
+        "wodór",
+        "Bałtyk",
+        "aukcja"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "pl-sejm",
+      "jurisdiction_id": "PL",
+      "parent_id": null,
+      "name": "Sejm",
+      "kind": "parliament",
+      "follow": "topics",
+      "topics": [
+        "morska energetyka wiatrowa",
+        "morskie farmy wiatrowe",
+        "offshore",
+        "wiatr",
+        "sieć przesyłowa",
+        "rynek energii",
+        "energia",
+        "wodór",
+        "Bałtyk",
+        "aukcja"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "ee-kliima",
+      "jurisdiction_id": "EE",
+      "parent_id": null,
+      "name": "Kliimaministeerium",
+      "kind": "ministry",
+      "follow": "topics",
+      "topics": [
+        "meretuul",
+        "meretuulepark",
+        "tuuleenergia",
+        "elektrivõrk",
+        "energia",
+        "vesinik",
+        "offshore",
+        "Läänemeri",
+        "vähempakkumine"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "ee-riigikogu",
+      "jurisdiction_id": "EE",
+      "parent_id": null,
+      "name": "Riigikogu",
+      "kind": "parliament",
+      "follow": "topics",
+      "topics": [
+        "meretuul",
+        "meretuulepark",
+        "tuuleenergia",
+        "elektrivõrk",
+        "energia",
+        "vesinik",
+        "offshore",
+        "Läänemeri",
+        "vähempakkumine"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "lv-em",
+      "jurisdiction_id": "LV",
+      "parent_id": null,
+      "name": "Ekonomikas ministrija",
+      "kind": "ministry",
+      "follow": "topics",
+      "topics": [
+        "jūras vēja",
+        "vēja enerģija",
+        "vēja parks",
+        "elektrotīkls",
+        "enerģētika",
+        "ūdeņradis",
+        "offshore",
+        "ELWIND",
+        "Baltijas jūra"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "lv-saeima",
+      "jurisdiction_id": "LV",
+      "parent_id": null,
+      "name": "Saeima",
+      "kind": "parliament",
+      "follow": "topics",
+      "topics": [
+        "jūras vēja",
+        "vēja enerģija",
+        "vēja parks",
+        "elektrotīkls",
+        "enerģētika",
+        "ūdeņradis",
+        "offshore",
+        "ELWIND",
+        "Baltijas jūra"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "lt-enmin",
+      "jurisdiction_id": "LT",
+      "parent_id": null,
+      "name": "Energetikos ministerija",
+      "kind": "ministry",
+      "follow": "all",
+      "topics": [],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "fr-mte",
+      "jurisdiction_id": "FR",
+      "parent_id": null,
+      "name": "Ministère de la Transition écologique",
+      "kind": "ministry",
+      "follow": "topics",
+      "topics": [
+        "éolien en mer",
+        "éolien flottant",
+        "éolien",
+        "appel d'offres",
+        "réseau électrique",
+        "raccordement",
+        "énergie",
+        "hydrogène",
+        "façade maritime",
+        "PPE"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "fr-cre",
+      "jurisdiction_id": "FR",
+      "parent_id": null,
+      "name": "Commission de régulation de l'énergie (CRE)",
+      "kind": "authority",
+      "follow": "topics",
+      "topics": [
+        "éolien en mer",
+        "éolien flottant",
+        "éolien",
+        "appel d'offres",
+        "réseau électrique",
+        "raccordement",
+        "énergie",
+        "hydrogène",
+        "façade maritime",
+        "PPE"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "fr-eoliennesenmer",
+      "jurisdiction_id": "FR",
+      "parent_id": null,
+      "name": "Éoliennes en mer (statens havvindportal)",
+      "kind": "authority",
+      "follow": "all",
+      "topics": [],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "es-miteco",
+      "jurisdiction_id": "ES",
+      "parent_id": null,
+      "name": "MITECO",
+      "kind": "ministry",
+      "follow": "topics",
+      "topics": [
+        "eólica marina",
+        "eólica flotante",
+        "eólica",
+        "subasta",
+        "red eléctrica",
+        "energía",
+        "hidrógeno",
+        "POEM",
+        "Canarias",
+        "offshore"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "es-cnmc",
+      "jurisdiction_id": "ES",
+      "parent_id": null,
+      "name": "CNMC",
+      "kind": "authority",
+      "follow": "topics",
+      "topics": [
+        "eólica marina",
+        "eólica flotante",
+        "eólica",
+        "subasta",
+        "red eléctrica",
+        "energía",
+        "hidrógeno",
+        "POEM",
+        "Canarias",
+        "offshore"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "pt-dgeg",
+      "jurisdiction_id": "PT",
+      "parent_id": null,
+      "name": "Direção-Geral de Energia e Geologia (DGEG)",
+      "kind": "authority",
+      "follow": "topics",
+      "topics": [
+        "eólica offshore",
+        "eólico offshore",
+        "eólica flutuante",
+        "leilão",
+        "rede elétrica",
+        "energia",
+        "hidrogénio",
+        "offshore",
+        "espaço marítimo"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "pt-government",
+      "jurisdiction_id": "PT",
+      "parent_id": null,
+      "name": "Governo de Portugal",
+      "kind": "government",
+      "follow": "topics",
+      "topics": [
+        "eólica offshore",
+        "eólico offshore",
+        "eólica flutuante",
+        "leilão",
+        "rede elétrica",
+        "energia",
+        "hidrogénio",
+        "offshore",
+        "espaço marítimo"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "it-gu",
+      "jurisdiction_id": "IT",
+      "parent_id": null,
+      "name": "Gazzetta Ufficiale",
+      "kind": "other",
+      "follow": "topics",
+      "topics": [
+        "eolico offshore",
+        "eolico galleggiante",
+        "eolico",
+        "FER 2",
+        "rete elettrica",
+        "energia",
+        "idrogeno",
+        "offshore",
+        "asta"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "it-mase",
+      "jurisdiction_id": "IT",
+      "parent_id": null,
+      "name": "Ministero dell'Ambiente e della Sicurezza Energetica (MASE)",
+      "kind": "ministry",
+      "follow": "topics",
+      "topics": [
+        "eolico offshore",
+        "eolico galleggiante",
+        "eolico",
+        "FER 2",
+        "rete elettrica",
+        "energia",
+        "idrogeno",
+        "offshore",
+        "asta"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "gr-ypen",
+      "jurisdiction_id": "GR",
+      "parent_id": null,
+      "name": "Ministry of Environment and Energy (YPEN)",
+      "kind": "ministry",
+      "follow": "topics",
+      "topics": [
+        "υπεράκτια αιολικά",
+        "αιολικά",
+        "offshore wind",
+        "υπεράκτια",
+        "ενέργεια",
+        "δίκτυο",
+        "υδρογόνο",
+        "διαγωνισμός"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "gr-herema",
+      "jurisdiction_id": "GR",
+      "parent_id": null,
+      "name": "HEREMA (havvindprogrammet)",
+      "kind": "authority",
+      "follow": "all",
+      "topics": [],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "us-boem",
+      "jurisdiction_id": "US",
+      "parent_id": null,
+      "name": "Bureau of Ocean Energy Management (BOEM)",
+      "kind": "authority",
+      "follow": "all",
+      "topics": [],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "vn-moit",
+      "jurisdiction_id": "VN",
+      "parent_id": null,
+      "name": "Ministry of Industry and Trade (MOIT)",
+      "kind": "ministry",
+      "follow": "topics",
+      "topics": [
+        "offshore wind",
+        "wind",
+        "grid",
+        "interconnector",
+        "electricity market",
+        "energy",
+        "renewable",
+        "hydrogen",
+        "carbon capture",
+        "CCS",
+        "maritime",
+        "seabed",
+        "North Sea",
+        "transmission"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "jp-meti",
+      "jurisdiction_id": "JP",
+      "parent_id": null,
+      "name": "METI / ANRE",
+      "kind": "ministry",
+      "follow": "topics",
+      "topics": [
+        "offshore wind",
+        "wind",
+        "grid",
+        "interconnector",
+        "electricity market",
+        "energy",
+        "renewable",
+        "hydrogen",
+        "carbon capture",
+        "CCS",
+        "maritime",
+        "seabed",
+        "North Sea",
+        "transmission"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "kr-motie",
+      "jurisdiction_id": "KR",
+      "parent_id": null,
+      "name": "Ministry of Trade, Industry and Energy",
+      "kind": "ministry",
+      "follow": "topics",
+      "topics": [
+        "offshore wind",
+        "wind",
+        "grid",
+        "interconnector",
+        "electricity market",
+        "energy",
+        "renewable",
+        "hydrogen",
+        "carbon capture",
+        "CCS",
+        "maritime",
+        "seabed",
+        "North Sea",
+        "transmission"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "tw-moeaea",
+      "jurisdiction_id": "TW",
+      "parent_id": null,
+      "name": "MOEA Energy Administration",
+      "kind": "ministry",
+      "follow": "topics",
+      "topics": [
+        "offshore wind",
+        "wind",
+        "grid",
+        "interconnector",
+        "electricity market",
+        "energy",
+        "renewable",
+        "hydrogen",
+        "carbon capture",
+        "CCS",
+        "maritime",
+        "seabed",
+        "North Sea",
+        "transmission"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "au-dcceew",
+      "jurisdiction_id": "AU",
+      "parent_id": null,
+      "name": "DCCEEW",
+      "kind": "ministry",
+      "follow": "topics",
+      "topics": [
+        "offshore wind",
+        "wind",
+        "grid",
+        "interconnector",
+        "electricity market",
+        "energy",
+        "renewable",
+        "hydrogen",
+        "carbon capture",
+        "CCS",
+        "maritime",
+        "seabed",
+        "North Sea",
+        "transmission"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "br-mme",
+      "jurisdiction_id": "BR",
+      "parent_id": null,
+      "name": "Ministério de Minas e Energia",
+      "kind": "ministry",
+      "follow": "topics",
+      "topics": [
+        "offshore wind",
+        "wind",
+        "grid",
+        "interconnector",
+        "electricity market",
+        "energy",
+        "renewable",
+        "hydrogen",
+        "carbon capture",
+        "CCS",
+        "maritime",
+        "seabed",
+        "North Sea",
+        "transmission"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "in-mnre",
+      "jurisdiction_id": "IN",
+      "parent_id": null,
+      "name": "MNRE",
+      "kind": "ministry",
+      "follow": "topics",
+      "topics": [
+        "offshore wind",
+        "wind",
+        "grid",
+        "interconnector",
+        "electricity market",
+        "energy",
+        "renewable",
+        "hydrogen",
+        "carbon capture",
+        "CCS",
+        "maritime",
+        "seabed",
+        "North Sea",
+        "transmission"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "ph-doe",
+      "jurisdiction_id": "PH",
+      "parent_id": null,
+      "name": "Department of Energy",
+      "kind": "ministry",
+      "follow": "topics",
+      "topics": [
+        "offshore wind",
+        "wind",
+        "grid",
+        "interconnector",
+        "electricity market",
+        "energy",
+        "renewable",
+        "hydrogen",
+        "carbon capture",
+        "CCS",
+        "maritime",
+        "seabed",
+        "North Sea",
+        "transmission"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "co-minenergia",
+      "jurisdiction_id": "CO",
+      "parent_id": null,
+      "name": "Ministerio de Minas y Energía",
+      "kind": "ministry",
+      "follow": "topics",
+      "topics": [
+        "offshore wind",
+        "wind",
+        "grid",
+        "interconnector",
+        "electricity market",
+        "energy",
+        "renewable",
+        "hydrogen",
+        "carbon capture",
+        "CCS",
+        "maritime",
+        "seabed",
+        "North Sea",
+        "transmission"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "tr-enerji",
+      "jurisdiction_id": "TR",
+      "parent_id": null,
+      "name": "Enerji ve Tabii Kaynaklar Bakanlığı",
+      "kind": "ministry",
+      "follow": "topics",
+      "topics": [
+        "offshore wind",
+        "wind",
+        "grid",
+        "interconnector",
+        "electricity market",
+        "energy",
+        "renewable",
+        "hydrogen",
+        "carbon capture",
+        "CCS",
+        "maritime",
+        "seabed",
+        "North Sea",
+        "transmission"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "sa-moenergy",
+      "jurisdiction_id": "SA",
+      "parent_id": null,
+      "name": "Ministry of Energy",
+      "kind": "ministry",
+      "follow": "topics",
+      "topics": [
+        "offshore wind",
+        "wind",
+        "grid",
+        "interconnector",
+        "electricity market",
+        "energy",
+        "renewable",
+        "hydrogen",
+        "carbon capture",
+        "CCS",
+        "maritime",
+        "seabed",
+        "North Sea",
+        "transmission"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "om-mem",
+      "jurisdiction_id": "OM",
+      "parent_id": null,
+      "name": "Ministry of Energy and Minerals",
+      "kind": "ministry",
+      "follow": "topics",
+      "topics": [
+        "offshore wind",
+        "wind",
+        "grid",
+        "interconnector",
+        "electricity market",
+        "energy",
+        "renewable",
+        "hydrogen",
+        "carbon capture",
+        "CCS",
+        "maritime",
+        "seabed",
+        "North Sea",
+        "transmission"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "ae-moei",
+      "jurisdiction_id": "AE",
+      "parent_id": null,
+      "name": "Ministry of Energy and Infrastructure",
+      "kind": "ministry",
+      "follow": "topics",
+      "topics": [
+        "offshore wind",
+        "wind",
+        "grid",
+        "interconnector",
+        "electricity market",
+        "energy",
+        "renewable",
+        "hydrogen",
+        "carbon capture",
+        "CCS",
+        "maritime",
+        "seabed",
+        "North Sea",
+        "transmission"
       ],
       "people": [],
       "enabled": true
@@ -1477,6 +2569,773 @@
       "interval_minutes": 360,
       "selector": "",
       "notes": "Rijksoverheid.nl lastes med JavaScript, og RSS-adressen ble ikke funnet. Pauset.",
+      "enabled": false
+    },
+    {
+      "id": "se-regeringen-press",
+      "jurisdiction_id": "SE",
+      "organisation_id": "se-regeringen",
+      "name": "Regeringen – pressmeddelanden",
+      "url": "https://www.regeringen.se/pressmeddelanden/",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "a[href^=\"/pressmeddelanden/20\"]",
+      "notes": "Alle departementer; ingen RSS funnet. Følges på tema.",
+      "enabled": true
+    },
+    {
+      "id": "se-nu-dokument",
+      "jurisdiction_id": "SE",
+      "organisation_id": "se-nu",
+      "name": "Riksdagen – näringsutskottets dokument",
+      "url": "https://data.riksdagen.se/dokumentlista/?org=NU&utformat=rss&sort=datum&sortorder=desc",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "Betänkanden og andre dokumenter fra utskottet som har energi.",
+      "enabled": true
+    },
+    {
+      "id": "se-svk-nyheter",
+      "jurisdiction_id": "SE",
+      "organisation_id": "se-svk",
+      "name": "Svenska kraftnät – allmänna nyheter",
+      "url": "https://www.svk.se/Api/RSSFeed/GetNewsByCategory?name=Allm%C3%A4nnanyheter",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "Feeden har hele historikken (ca. 1 900 poster); 30-dagersgrensen ved første henting er viktig.",
+      "enabled": true
+    },
+    {
+      "id": "se-svk-elmarknad",
+      "jurisdiction_id": "SE",
+      "organisation_id": "se-svk",
+      "name": "Svenska kraftnät – elmarknad",
+      "url": "https://www.svk.se/Api/RSSFeed/GetNewsByCategory?name=Elmarknadallm%C3%A4nt",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "",
+      "enabled": true
+    },
+    {
+      "id": "se-hav-nyheter",
+      "jurisdiction_id": "SE",
+      "organisation_id": "se-havochvatten",
+      "name": "Havs- och vattenmyndigheten – nyheter",
+      "url": "https://havsvattenmyndigheten.mynewsdesk.com/rss/current_news/6994",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "Havplaner og arealbruk.",
+      "enabled": true
+    },
+    {
+      "id": "se-energimyndigheten-nyheter",
+      "jurisdiction_id": "SE",
+      "organisation_id": "se-energimyndigheten",
+      "name": "Energimyndigheten – nyheter",
+      "url": "https://www.energimyndigheten.se/nyhetsarkiv/",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "Ingen RSS og ingen lesbar nyhetsliste uten JavaScript. Pauset.",
+      "enabled": false
+    },
+    {
+      "id": "fi-eduskunta-vaski",
+      "jurisdiction_id": "FI",
+      "organisation_id": "fi-eduskunta",
+      "name": "Eduskunta – dokumenter (åpent API)",
+      "url": "https://avoindata.eduskunta.fi/api/v1/tables/VaskiData/rows?perPage=100&page=0",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "api",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "Tabell-API med XML i hver rad. Trenger egen adapter.",
+      "enabled": true
+    },
+    {
+      "id": "fi-valtioneuvosto-uutiset",
+      "jurisdiction_id": "FI",
+      "organisation_id": "fi-valtioneuvosto",
+      "name": "Valtioneuvosto / TEM – nyheter",
+      "url": "https://valtioneuvosto.fi/rss",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "valtioneuvosto.fi, tem.fi, energiavirasto.fi og lausuntopalvelu.fi svarer 403 på automatiske oppslag. Pauset; dekkes av søkebasert politikk (kort 006).",
+      "enabled": false
+    },
+    {
+      "id": "fi-fingrid-uutiset",
+      "jurisdiction_id": "FI",
+      "organisation_id": "fi-fingrid",
+      "name": "Fingrid – news",
+      "url": "https://www.fingrid.fi/en/news/",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "Nyhetslisten lastes med JavaScript. Pauset.",
+      "enabled": false
+    },
+    {
+      "id": "fi-metsahallitus-offshore",
+      "jurisdiction_id": "FI",
+      "organisation_id": "fi-metsahallitus",
+      "name": "Metsähallitus – offshore wind",
+      "url": "https://www.metsa.fi/en/",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "Ingen nyhetsliste for havvind funnet. Pauset.",
+      "enabled": false
+    },
+    {
+      "id": "pl-ure-aktualnosci",
+      "jurisdiction_id": "PL",
+      "organisation_id": "pl-ure",
+      "name": "URE – aktualności",
+      "url": "https://www.ure.gov.pl/dokumenty/rss/9-rss-424.rss",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "Regulator; offshore-CfD og auksjoner. Feeden har lang historikk.",
+      "enabled": true
+    },
+    {
+      "id": "pl-pse-aktualnosci",
+      "jurisdiction_id": "PL",
+      "organisation_id": "pl-pse",
+      "name": "PSE – aktualności",
+      "url": "https://www.pse.pl/home/-/asset_publisher/SYKTI8bIXUBw/rss?safeargs=705f705f63616368656162696c6974793d63616368654c6576656c46756c6c",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "",
+      "enabled": true
+    },
+    {
+      "id": "pl-sejm-processes",
+      "jurisdiction_id": "PL",
+      "organisation_id": "pl-sejm",
+      "name": "Sejm – lovprosesser (API)",
+      "url": "https://api.sejm.gov.pl/sejm/term10/processes?limit=100",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "api",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "Åpent API. Valgperioden (term10) står i adressen.",
+      "enabled": true
+    },
+    {
+      "id": "pl-klimat-news",
+      "jurisdiction_id": "PL",
+      "organisation_id": "pl-government",
+      "name": "Ministerstwo Klimatu i Środowiska – news",
+      "url": "https://www.gov.pl/web/klimat",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "gov.pl har ikke RSS for departementet. Pauset.",
+      "enabled": false
+    },
+    {
+      "id": "ee-kliima-uudised",
+      "jurisdiction_id": "EE",
+      "organisation_id": "ee-kliima",
+      "name": "Kliimaministeerium – uudised",
+      "url": "https://kliimaministeerium.ee/rss-feeds/rss.xml",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "",
+      "enabled": true
+    },
+    {
+      "id": "ee-riigikogu-uudised",
+      "jurisdiction_id": "EE",
+      "organisation_id": "ee-riigikogu",
+      "name": "Riigikogu – uudised",
+      "url": "https://www.riigikogu.ee/feed/",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "",
+      "enabled": true
+    },
+    {
+      "id": "lv-em-zinas",
+      "jurisdiction_id": "LV",
+      "organisation_id": "lv-em",
+      "name": "Ekonomikas ministrija – ziņas",
+      "url": "https://www.em.gov.lv/lv/rss/articles",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "Følges på tema. Klima- og energidepartementet (KEM) har ingen RSS funnet.",
+      "enabled": true
+    },
+    {
+      "id": "lv-saeima-zinas",
+      "jurisdiction_id": "LV",
+      "organisation_id": "lv-saeima",
+      "name": "Saeima – aktualitātes",
+      "url": "https://www.saeima.lv/lv/feeds/news.rss",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "",
+      "enabled": true
+    },
+    {
+      "id": "lt-enmin-naujienos",
+      "jurisdiction_id": "LT",
+      "organisation_id": "lt-enmin",
+      "name": "Energetikos ministerija – naujienos",
+      "url": "https://enmin.lrv.lt/lt/naujienos/rss",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "Ansvarlig for havvindauksjonene i Litauen.",
+      "enabled": true
+    },
+    {
+      "id": "fr-mte-presse",
+      "jurisdiction_id": "FR",
+      "organisation_id": "fr-mte",
+      "name": "Ministère – communiqués de presse",
+      "url": "https://ecologie.gouv.fr/rss-presse.xml",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "",
+      "enabled": true
+    },
+    {
+      "id": "fr-mte-actualites",
+      "jurisdiction_id": "FR",
+      "organisation_id": "fr-mte",
+      "name": "Ministère – actualités",
+      "url": "https://ecologie.gouv.fr/rss-actualites.xml",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "",
+      "enabled": true
+    },
+    {
+      "id": "fr-cre-actualites",
+      "jurisdiction_id": "FR",
+      "organisation_id": "fr-cre",
+      "name": "CRE – toute l'actualité",
+      "url": "https://www.cre.fr/actualites/toute-lactualite.html",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "a[href*=\"/actualites/toute-lactualite/\"]",
+      "notes": "CRE vurderer anbudene (AO) for havvind, også flytende.",
+      "enabled": true
+    },
+    {
+      "id": "fr-eoliennesenmer-actualites",
+      "jurisdiction_id": "FR",
+      "organisation_id": "fr-eoliennesenmer",
+      "name": "Éoliennes en mer – actualités",
+      "url": "https://www.eoliennesenmer.fr/actualites",
+      "content_types": [
+        "regulation",
+        "consultation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "Viktigste kilde for franske havvindanbud (også flytende i Bretagne og Middelhavet), men lenkene lar seg ikke skille fra menyen uten egen adapter. Pauset.",
+      "enabled": false
+    },
+    {
+      "id": "es-miteco-noticias",
+      "jurisdiction_id": "ES",
+      "organisation_id": "es-miteco",
+      "name": "MITECO – últimas noticias",
+      "url": "https://www.miteco.gob.es/content/miteco/es/es/prensa/ultimas-noticias.newsfeed.rss.xml",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "Havplaner (POEM) og regelverk for havvind, inkludert flytende ved Kanariøyene.",
+      "enabled": true
+    },
+    {
+      "id": "es-cnmc-all",
+      "jurisdiction_id": "ES",
+      "organisation_id": "es-cnmc",
+      "name": "CNMC – todas las novedades",
+      "url": "https://www.cnmc.es/feed/all",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "Konkurranse- og energiregulator; svært bredt. Følges på tema.",
+      "enabled": true
+    },
+    {
+      "id": "pt-dgeg-destaques",
+      "jurisdiction_id": "PT",
+      "organisation_id": "pt-dgeg",
+      "name": "DGEG – destaques",
+      "url": "https://www.dgeg.gov.pt/pt/destaques/",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "a[href^=\"/pt/destaques/\"]",
+      "notes": "",
+      "enabled": true
+    },
+    {
+      "id": "pt-government-noticias",
+      "jurisdiction_id": "PT",
+      "organisation_id": "pt-government",
+      "name": "Governo – notícias",
+      "url": "https://www.portugal.gov.pt/",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "Ingen RSS funnet. Portugals havvindauksjon følges via søk (kort 006). Pauset.",
+      "enabled": false
+    },
+    {
+      "id": "it-gu-serie-generale",
+      "jurisdiction_id": "IT",
+      "organisation_id": "it-gu",
+      "name": "Gazzetta Ufficiale – Serie Generale",
+      "url": "https://www.gazzettaufficiale.it/rss/SG",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "Kunngjorte dekreter (bl.a. for flytende havvind). Følges på tema.",
+      "enabled": true
+    },
+    {
+      "id": "it-mase-news",
+      "jurisdiction_id": "IT",
+      "organisation_id": "it-mase",
+      "name": "MASE – notizie",
+      "url": "https://www.mase.gov.it/feed",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "mase.gov.it svarer 403 på automatiske oppslag. Pauset.",
+      "enabled": false
+    },
+    {
+      "id": "gr-ypen-news",
+      "jurisdiction_id": "GR",
+      "organisation_id": "gr-ypen",
+      "name": "YPEN – news",
+      "url": "https://ypen.gov.gr/",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "ypen.gov.gr og opengov.gr svarer 403. Pauset; dekkes av søk (kort 006).",
+      "enabled": false
+    },
+    {
+      "id": "gr-herema-news",
+      "jurisdiction_id": "GR",
+      "organisation_id": "gr-herema",
+      "name": "HEREMA – news",
+      "url": "https://www.herema.gr/en/news/",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "Siden viser menylenker; nyhetene lastes med JavaScript. Pauset.",
+      "enabled": false
+    },
+    {
+      "id": "us-fedreg-boem",
+      "jurisdiction_id": "US",
+      "organisation_id": "us-boem",
+      "name": "Federal Register – BOEM",
+      "url": "https://www.federalregister.gov/api/v1/documents.rss?conditions%5Bagencies%5D%5B%5D=ocean-energy-management-bureau&order=newest",
+      "content_types": [
+        "regulation",
+        "consultation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "Alt BOEM publiserer formelt: leieområder, salg, høringer, miljøvurderinger.",
+      "enabled": true
+    },
+    {
+      "id": "vn-moit-news",
+      "jurisdiction_id": "VN",
+      "organisation_id": "vn-moit",
+      "name": "MOIT – news",
+      "url": "https://moit.gov.vn/en/news",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 1440,
+      "selector": "",
+      "notes": "Engelsk nyhetsliste. Følges på tema.",
+      "enabled": true
+    },
+    {
+      "id": "jp-meti-news",
+      "jurisdiction_id": "JP",
+      "organisation_id": "jp-meti",
+      "name": "METI / ANRE – press releases",
+      "url": "https://www.meti.go.jp/english/press/index.html",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "meti.go.jp og enecho.meti.go.jp svarer 403. Pauset; dekkes av søkebasert politikk (kort 006).",
+      "enabled": false
+    },
+    {
+      "id": "kr-motie-news",
+      "jurisdiction_id": "KR",
+      "organisation_id": "kr-motie",
+      "name": "Ministry of Trade, Industry and Energy – press",
+      "url": "https://english.motie.go.kr/",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "Ingen RSS funnet. Pauset; dekkes av søkebasert politikk (kort 006).",
+      "enabled": false
+    },
+    {
+      "id": "tw-moeaea-news",
+      "jurisdiction_id": "TW",
+      "organisation_id": "tw-moeaea",
+      "name": "MOEA Energy Administration – news",
+      "url": "https://www.moeaea.gov.tw/ECW/english/news/News.aspx?kind=6&menu_id=958",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "Nyhetslisten kan ikke skilles fra menyen uten egen adapter. Pauset; dekkes av søkebasert politikk (kort 006).",
+      "enabled": false
+    },
+    {
+      "id": "au-dcceew-news",
+      "jurisdiction_id": "AU",
+      "organisation_id": "au-dcceew",
+      "name": "DCCEEW – offshore wind",
+      "url": "https://www.dcceew.gov.au/energy/renewable/offshore-wind",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "Tidsavbrudd fra Norge. Pauset; dekkes av søkebasert politikk (kort 006).",
+      "enabled": false
+    },
+    {
+      "id": "br-mme-news",
+      "jurisdiction_id": "BR",
+      "organisation_id": "br-mme",
+      "name": "Ministério de Minas e Energia – notícias",
+      "url": "https://www.gov.br/mme/pt-br/assuntos/noticias",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "Ingen fungerende RSS funnet. Pauset; dekkes av søkebasert politikk (kort 006).",
+      "enabled": false
+    },
+    {
+      "id": "in-mnre-news",
+      "jurisdiction_id": "IN",
+      "organisation_id": "in-mnre",
+      "name": "MNRE – what's new",
+      "url": "https://mnre.gov.in/en/whats-new/",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "Siden lastes med JavaScript; PIB svarer 403. Pauset; dekkes av søkebasert politikk (kort 006).",
+      "enabled": false
+    },
+    {
+      "id": "ph-doe-news",
+      "jurisdiction_id": "PH",
+      "organisation_id": "ph-doe",
+      "name": "Department of Energy – press releases",
+      "url": "https://doe.gov.ph/articles/group/press-releases",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "Siden lastes med JavaScript. Pauset; dekkes av søkebasert politikk (kort 006).",
+      "enabled": false
+    },
+    {
+      "id": "co-minenergia-news",
+      "jurisdiction_id": "CO",
+      "organisation_id": "co-minenergia",
+      "name": "Ministerio de Minas y Energía – noticias",
+      "url": "https://www.minenergia.gov.co/es/sala-de-prensa/noticias-index/",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "Lenkene kan ikke skilles fra menyen uten egen adapter. Pauset; dekkes av søkebasert politikk (kort 006).",
+      "enabled": false
+    },
+    {
+      "id": "tr-enerji-news",
+      "jurisdiction_id": "TR",
+      "organisation_id": "tr-enerji",
+      "name": "Enerji ve Tabii Kaynaklar Bakanlığı – haberler",
+      "url": "https://enerji.gov.tr/haberler",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "Lenkene kan ikke skilles fra menyen uten egen adapter. Pauset; dekkes av søkebasert politikk (kort 006).",
+      "enabled": false
+    },
+    {
+      "id": "sa-moenergy-news",
+      "jurisdiction_id": "SA",
+      "organisation_id": "sa-moenergy",
+      "name": "Ministry of Energy – news",
+      "url": "https://www.moenergy.gov.sa/en/MediaCenter/News/Pages/default.aspx",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "Nås ikke fra Norge. Pauset; dekkes av søkebasert politikk (kort 006).",
+      "enabled": false
+    },
+    {
+      "id": "om-mem-news",
+      "jurisdiction_id": "OM",
+      "organisation_id": "om-mem",
+      "name": "Ministry of Energy and Minerals – news",
+      "url": "https://mem.gov.om/en-us/Media-Center/News",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "Avviser tilkobling. Pauset; dekkes av søkebasert politikk (kort 006).",
+      "enabled": false
+    },
+    {
+      "id": "ae-moei-news",
+      "jurisdiction_id": "AE",
+      "organisation_id": "ae-moei",
+      "name": "Ministry of Energy and Infrastructure – news",
+      "url": "https://www.moei.gov.ae/en/media-centre/news",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "Tidsavbrudd. Pauset; dekkes av søkebasert politikk (kort 006).",
       "enabled": false
     }
   ]
