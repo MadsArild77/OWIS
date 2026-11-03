@@ -21,6 +21,7 @@ Dokumentene lagres og versjoneres sammen med koden i Git.
 | [README](README.md) | Kort prosjektinngang og lokal oppstart |
 | [Teknisk README](owis/README.md) | Konfigurasjon, jobber og appoppsett |
 | [Kildekonfigurasjon](SOURCE_CONFIGURATION.md) | Jurisdiksjoner, organisasjoner, kildeeditor, migrering og API |
+| [Politikk- og regelverkskilder](POLICY_SOURCES.md) | Testede kilder for Norge, EU, UK, DK, DE og NL, importfil og kjente begrensninger |
 | [Redaksjonell flyt](EDITORIAL.md) | Relevans, tilbakemeldinger, research, kildeutvidelse og utkast |
 | [Matching](MATCHING.md) | Artikkelkobling, AI-oppsett, kostnadsgrenser og evaluering |
 | [Morgenrapport](MORNING_REPORT.md) | Rapportinnhold, tidsstyring, kildegrunnlag og begrensninger |

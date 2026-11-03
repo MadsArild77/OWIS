@@ -1,0 +1,1483 @@
+{
+  "version": 1,
+  "jurisdictions": [],
+  "organisations": [
+    {
+      "id": "no-regjeringen",
+      "jurisdiction_id": "NO",
+      "parent_id": null,
+      "name": "Regjeringen",
+      "kind": "government",
+      "follow": "topics",
+      "topics": [
+        "havvind",
+        "vindkraft",
+        "strømnett",
+        "kraftsystem",
+        "kraftmarked",
+        "energi",
+        "elektrifisering",
+        "hydrogen",
+        "CO2-håndtering",
+        "havbunn",
+        "maritim",
+        "konsesjon",
+        "Utsira",
+        "Sørlige Nordsjø"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "no-ed",
+      "jurisdiction_id": "NO",
+      "parent_id": "no-regjeringen",
+      "name": "Energidepartementet",
+      "kind": "ministry",
+      "follow": "all",
+      "topics": [],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "no-kld",
+      "jurisdiction_id": "NO",
+      "parent_id": "no-regjeringen",
+      "name": "Klima- og miljødepartementet",
+      "kind": "ministry",
+      "follow": "topics",
+      "topics": [
+        "havvind",
+        "vindkraft",
+        "strømnett",
+        "kraftsystem",
+        "kraftmarked",
+        "energi",
+        "elektrifisering",
+        "hydrogen",
+        "CO2-håndtering",
+        "havbunn",
+        "maritim",
+        "konsesjon",
+        "Utsira",
+        "Sørlige Nordsjø"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "no-nfd",
+      "jurisdiction_id": "NO",
+      "parent_id": "no-regjeringen",
+      "name": "Nærings- og fiskeridepartementet",
+      "kind": "ministry",
+      "follow": "topics",
+      "topics": [
+        "havvind",
+        "vindkraft",
+        "strømnett",
+        "kraftsystem",
+        "kraftmarked",
+        "energi",
+        "elektrifisering",
+        "hydrogen",
+        "CO2-håndtering",
+        "havbunn",
+        "maritim",
+        "konsesjon",
+        "Utsira",
+        "Sørlige Nordsjø"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "no-stortinget",
+      "jurisdiction_id": "NO",
+      "parent_id": null,
+      "name": "Stortinget",
+      "kind": "parliament",
+      "follow": "topics",
+      "topics": [
+        "havvind",
+        "vindkraft",
+        "strømnett",
+        "kraftsystem",
+        "kraftmarked",
+        "energi",
+        "elektrifisering",
+        "hydrogen",
+        "CO2-håndtering",
+        "havbunn",
+        "maritim",
+        "konsesjon",
+        "Utsira",
+        "Sørlige Nordsjø"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "no-st-emk",
+      "jurisdiction_id": "NO",
+      "parent_id": "no-stortinget",
+      "name": "Energi- og miljøkomiteen",
+      "kind": "committee",
+      "follow": "all",
+      "topics": [],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "no-st-europautvalget",
+      "jurisdiction_id": "NO",
+      "parent_id": "no-stortinget",
+      "name": "Europautvalget",
+      "kind": "committee",
+      "follow": "topics",
+      "topics": [
+        "havvind",
+        "vindkraft",
+        "strømnett",
+        "kraftsystem",
+        "kraftmarked",
+        "energi",
+        "elektrifisering",
+        "hydrogen",
+        "CO2-håndtering",
+        "havbunn",
+        "maritim",
+        "konsesjon",
+        "Utsira",
+        "Sørlige Nordsjø"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "no-lovdata",
+      "jurisdiction_id": "NO",
+      "parent_id": null,
+      "name": "Lovdata / Norsk Lovtidend",
+      "kind": "other",
+      "follow": "topics",
+      "topics": [
+        "havvind",
+        "vindkraft",
+        "strømnett",
+        "kraftsystem",
+        "kraftmarked",
+        "energi",
+        "elektrifisering",
+        "hydrogen",
+        "CO2-håndtering",
+        "havbunn",
+        "maritim",
+        "konsesjon",
+        "Utsira",
+        "Sørlige Nordsjø"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "no-nve",
+      "jurisdiction_id": "NO",
+      "parent_id": null,
+      "name": "NVE og Reguleringsmyndigheten for energi (RME)",
+      "kind": "authority",
+      "follow": "all",
+      "topics": [],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "no-havtil",
+      "jurisdiction_id": "NO",
+      "parent_id": null,
+      "name": "Havindustritilsynet (Havtil)",
+      "kind": "authority",
+      "follow": "topics",
+      "topics": [
+        "havvind",
+        "vindkraft",
+        "strømnett",
+        "kraftsystem",
+        "kraftmarked",
+        "energi",
+        "elektrifisering",
+        "hydrogen",
+        "CO2-håndtering",
+        "havbunn",
+        "maritim",
+        "konsesjon",
+        "Utsira",
+        "Sørlige Nordsjø"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "no-statnett",
+      "jurisdiction_id": "NO",
+      "parent_id": null,
+      "name": "Statnett",
+      "kind": "authority",
+      "follow": "all",
+      "topics": [],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "eu-commission",
+      "jurisdiction_id": "EU",
+      "parent_id": null,
+      "name": "European Commission",
+      "kind": "government",
+      "follow": "topics",
+      "topics": [
+        "offshore wind",
+        "wind",
+        "grid",
+        "interconnector",
+        "electricity market",
+        "energy",
+        "renewable",
+        "hydrogen",
+        "carbon capture",
+        "CCS",
+        "maritime",
+        "seabed",
+        "North Sea",
+        "transmission"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "eu-dg-ener",
+      "jurisdiction_id": "EU",
+      "parent_id": "eu-commission",
+      "name": "DG Energy (ENER)",
+      "kind": "authority",
+      "follow": "all",
+      "topics": [],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "eu-council",
+      "jurisdiction_id": "EU",
+      "parent_id": null,
+      "name": "Council of the EU",
+      "kind": "government",
+      "follow": "topics",
+      "topics": [
+        "offshore wind",
+        "wind",
+        "grid",
+        "interconnector",
+        "electricity market",
+        "energy",
+        "renewable",
+        "hydrogen",
+        "carbon capture",
+        "CCS",
+        "maritime",
+        "seabed",
+        "North Sea",
+        "transmission"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "eu-parliament",
+      "jurisdiction_id": "EU",
+      "parent_id": null,
+      "name": "European Parliament",
+      "kind": "parliament",
+      "follow": "topics",
+      "topics": [
+        "offshore wind",
+        "wind",
+        "grid",
+        "interconnector",
+        "electricity market",
+        "energy",
+        "renewable",
+        "hydrogen",
+        "carbon capture",
+        "CCS",
+        "maritime",
+        "seabed",
+        "North Sea",
+        "transmission"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "eu-acer",
+      "jurisdiction_id": "EU",
+      "parent_id": null,
+      "name": "ACER",
+      "kind": "authority",
+      "follow": "topics",
+      "topics": [
+        "offshore wind",
+        "wind",
+        "grid",
+        "interconnector",
+        "electricity market",
+        "energy",
+        "renewable",
+        "hydrogen",
+        "carbon capture",
+        "CCS",
+        "maritime",
+        "seabed",
+        "North Sea",
+        "transmission"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "eu-entsoe",
+      "jurisdiction_id": "EU",
+      "parent_id": null,
+      "name": "ENTSO-E",
+      "kind": "other",
+      "follow": "topics",
+      "topics": [
+        "offshore wind",
+        "wind",
+        "grid",
+        "interconnector",
+        "electricity market",
+        "energy",
+        "renewable",
+        "hydrogen",
+        "carbon capture",
+        "CCS",
+        "maritime",
+        "seabed",
+        "North Sea",
+        "transmission"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "eu-eurlex",
+      "jurisdiction_id": "EU",
+      "parent_id": null,
+      "name": "EUR-Lex / Official Journal",
+      "kind": "other",
+      "follow": "topics",
+      "topics": [
+        "offshore wind",
+        "wind",
+        "grid",
+        "interconnector",
+        "electricity market",
+        "energy",
+        "renewable",
+        "hydrogen",
+        "carbon capture",
+        "CCS",
+        "maritime",
+        "seabed",
+        "North Sea",
+        "transmission"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "gb-desnz",
+      "jurisdiction_id": "GB",
+      "parent_id": null,
+      "name": "Department for Energy Security and Net Zero",
+      "kind": "ministry",
+      "follow": "all",
+      "topics": [],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "gb-ofgem",
+      "jurisdiction_id": "GB",
+      "parent_id": null,
+      "name": "Ofgem",
+      "kind": "authority",
+      "follow": "topics",
+      "topics": [
+        "offshore wind",
+        "wind",
+        "grid",
+        "interconnector",
+        "electricity market",
+        "energy",
+        "renewable",
+        "hydrogen",
+        "carbon capture",
+        "CCS",
+        "maritime",
+        "seabed",
+        "North Sea",
+        "transmission"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "gb-crown-estate",
+      "jurisdiction_id": "GB",
+      "parent_id": null,
+      "name": "The Crown Estate",
+      "kind": "authority",
+      "follow": "topics",
+      "topics": [
+        "offshore wind",
+        "wind",
+        "grid",
+        "interconnector",
+        "electricity market",
+        "energy",
+        "renewable",
+        "hydrogen",
+        "carbon capture",
+        "CCS",
+        "maritime",
+        "seabed",
+        "North Sea",
+        "transmission"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "gb-neso",
+      "jurisdiction_id": "GB",
+      "parent_id": null,
+      "name": "National Energy System Operator (NESO)",
+      "kind": "authority",
+      "follow": "topics",
+      "topics": [
+        "offshore wind",
+        "wind",
+        "grid",
+        "interconnector",
+        "electricity market",
+        "energy",
+        "renewable",
+        "hydrogen",
+        "carbon capture",
+        "CCS",
+        "maritime",
+        "seabed",
+        "North Sea",
+        "transmission"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "gb-parliament",
+      "jurisdiction_id": "GB",
+      "parent_id": null,
+      "name": "UK Parliament",
+      "kind": "parliament",
+      "follow": "topics",
+      "topics": [
+        "offshore wind",
+        "wind",
+        "grid",
+        "interconnector",
+        "electricity market",
+        "energy",
+        "renewable",
+        "hydrogen",
+        "carbon capture",
+        "CCS",
+        "maritime",
+        "seabed",
+        "North Sea",
+        "transmission"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "dk-kefm",
+      "jurisdiction_id": "DK",
+      "parent_id": null,
+      "name": "Klima-, Energi- og Forsyningsministeriet",
+      "kind": "ministry",
+      "follow": "all",
+      "topics": [],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "dk-ens",
+      "jurisdiction_id": "DK",
+      "parent_id": "dk-kefm",
+      "name": "Energistyrelsen",
+      "kind": "authority",
+      "follow": "all",
+      "topics": [],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "dk-hoeringsportalen",
+      "jurisdiction_id": "DK",
+      "parent_id": null,
+      "name": "Høringsportalen",
+      "kind": "other",
+      "follow": "topics",
+      "topics": [
+        "havvind",
+        "vindmøller",
+        "elnet",
+        "energiø",
+        "elmarked",
+        "energi",
+        "brint",
+        "CCS",
+        "Nordsøen",
+        "udbud"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "dk-folketinget",
+      "jurisdiction_id": "DK",
+      "parent_id": null,
+      "name": "Folketinget",
+      "kind": "parliament",
+      "follow": "topics",
+      "topics": [
+        "havvind",
+        "vindmøller",
+        "elnet",
+        "energiø",
+        "elmarked",
+        "energi",
+        "brint",
+        "CCS",
+        "Nordsøen",
+        "udbud"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "de-bmwe",
+      "jurisdiction_id": "DE",
+      "parent_id": null,
+      "name": "Bundesministerium für Wirtschaft und Energie",
+      "kind": "ministry",
+      "follow": "topics",
+      "topics": [
+        "Offshore-Wind",
+        "Windenergie auf See",
+        "Netzausbau",
+        "Stromnetz",
+        "Strommarkt",
+        "Energie",
+        "Wasserstoff",
+        "Nordsee",
+        "Ostsee",
+        "Ausschreibung",
+        "Flächenentwicklungsplan"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "de-bnetza",
+      "jurisdiction_id": "DE",
+      "parent_id": null,
+      "name": "Bundesnetzagentur",
+      "kind": "authority",
+      "follow": "topics",
+      "topics": [
+        "Offshore-Wind",
+        "Windenergie auf See",
+        "Netzausbau",
+        "Stromnetz",
+        "Strommarkt",
+        "Energie",
+        "Wasserstoff",
+        "Nordsee",
+        "Ostsee",
+        "Ausschreibung",
+        "Flächenentwicklungsplan"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "de-bsh",
+      "jurisdiction_id": "DE",
+      "parent_id": null,
+      "name": "Bundesamt für Seeschifffahrt und Hydrographie (BSH)",
+      "kind": "authority",
+      "follow": "all",
+      "topics": [],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "de-bundestag",
+      "jurisdiction_id": "DE",
+      "parent_id": null,
+      "name": "Deutscher Bundestag",
+      "kind": "parliament",
+      "follow": "topics",
+      "topics": [
+        "Offshore-Wind",
+        "Windenergie auf See",
+        "Netzausbau",
+        "Stromnetz",
+        "Strommarkt",
+        "Energie",
+        "Wasserstoff",
+        "Nordsee",
+        "Ostsee",
+        "Ausschreibung",
+        "Flächenentwicklungsplan"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "nl-kgg",
+      "jurisdiction_id": "NL",
+      "parent_id": null,
+      "name": "Ministerie van Klimaat en Groene Groei",
+      "kind": "ministry",
+      "follow": "all",
+      "topics": [],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "nl-internetconsultatie",
+      "jurisdiction_id": "NL",
+      "parent_id": null,
+      "name": "Internetconsultatie",
+      "kind": "other",
+      "follow": "topics",
+      "topics": [
+        "windenergie op zee",
+        "wind op zee",
+        "stroomnet",
+        "netcongestie",
+        "energie",
+        "waterstof",
+        "Noordzee",
+        "tender",
+        "CCS",
+        "elektriciteitsmarkt"
+      ],
+      "people": [],
+      "enabled": true
+    },
+    {
+      "id": "nl-tweede-kamer",
+      "jurisdiction_id": "NL",
+      "parent_id": null,
+      "name": "Tweede Kamer",
+      "kind": "parliament",
+      "follow": "topics",
+      "topics": [
+        "windenergie op zee",
+        "wind op zee",
+        "stroomnet",
+        "netcongestie",
+        "energie",
+        "waterstof",
+        "Noordzee",
+        "tender",
+        "CCS",
+        "elektriciteitsmarkt"
+      ],
+      "people": [],
+      "enabled": true
+    }
+  ],
+  "sources": [
+    {
+      "id": "no-ed-nyheter",
+      "jurisdiction_id": "NO",
+      "organisation_id": "no-ed",
+      "name": "Energidepartementet – nyheter og pressemeldinger",
+      "url": "https://www.regjeringen.no/no/rss/Rss/2581966/?documentType=aktuelt/nyheter&owner=750",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 180,
+      "selector": "",
+      "notes": "Pressemeldinger og nyheter, inkludert ukentlig utdrag av energiministerens kalender.",
+      "enabled": true
+    },
+    {
+      "id": "no-ed-kalender",
+      "jurisdiction_id": "NO",
+      "organisation_id": "no-ed",
+      "name": "Energidepartementet – kalender",
+      "url": "https://www.regjeringen.no/no/rss/Rss/2581966/?documentType=aktuelt/kalender&owner=750",
+      "content_types": [
+        "calendar"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "Kommende hendelser for statsråd og statssekretærer. Datoen står i tittel/tekst.",
+      "enabled": true
+    },
+    {
+      "id": "no-ed-hoeringer",
+      "jurisdiction_id": "NO",
+      "organisation_id": "no-ed",
+      "name": "Energidepartementet – høringer",
+      "url": "https://www.regjeringen.no/no/rss/Rss/2581966/?documentType=dokumenter/h%C3%B8ringer&owner=750",
+      "content_types": [
+        "consultation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "Høringer med høringsfrist i teksten.",
+      "enabled": true
+    },
+    {
+      "id": "no-ed-dokumenter",
+      "jurisdiction_id": "NO",
+      "organisation_id": "no-ed",
+      "name": "Energidepartementet – dokumenter",
+      "url": "https://www.regjeringen.no/no/rss/Rss/2581966/?documentType=dokumenter&owner=750",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "Proposisjoner, meldinger, NOU-er, konsesjoner, rapporter. Overlapper med høringer; samme URL skal bare lagres én gang.",
+      "enabled": true
+    },
+    {
+      "id": "no-ed-lover",
+      "jurisdiction_id": "NO",
+      "organisation_id": "no-ed",
+      "name": "Energidepartementet – lover og regler",
+      "url": "https://www.regjeringen.no/no/rss/Rss/2581966/?documentType=loverogregler&owner=750",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 1440,
+      "selector": "",
+      "notes": "Lover, forskrifter, retningslinjer og instrukser. Lav frekvens.",
+      "enabled": true
+    },
+    {
+      "id": "no-kld-hoeringer",
+      "jurisdiction_id": "NO",
+      "organisation_id": "no-kld",
+      "name": "Klima- og miljødepartementet – høringer",
+      "url": "https://www.regjeringen.no/no/rss/Rss/2581966/?documentType=dokumenter/h%C3%B8ringer&owner=668",
+      "content_types": [
+        "consultation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "",
+      "enabled": true
+    },
+    {
+      "id": "no-nfd-hoeringer",
+      "jurisdiction_id": "NO",
+      "organisation_id": "no-nfd",
+      "name": "Nærings- og fiskeridepartementet – høringer",
+      "url": "https://www.regjeringen.no/no/rss/Rss/2581966/?documentType=dokumenter/h%C3%B8ringer&owner=709",
+      "content_types": [
+        "consultation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "Maritim næring, havnæring og leverandørindustri.",
+      "enabled": true
+    },
+    {
+      "id": "no-eos-dokumenter",
+      "jurisdiction_id": "NO",
+      "organisation_id": "no-regjeringen",
+      "name": "Regjeringen – EØS-notater",
+      "url": "https://www.regjeringen.no/no/rss/Rss/2581966/?documentType=dokumenter/e%C3%B8sdokumenter",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 1440,
+      "selector": "",
+      "notes": "Norske vurderinger av kommende EU/EØS-regelverk. Følges på tema.",
+      "enabled": true
+    },
+    {
+      "id": "no-st-lovvedtak",
+      "jurisdiction_id": "NO",
+      "organisation_id": "no-stortinget",
+      "name": "Stortinget – lovvedtak",
+      "url": "https://www.stortinget.no/no/Stottemeny/RSS/Lovbeslutninger/",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "",
+      "enabled": true
+    },
+    {
+      "id": "no-st-innstillinger",
+      "jurisdiction_id": "NO",
+      "organisation_id": "no-stortinget",
+      "name": "Stortinget – innstillinger",
+      "url": "https://www.stortinget.no/no/Stottemeny/RSS/Innstillinger-til-Stortinget/",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "Komiteenes innstillinger før behandling i salen.",
+      "enabled": true
+    },
+    {
+      "id": "no-st-horinger",
+      "jurisdiction_id": "NO",
+      "organisation_id": "no-st-emk",
+      "name": "Stortinget – komitéhøringer",
+      "url": "https://www.stortinget.no/no/Stottemeny/RSS/Horingsliste/",
+      "content_types": [
+        "calendar",
+        "consultation"
+      ],
+      "method": "rss",
+      "topics": [
+        "havvind",
+        "vindkraft",
+        "strømnett",
+        "kraftsystem",
+        "kraftmarked",
+        "energi",
+        "elektrifisering",
+        "hydrogen",
+        "CO2-håndtering",
+        "havbunn",
+        "maritim",
+        "konsesjon",
+        "Utsira",
+        "Sørlige Nordsjø"
+      ],
+      "follow": "topics",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "Alle komiteers høringer med dato og påmeldingsfrist. Filtreres på tema; energi- og miljøkomiteens høringer følges alltid.",
+      "enabled": true
+    },
+    {
+      "id": "no-st-europautvalget",
+      "jurisdiction_id": "NO",
+      "organisation_id": "no-st-europautvalget",
+      "name": "Stortinget – referater fra Europautvalget",
+      "url": "https://www.stortinget.no/no/Stottemeny/RSS/Referater-fra-Europautvalget/",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 1440,
+      "selector": "",
+      "notes": "",
+      "enabled": true
+    },
+    {
+      "id": "no-st-sporsmal-energi",
+      "jurisdiction_id": "NO",
+      "organisation_id": "no-st-emk",
+      "name": "Stortinget – besvarte skriftlige spørsmål til energiministeren",
+      "url": "https://www.stortinget.no/no/Stottemeny/RSS/Rss-lister-for-besvarte-sporsmal/Skriftlige-sporsmal/Energiministeren/",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "Overlapper med Storting-innhentingen i D25 (data.stortinget.no). Samme spørsmål skal ikke vises to ganger.",
+      "enabled": true
+    },
+    {
+      "id": "no-st-saker-api",
+      "jurisdiction_id": "NO",
+      "organisation_id": "no-stortinget",
+      "name": "Stortinget – saker (data.stortinget.no)",
+      "url": "https://data.stortinget.no/eksport/saker?sesjonid=2025-2026&format=json",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "api",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "Brukes allerede av Storting-fanen (D25). Står her så registeret viser hele bildet. Sesjonen må oppdateres hver høst.",
+      "enabled": true
+    },
+    {
+      "id": "no-lovdata-lti",
+      "jurisdiction_id": "NO",
+      "organisation_id": "no-lovdata",
+      "name": "Norsk Lovtidend avd. I – nye lover og sentrale forskrifter",
+      "url": "https://lovdata.no/feed?data=LTI&type=RSS",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "Det som faktisk er kunngjort. Følges på tema.",
+      "enabled": true
+    },
+    {
+      "id": "no-nve-nyheter",
+      "jurisdiction_id": "NO",
+      "organisation_id": "no-nve",
+      "name": "NVE – nytt fra NVE",
+      "url": "https://www.nve.no/nytt-fra-nve/",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "Siden bygges med JavaScript; enkel HTML-henting gir bare menylenker. Trenger egen adapter. Pauset.",
+      "enabled": false
+    },
+    {
+      "id": "no-statnett-nyheter",
+      "jurisdiction_id": "NO",
+      "organisation_id": "no-statnett",
+      "name": "Statnett – nyheter og pressemeldinger",
+      "url": "https://www.statnett.no/om-statnett/nyheter-og-pressemeldinger/",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "Siden bygges med JavaScript; ingen RSS funnet. Trenger egen adapter. Pauset.",
+      "enabled": false
+    },
+    {
+      "id": "no-havtil-nyheter",
+      "jurisdiction_id": "NO",
+      "organisation_id": "no-havtil",
+      "name": "Havtil – nyheter",
+      "url": "https://www.havtil.no/",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "Fant verken RSS eller nyhetsliste som kan leses uten JavaScript. Pauset.",
+      "enabled": false
+    },
+    {
+      "id": "eu-ener-news",
+      "jurisdiction_id": "EU",
+      "organisation_id": "eu-dg-ener",
+      "name": "DG Energy – news",
+      "url": "https://energy.ec.europa.eu/node/2/rss_en",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "",
+      "enabled": true
+    },
+    {
+      "id": "eu-hys-ener",
+      "jurisdiction_id": "EU",
+      "organisation_id": "eu-dg-ener",
+      "name": "Have your say – energy initiatives and consultations",
+      "url": "https://ec.europa.eu/info/law/better-regulation/brpapi/searchInitiatives?topic=ENER&size=10&language=EN",
+      "content_types": [
+        "consultation",
+        "regulation"
+      ],
+      "method": "api",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "JSON. Hver sak har status, type rettsakt og tilbakemeldingsperioder (frister).",
+      "enabled": true
+    },
+    {
+      "id": "eu-presscorner",
+      "jurisdiction_id": "EU",
+      "organisation_id": "eu-commission",
+      "name": "Commission press corner",
+      "url": "https://ec.europa.eu/commission/presscorner/api/rss?language=en",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 180,
+      "selector": "",
+      "notes": "Alle Kommisjonens pressemeldinger. Følges på tema.",
+      "enabled": true
+    },
+    {
+      "id": "eu-council-press",
+      "jurisdiction_id": "EU",
+      "organisation_id": "eu-council",
+      "name": "Council – press releases",
+      "url": "https://www.consilium.europa.eu/en/rss/pressreleases.ashx",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 180,
+      "selector": "",
+      "notes": "Rådets posisjoner, trilogavtaler og vedtak. Følges på tema.",
+      "enabled": true
+    },
+    {
+      "id": "eu-ep-itre",
+      "jurisdiction_id": "EU",
+      "organisation_id": "eu-parliament",
+      "name": "European Parliament – ITRE committee",
+      "url": "https://www.europarl.europa.eu/rss/committee/itre/en.xml",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "europarl.europa.eu svarer 403 på automatiske oppslag. Pauset; Rådet og EUR-Lex dekker vedtakene.",
+      "enabled": false
+    },
+    {
+      "id": "eu-acer-news",
+      "jurisdiction_id": "EU",
+      "organisation_id": "eu-acer",
+      "name": "ACER – news",
+      "url": "https://www.acer.europa.eu/rss.xml",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "",
+      "enabled": true
+    },
+    {
+      "id": "eu-entsoe-news",
+      "jurisdiction_id": "EU",
+      "organisation_id": "eu-entsoe",
+      "name": "ENTSO-E – news",
+      "url": "https://www.entsoe.eu/rss/news.xml",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "",
+      "enabled": true
+    },
+    {
+      "id": "eu-eurlex-oj",
+      "jurisdiction_id": "EU",
+      "organisation_id": "eu-eurlex",
+      "name": "EUR-Lex – Official Journal",
+      "url": "https://eur-lex.europa.eu/EN/display-feed.rss?rssId=222",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "Svært bredt (100 per dag). Bare tematreff skal lagres.",
+      "enabled": true
+    },
+    {
+      "id": "gb-desnz-news",
+      "jurisdiction_id": "GB",
+      "organisation_id": "gb-desnz",
+      "name": "DESNZ – news and communications",
+      "url": "https://www.gov.uk/search/news-and-communications.atom?organisations%5B%5D=department-for-energy-security-and-net-zero",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 180,
+      "selector": "",
+      "notes": "",
+      "enabled": true
+    },
+    {
+      "id": "gb-desnz-consultations",
+      "jurisdiction_id": "GB",
+      "organisation_id": "gb-desnz",
+      "name": "DESNZ – consultations",
+      "url": "https://www.gov.uk/search/policy-papers-and-consultations.atom?organisations%5B%5D=department-for-energy-security-and-net-zero&content_store_document_type%5B%5D=open_consultations&content_store_document_type%5B%5D=closed_consultations",
+      "content_types": [
+        "consultation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "",
+      "enabled": true
+    },
+    {
+      "id": "gb-desnz-policy",
+      "jurisdiction_id": "GB",
+      "organisation_id": "gb-desnz",
+      "name": "DESNZ – policy papers",
+      "url": "https://www.gov.uk/search/policy-papers-and-consultations.atom?organisations%5B%5D=department-for-energy-security-and-net-zero&content_store_document_type%5B%5D=policy_papers",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "",
+      "enabled": true
+    },
+    {
+      "id": "gb-ofgem",
+      "jurisdiction_id": "GB",
+      "organisation_id": "gb-ofgem",
+      "name": "Ofgem – updates",
+      "url": "https://www.ofgem.gov.uk/rss.xml",
+      "content_types": [
+        "regulation",
+        "consultation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "",
+      "enabled": true
+    },
+    {
+      "id": "gb-crown-estate-news",
+      "jurisdiction_id": "GB",
+      "organisation_id": "gb-crown-estate",
+      "name": "The Crown Estate – news",
+      "url": "https://www.thecrownestate.co.uk/news",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "a[href^=\"/news/\"]",
+      "notes": "Havbunnsleie og tildelingsrunder for havvind.",
+      "enabled": true
+    },
+    {
+      "id": "gb-neso-news",
+      "jurisdiction_id": "GB",
+      "organisation_id": "gb-neso",
+      "name": "NESO – news",
+      "url": "https://www.neso.energy/news",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "a[href^=\"/news/\"]",
+      "notes": "Deler av siden lastes med JavaScript; kontroller at listen får flere enn én sak.",
+      "enabled": true
+    },
+    {
+      "id": "gb-bills",
+      "jurisdiction_id": "GB",
+      "organisation_id": "gb-parliament",
+      "name": "UK Parliament – bills",
+      "url": "https://bills.parliament.uk/rss/allbills.rss",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "Alle lovforslag. Følges på tema.",
+      "enabled": true
+    },
+    {
+      "id": "dk-hoeringer",
+      "jurisdiction_id": "DK",
+      "organisation_id": "dk-hoeringsportalen",
+      "name": "Høringsportalen – alle høringer",
+      "url": "https://hoeringsportalen.dk/Syndication/HearingsFeed",
+      "content_types": [
+        "consultation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "Alle danske høringer. Følges på tema.",
+      "enabled": true
+    },
+    {
+      "id": "dk-ft-sager",
+      "jurisdiction_id": "DK",
+      "organisation_id": "dk-folketinget",
+      "name": "Folketinget – sager (ODA API)",
+      "url": "https://oda.ft.dk/api/Sag?$top=100&$orderby=opdateringsdato%20desc&$format=json",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "api",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "Folketingets åbne data (OData). Ft.dk svarer 403 på vanlige sider.",
+      "enabled": true
+    },
+    {
+      "id": "dk-kefm-nyheder",
+      "jurisdiction_id": "DK",
+      "organisation_id": "dk-kefm",
+      "name": "KEFM – nyheder",
+      "url": "https://www.kefm.dk/aktuelt",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "Nyhetslisten lastes med JavaScript og ingen RSS ble funnet. Pauset.",
+      "enabled": false
+    },
+    {
+      "id": "dk-ens-nyheder",
+      "jurisdiction_id": "DK",
+      "organisation_id": "dk-ens",
+      "name": "Energistyrelsen – nyheder",
+      "url": "https://ens.dk/presse/nyheder-og-pressemeddelelser",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "ens.dk/en/rss.xml finnes, men var tom 3. november 2026. Nyhetslisten trenger egen adapter. Pauset.",
+      "enabled": false
+    },
+    {
+      "id": "de-bmwe-press",
+      "jurisdiction_id": "DE",
+      "organisation_id": "de-bmwe",
+      "name": "BMWE – Pressemitteilungen",
+      "url": "https://www.bundeswirtschaftsministerium.de/SiteGlobals/BMWI/Functions/RSSFeed/DE/RSSFeed-Pressemitteilung.xml",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "Hele departementet (også næring). Følges på tema.",
+      "enabled": true
+    },
+    {
+      "id": "de-bnetza-press",
+      "jurisdiction_id": "DE",
+      "organisation_id": "de-bnetza",
+      "name": "Bundesnetzagentur – Pressemitteilungen",
+      "url": "https://www.bundesnetzagentur.de/SiteGlobals/Functions/RSSFeed/DE/RSSNewsfeed/RSSNewsfeed_Pressemitteilungen.xml",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "",
+      "enabled": true
+    },
+    {
+      "id": "de-bsh-news",
+      "jurisdiction_id": "DE",
+      "organisation_id": "de-bsh",
+      "name": "BSH – Aktuelles",
+      "url": "https://www.bsh.de/DE/Service/RSS/Function/rssnewsfeed.xml?nn=276234",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "Havvindarealer og utlysninger (Flächenentwicklungsplan). Inneholder også arrangementer frem i tid.",
+      "enabled": true
+    },
+    {
+      "id": "de-bundestag-wirtschaft",
+      "jurisdiction_id": "DE",
+      "organisation_id": "de-bundestag",
+      "name": "Bundestag – hib Wirtschaft und Energie",
+      "url": "https://www.bundestag.de/static/appdata/includes/rss/wirtschaft.rss",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "rss",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "",
+      "enabled": true
+    },
+    {
+      "id": "nl-internetconsultatie",
+      "jurisdiction_id": "NL",
+      "organisation_id": "nl-internetconsultatie",
+      "name": "Internetconsultatie – alle consultaties",
+      "url": "https://www.internetconsultatie.nl/",
+      "content_types": [
+        "consultation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "a[href$=\"/b1\"]",
+      "notes": "Ingen RSS. Hver konsultasjon har adresse som slutter på /b1. Følges på tema.",
+      "enabled": true
+    },
+    {
+      "id": "nl-tk-zaken",
+      "jurisdiction_id": "NL",
+      "organisation_id": "nl-tweede-kamer",
+      "name": "Tweede Kamer – zaken (OData API)",
+      "url": "https://gegevensmagazijn.tweedekamer.nl/OData/v4/2.0/Zaak?$top=100&$orderby=GewijzigdOp%20desc",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "api",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 720,
+      "selector": "",
+      "notes": "Tweede Kamers åpne data. Filtrer på tema og komiteen for Klimaat en Groene Groei.",
+      "enabled": true
+    },
+    {
+      "id": "nl-kgg-nieuws",
+      "jurisdiction_id": "NL",
+      "organisation_id": "nl-kgg",
+      "name": "KGG – nieuws",
+      "url": "https://www.rijksoverheid.nl/ministeries/ministerie-van-klimaat-en-groene-groei/nieuws",
+      "content_types": [
+        "regulation"
+      ],
+      "method": "html_list",
+      "topics": [],
+      "follow": "inherit",
+      "interval_minutes": 360,
+      "selector": "",
+      "notes": "Rijksoverheid.nl lastes med JavaScript, og RSS-adressen ble ikke funnet. Pauset.",
+      "enabled": false
+    }
+  ]
+}
