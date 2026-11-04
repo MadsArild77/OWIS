@@ -21,6 +21,7 @@ Claude testet anbudskildene 3. november 2026:
 - [ ] **CanadaBuys:** henter CSV-filen, tar bare rader publisert siden forrige kjøring (første gang `OPPORTUNITIES_DAYS_BACK`), engelske felt, land `CAN`.
 - [ ] Alle nye kilder går gjennom eksisterende normalisering, `process_raw_item` og profiler. De er med i `OWI_OPP_ENABLED_SOURCES` som `UK_FTS`, `UK_CF` og `CANADABUYS` (standard: `TED,DOFFIN,WORLDBANK,UK_FTS,UK_CF,CANADABUYS`).
 - [ ] **Ny profil** i `profiles.yaml`: `company: OWIS`, `name: Offshore wind market`, kategori `Offshore Wind`. Den fanger alle havvindanbud for markedsinnsikt. Nøkkelord: `offshore wind`, `floating wind`, `wind farm`, `havvind`, `havvindpark`, `éolien en mer`, `éolien flottant`, `Windenergie auf See`, `Offshore-Windpark`, `eólica marina`, `havmølle`, `havsbaserad vindkraft`, `offshore substation`, `export cable`, `inter-array cable`, `seabed lease`. Negative: `onshore`, `land-based`, `school`, `hospital`. Kvalifikatorlisten står tom. I `classify_notice` skal **tom kvalifikatorliste bety at et nøkkelordtreff er nok**; profiler med kvalifikatorer virker som før. Test begge deler, blant annet at «havvindpark» alene treffer OWIS-profilen.
+- [ ] **Frist og verdi fra kilden:** dagens `process_raw_item` tar første dato i teksten som frist, og det kan være en publiseringsdato eller et informasjonsmøte. Råtabellen får feltene `deadline_raw`, `estimated_value` og `currency`, og den behandlede tabellen får `estimated_value`, `currency` og `deadline_source` (`source` / `text`). Alle hentere fyller inn frist og verdi når kilden har dem, også TED, Doffin og Verdensbanken (undersøk ekte svar for feltnavn; TED må be om fristfeltet i `TED_FIELDS`). Frist fra kilden går alltid foran. `_extract_deadline` brukes bare når kilden ikke har frist. Bruk samme migrasjonsmønster som ellers i `db.py`, og ikke prøv å rette gamle rader. Test at en dato tidligere i teksten ikke overstyrer kildens frist.
 - [ ] **Kildestatus:** hver kjøring per kilde lagres (tid, ok/feil, antall hentet, nye, filtrert bort). `GET /api/opportunities/sources` returnerer siste status per kilde.
 - [ ] `PRIMARY_MARKETS` i `pipeline.py` får `FRA`, `POL`, `DEU` og `NLD` som sekundære hvis de ikke står der, og `GBR` beholdes som primær. Ingen andre endringer i poenglogikken.
 - [ ] `pytest owis/tests -q` er grønn. Nye tester bruker lagrede eksempelsvar (fixtures hentet én gang, uten personopplysninger): Verdensbanken (ny adresse), Doffin (nytt søk), Find a Tender, Contracts Finder, CanadaBuys, og duplikat-`ocid` på tvers av UK-kildene.
@@ -32,9 +33,9 @@ Claude testet anbudskildene 3. november 2026:
 
 ## Filer som kan endres
 - `owis/modules/opportunities/collectors/` (rett og legg til hentere; nye filer er greit)
-- `owis/modules/opportunities/processing/pipeline.py` (bare markedslisten og regelen om tom kvalifikatorliste)
+- `owis/modules/opportunities/processing/pipeline.py` (markedslisten, regelen om tom kvalifikatorliste, og frist og verdi fra kilden; ikke poenglogikken)
 - `owis/modules/opportunities/registry/profiles.yaml` (ny profil)
-- `owis/modules/opportunities/storage/repository.py` og der tabellene opprettes (kjøringslogg)
+- `owis/modules/opportunities/storage/repository.py` og der tabellene opprettes (`owis/core/storage/db.py`: kjøringslogg, og felt for frist og verdi)
 - `owis/modules/opportunities/presentation/api.py` (nytt `/sources`-endepunkt; jobben kaller de nye henterne)
 - `owis/core/config/settings.py`, `owis/.env.example`
 - `owis/tests/test_opportunity_*.py` og `owis/tests/fixtures/opportunity_*.json|csv`
