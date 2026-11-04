@@ -31,3 +31,11 @@ owis/data/*.sqlite3
 owis/data/backups/
 work/
 
+
+# Private and local files, never commit
+owis.txt
+owis.txt.pub
+handover_sources.txt
+career-team/
+.claude/
+.playwright-mcp/
