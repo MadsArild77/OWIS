@@ -20,7 +20,7 @@ Claude testet anbudskildene 3. november 2026:
 - [ ] **Find a Tender** og **Contracts Finder:** nye hentere som leser OCDS-releases siden forrige kjøring (første gang: `OPPORTUNITIES_DAYS_BACK`). Bare åpne konkurranser (`tender`-del med status `active` / `planned`, og planlagte/forhåndsmeldte). Felter: id (`ocid`), tittel, beskrivelse, oppdragsgiver, land `GBR`, CPV-koder, frist (`tender.tenderPeriod.endDate`), anslått verdi og valuta, lenke til kunngjøringen. Samme notis i begge kilder (samme `ocid`) lagres én gang.
 - [ ] **CanadaBuys:** henter CSV-filen, tar bare rader publisert siden forrige kjøring (første gang `OPPORTUNITIES_DAYS_BACK`), engelske felt, land `CAN`.
 - [ ] Alle nye kilder går gjennom eksisterende normalisering, `process_raw_item` og profiler. De er med i `OWI_OPP_ENABLED_SOURCES` som `UK_FTS`, `UK_CF` og `CANADABUYS` (standard: `TED,DOFFIN,WORLDBANK,UK_FTS,UK_CF,CANADABUYS`).
-- [ ] **Ny profil** i `profiles.yaml`: `company: OWIS`, `name: Offshore wind market`, kategori `Offshore Wind`. Den fanger alle havvindanbud for markedsinnsikt. Nøkkelord: `offshore wind`, `floating wind`, `wind farm`, `havvind`, `havvindpark`, `éolien en mer`, `éolien flottant`, `Windenergie auf See`, `Offshore-Windpark`, `eólica marina`, `havmølle`, `havsbaserad vindkraft`, `offshore substation`, `export cable`, `inter-array cable`, `seabed lease`. Negative: `onshore`, `land-based`, `school`, `hospital`. Kvalifikatorer kan stå tomme hvis loaderen tillater det; ellers `offshore`, `wind`.
+- [ ] **Ny profil** i `profiles.yaml`: `company: OWIS`, `name: Offshore wind market`, kategori `Offshore Wind`. Den fanger alle havvindanbud for markedsinnsikt. Nøkkelord: `offshore wind`, `floating wind`, `wind farm`, `havvind`, `havvindpark`, `éolien en mer`, `éolien flottant`, `Windenergie auf See`, `Offshore-Windpark`, `eólica marina`, `havmølle`, `havsbaserad vindkraft`, `offshore substation`, `export cable`, `inter-array cable`, `seabed lease`. Negative: `onshore`, `land-based`, `school`, `hospital`. Kvalifikatorlisten står tom. I `classify_notice` skal **tom kvalifikatorliste bety at et nøkkelordtreff er nok**; profiler med kvalifikatorer virker som før. Test begge deler, blant annet at «havvindpark» alene treffer OWIS-profilen.
 - [ ] **Kildestatus:** hver kjøring per kilde lagres (tid, ok/feil, antall hentet, nye, filtrert bort). `GET /api/opportunities/sources` returnerer siste status per kilde.
 - [ ] `PRIMARY_MARKETS` i `pipeline.py` får `FRA`, `POL`, `DEU` og `NLD` som sekundære hvis de ikke står der, og `GBR` beholdes som primær. Ingen andre endringer i poenglogikken.
 - [ ] `pytest owis/tests -q` er grønn. Nye tester bruker lagrede eksempelsvar (fixtures hentet én gang, uten personopplysninger): Verdensbanken (ny adresse), Doffin (nytt søk), Find a Tender, Contracts Finder, CanadaBuys, og duplikat-`ocid` på tvers av UK-kildene.
@@ -32,7 +32,7 @@ Claude testet anbudskildene 3. november 2026:
 
 ## Filer som kan endres
 - `owis/modules/opportunities/collectors/` (rett og legg til hentere; nye filer er greit)
-- `owis/modules/opportunities/processing/pipeline.py` (bare markedslisten)
+- `owis/modules/opportunities/processing/pipeline.py` (bare markedslisten og regelen om tom kvalifikatorliste)
 - `owis/modules/opportunities/registry/profiles.yaml` (ny profil)
 - `owis/modules/opportunities/storage/repository.py` og der tabellene opprettes (kjøringslogg)
 - `owis/modules/opportunities/presentation/api.py` (nytt `/sources`-endepunkt; jobben kaller de nye henterne)

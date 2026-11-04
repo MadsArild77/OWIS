@@ -36,6 +36,12 @@ Registeret (trinn 1, D04) kan lagre kilder med innholdstypene `regulation`, `con
 - Legg til én setning i prompten: brief-ens `policy`-punkter skal bruke disse postene når de er relevante for havvind, nett og kraftmarked.
 - Rapporten får feltet `monitored_policy` med de samme postene. Rapportvisningen viser dem under politikkdelen med overskriften **«New from monitored sources»**, høyst 10, med lenke til Policy & regulation for resten.
 
+**Innholdstype per post (`content_type`):**
+- Kilde med én type: den typen.
+- Kilde med flere typer: første type i kildens liste, med ett unntak: står `consultation` senere i listen, og tittel eller sammendrag inneholder (uten hensyn til store og små bokstaver) `consultation`, `call for evidence`, `request for comment`, `comment period` eller `høringsfrist`, blir posten `consultation`. Det gir for eksempel `calendar` for Stortingets komitéhøringer og `consultation` for konsultasjoner hos Ofgem og BOEM.
+- Samme URL fra flere kilder: raden beholdes, og typen oppgraderes etter prioriteten `consultation` > `calendar` > `regulation`.
+- Unntaket fra 30-dagersgrensen gjelder poster med typen `calendar` etter denne regelen.
+
 **Henting:**
 - RSS: bruk `feedparser` som i `probe.py`. Tittel, lenke, sammendrag (HTML fjernet, høyst 1 000 tegn) og publiseringstid.
 - HTML-liste: bruk lenkene `probe.py` finner (med kildens `selector`). Tittel er lenketeksten. Ingen dato, så `published_at` er tom. Lenker med under 15 tegn tekst hoppes over.
