@@ -11,7 +11,7 @@ from threading import Lock
 from uuid import uuid4
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from owis.core.config.settings import (
@@ -838,6 +838,12 @@ def enrich_article(item_id: int, refresh: bool = False):
 def morning_report_history():
     from owis.modules.news.processing import morning
     return morning.history()
+
+
+@router.get('/ops-report')
+def ops_report(days: int = Query(default=30, ge=1, le=366)):
+    from owis.modules.news.processing.ops_report import read_report
+    return read_report(days=days)
 
 
 @router.get('/morning-report')

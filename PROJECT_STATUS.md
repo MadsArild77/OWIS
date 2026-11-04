@@ -4,6 +4,8 @@ Oppdatert 5. oktober 2026. [Dokumentasjon](DOCUMENTATION.md) · [Beslutninger](D
 
 ## Gjeldende status
 
+Driftsrapport er implementert i Settings → News sources → System health og som skrivebeskyttet CLI (`python -m owis.scripts.ops_report --db <sti> --days 30`). Produksjonsdata er ikke kontrollert.
+
 Sist kontrollerte kodegrunnlag er `main`, inkludert PR #8 (`4258468`) og
 Settings-fanene (`600619b`). Dette er utviklingsstatus, ikke en bekreftelse på
 hvilken versjon eller konfigurasjon som kjører i produksjon.

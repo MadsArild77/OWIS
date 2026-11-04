@@ -619,6 +619,12 @@
                   <label class="field">Source <select id="sourceFilter"><option value="">All sources</option></select></label>
                 </div>
               </div>
+              <div class="panel span-2">
+                <h3>System health</h3>
+                <p class="muted">Last 30 days, including today. Dates use Europe/Oslo. Article counts use the date saved; full text and scores reflect the currently stored data.</p>
+                <div class="actions"><button id="refreshOpsReport" type="button" class="btn-secondary">Refresh</button></div>
+                <div id="opsReport" aria-live="polite"></div>
+              </div>
             </div>
           </section>
 
@@ -3390,6 +3396,32 @@
     })();
   </script>
   <script>
+    async function refreshOpsReport() {
+      const button = document.getElementById('refreshOpsReport');
+      const container = document.getElementById('opsReport');
+      button.disabled = true;
+      container.textContent = 'Loading...';
+      try {
+        const report = await getJson('/api/news/ops-report?days=30');
+        container.innerHTML = report.sections.map(section => `<h4>${escapeHtml(section.title)}</h4>` +
+          (section.summary ? `<p>${escapeHtml(section.summary)}</p>` : '') + section.tables.map(table =>
+            (table.title ? `<h5>${escapeHtml(table.title)}</h5>` : '') +
+            (!table.rows.length ? '<p>No data in this period.</p>' :
+              '<div class="table-wrap"><table class="sources-table"><thead><tr>' +
+              table.columns.map(column => `<th>${escapeHtml(column)}</th>`).join('') + '</tr></thead><tbody>' +
+              table.rows.map(row => '<tr>' + row.map((value, index) => '<td>' + escapeHtml(
+                value == null ? 'Not recorded' : String(value) +
+                (table.percentages.includes(index) && typeof value === 'number' ? '%' : '')) + '</td>').join('') + '</tr>').join('') +
+              '</tbody></table></div>')).join('')).join('');
+      } catch (error) {
+        container.textContent = 'Could not load system health. ' + error.message;
+      } finally {
+        button.disabled = false;
+      }
+    }
+    document.getElementById('refreshOpsReport').addEventListener('click', refreshOpsReport);
+    document.getElementById('showSettingsView').addEventListener('click', refreshOpsReport);
+
     // Source advisor: learned source quality with add / pause recommendations.
     let adviceDecisionDays = 60;
     async function showSearchBudget() {
