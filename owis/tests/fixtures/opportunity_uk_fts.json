@@ -1,0 +1,127 @@
+{
+  "uri": "https://www.find-tender.service.gov.uk/api/1.0/ocdsReleasePackages?limit=2&stages=tender&updatedTo=2026-11-05T19:35:11",
+  "version": "1.1",
+  "extensions": [
+    "https://standard.open-contracting.org/profiles/eu/latest/en/extension.json",
+    "https://raw.githubusercontent.com/open-contracting-extensions/ocds_amendment_rationale_classifications_extension/master/extension.json",
+    "https://raw.githubusercontent.com/open-contracting-extensions/ocds_budget_breakdown_extension/master/extension.json",
+    "https://raw.githubusercontent.com/open-contracting-extensions/ocds_contract_completion_extension/master/extension.json",
+    "https://raw.githubusercontent.com/open-contracting-extensions/ocds_documentation_extension/master/extension.json",
+    "https://raw.githubusercontent.com/open-contracting-extensions/ocds_pagination_extension/master/extension.json",
+    "https://raw.githubusercontent.com/open-contracting-extensions/ocds_suitability_extension/master/extension.json",
+    "https://raw.githubusercontent.com/portaledcahn/ocds_Links_extension/main/extension.json",
+    "https://raw.githubusercontent.com/cabinetoffice/ocds_uk_extension/main/extension.json"
+  ],
+  "publishedDate": "2026-11-05T16:57:43Z",
+  "publisher": {
+    "name": "Cabinet Office",
+    "scheme": "GB-GOR",
+    "uid": "D2",
+    "uri": "https://www.gov.uk/government/organisations/cabinet-office"
+  },
+  "license": "http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "publicationPolicy": "https://www.gov.uk/government/publications/open-contracting",
+  "releases": [
+    {
+      "ocid": "ocds-h6vhtk-06efc1",
+      "id": "105436-2026",
+      "date": "2026-11-05T16:57:43Z",
+      "tag": [
+        "tender"
+      ],
+      "tender": {
+        "id": "C468739",
+        "title": "Sight Testing and Dispensing of Spectacles to Children and Young People in Special Educational Settings (SES) - South West",
+        "status": "active",
+        "classification": {
+          "scheme": "CPV",
+          "id": "85100000",
+          "description": "Health services"
+        },
+        "value": {
+          "amount": 3280000,
+          "currency": "GBP"
+        },
+        "tenderPeriod": {
+          "endDate": "2026-12-10T12:00:00Z"
+        }
+      },
+      "parties": [
+        {
+          "id": "GB-NHS-QJK",
+          "name": "NHS Devon Integrated Care Board",
+          "roles": [
+            "buyer"
+          ]
+        },
+        {
+          "id": "GB-NHS-QT6",
+          "name": "NHS Cornwall and Isles of Scilly Integrated Care Board",
+          "roles": [
+            "buyer"
+          ]
+        },
+        {
+          "id": "GB-NHS-QUY",
+          "name": "NHS Bristol, North Somerset and South Gloucestershire Integrated Care Board",
+          "roles": [
+            "buyer"
+          ]
+        },
+        {
+          "id": "GB-NHS-QR1",
+          "name": "NHS Gloucestershire Integrated Care Board",
+          "roles": [
+            "buyer"
+          ]
+        }
+      ],
+      "buyer": {
+        "id": "GB-NHS-QJK",
+        "name": "NHS Devon Integrated Care Board"
+      }
+    },
+    {
+      "ocid": "ocds-h6vhtk-06ad67",
+      "id": "105326-2026",
+      "date": "2026-11-05T15:15:20Z",
+      "tag": [
+        "tender"
+      ],
+      "tender": {
+        "id": "ocds-h6vhtk-06ad67",
+        "title": "Supply and Delivery of Hygiene Services and Equipment 0226",
+        "status": "active",
+        "classification": {
+          "scheme": "CPV",
+          "id": "33760000",
+          "description": "Toilet paper, handkerchiefs, hand towels and serviettes"
+        },
+        "value": {
+          "amount": 84000000,
+          "currency": "GBP"
+        },
+        "tenderPeriod": {
+          "endDate": "2026-12-03T12:00:00Z"
+        }
+      },
+      "parties": [
+        {
+          "id": "GB-FTS-186",
+          "name": "Scotland Excel",
+          "roles": [
+            "buyer",
+            "centralPurchasingBody"
+          ]
+        }
+      ],
+      "buyer": {
+        "id": "GB-FTS-186",
+        "name": "Scotland Excel"
+      }
+    }
+  ],
+  "links": {
+    "next": "https://www.find-tender.service.gov.uk/api/1.0/ocdsReleasePackages?limit=2&stages=tender&updatedTo=2026-11-05T19:35:11&cursor=dXBkYXRlZFRvPTIwMjYtMTEtMDVUMTk6MzU6MTF8bmV4dEN1cnNvcj03NTcyNjQ="
+  }
+}

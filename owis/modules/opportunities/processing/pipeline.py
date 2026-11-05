@@ -4,9 +4,13 @@ from datetime import datetime, timezone
 import re
 from typing import Any
 
+from owis.modules.opportunities.collectors.open_data import date_only
+
 
 PRIMARY_MARKETS = {"NOR", "DNK", "GBR"}
 SECONDARY_MARKETS = {
+    "FRA",
+    "POL",
     "DEU",
     "NLD",
     "SWE",
@@ -174,13 +178,11 @@ def classify_notice(
             qualifier_terms.update(profile.get("qualifier") or [])
 
         matched_qualifiers = sorted(term for term in qualifier_terms if term in description)
-        if not matched_qualifiers:
-            continue
-
         matched_profiles = [
             profile
             for profile in company_profiles
-            if any(keyword in description for keyword in profile.get("keywords") or [])
+            if (not profile.get("qualifier") or matched_qualifiers)
+            and any(keyword in description for keyword in profile.get("keywords") or [])
         ]
         if not matched_profiles:
             continue
@@ -232,7 +234,8 @@ def process_raw_item(
     family = _detect_family(text)
     mechanism = _detect_mechanism(text)
 
-    detected_deadline = _extract_deadline(text)
+    source_deadline = raw.get("deadline_raw")
+    detected_deadline = date_only(source_deadline) if source_deadline else _extract_deadline(text)
     publication_date = str(raw.get("publication_date") or "")
     deadline = detected_deadline or None
 
@@ -267,6 +270,9 @@ def process_raw_item(
         "opportunity_family": family,
         "mechanism_type": mechanism,
         "deadline": deadline,
+        "deadline_source": "source" if source_deadline else ("text" if deadline else None),
+        "estimated_value": raw.get("estimated_value"),
+        "currency": raw.get("currency"),
         "strategic_fit": strategic_fit,
         "competition_level": str(classification.get("competition_level") or "High"),
         "matched_services": ",".join(matched_services),

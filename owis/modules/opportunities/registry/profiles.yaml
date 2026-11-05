@@ -56,3 +56,30 @@ profiles:
       - '79411100'
       - '79400000'
       - '90713000'
+  - company: OWIS
+    name: Offshore wind market
+    category: Offshore Wind
+    keywords:
+      - offshore wind
+      - floating wind
+      - wind farm
+      - havvind
+      - havvindpark
+      - éolien en mer
+      - éolien flottant
+      - Windenergie auf See
+      - Offshore-Windpark
+      - eólica marina
+      - havmølle
+      - havsbaserad vindkraft
+      - offshore substation
+      - export cable
+      - inter-array cable
+      - seabed lease
+    negative_keywords:
+      - onshore
+      - land-based
+      - school
+      - hospital
+    qualifier: []
+    cpv_codes: []

@@ -286,6 +286,22 @@ def init_db() -> None:
             );
             """
         )
+        conn.execute("""CREATE TABLE IF NOT EXISTS opportunity_source_runs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source_name TEXT NOT NULL, started_at TEXT NOT NULL, completed_at TEXT NOT NULL,
+            status TEXT NOT NULL, error TEXT,
+            fetched INTEGER NOT NULL DEFAULT 0, new_items INTEGER NOT NULL DEFAULT 0,
+            filtered INTEGER NOT NULL DEFAULT 0
+        )""")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_opportunity_runs_source ON opportunity_source_runs(source_name, id)")
+        for table, additions in {
+            "opportunity_raw_items": {"deadline_raw": "TEXT", "estimated_value": "REAL", "currency": "TEXT"},
+            "opportunity_processed_items": {"estimated_value": "REAL", "currency": "TEXT", "deadline_source": "TEXT"},
+        }.items():
+            columns = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+            for name, kind in additions.items():
+                if name not in columns:
+                    conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {kind}")
         raw_columns = {
             str(row["name"])
             for row in conn.execute("PRAGMA table_info(news_raw_items)").fetchall()

@@ -1,0 +1,148 @@
+{
+  "uri": "https://www.contractsfinder.service.gov.uk/Published/Notices/OCDS/Search?limit=2&stages=tender,planning&publishedTo=2026-11-05T19:34:49Z",
+  "version": "1.1",
+  "extensions": [
+    "https://standard.open-contracting.org/profiles/eu/master/en/extension.json",
+    "https://raw.githubusercontent.com/portaledcahn/ocds_tenderDatePublished_extension/master/extension.json",
+    "https://raw.githubusercontent.com/open-contracting-extensions/ocds_budget_breakdown_extension/master/extension.json",
+    "https://raw.githubusercontent.com/Crown-Commercial-Service/ocds_awards_datePublished_extension/main/extension.json",
+    "https://raw.githubusercontent.com/Crown-Commercial-Service/ocds_partyDetails_vcse_extension/main/extension.json",
+    "https://raw.githubusercontent.com/Crown-Commercial-Service/ocds_tender_suitability_extension/main/extension.json",
+    "https://raw.githubusercontent.com/open-contracting-extensions/ocds_pagination_extension/master/extension.json"
+  ],
+  "publishedDate": "2026-11-05T12:04:03Z",
+  "publisher": {
+    "name": "Cabinet Office",
+    "scheme": "GB-GOR",
+    "uid": "D2",
+    "uri": "https://www.gov.uk/government/organisations/cabinet-office"
+  },
+  "license": "http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+  "publicationPolicy": "https://www.gov.uk/government/publications/open-contracting",
+  "releases": [
+    {
+      "ocid": "ocds-b5fd17-df3eccb1-4603-4e29-b4e3-4e2c03fb9b09",
+      "id": "60a48dfe-b2c0-461e-a34c-50e398cc9c9a-920669",
+      "date": "2026-11-05T12:04:03Z",
+      "tag": [
+        "tender"
+      ],
+      "tender": {
+        "id": "20261105120358-153032",
+        "title": "Crane Provision Framework",
+        "status": "active",
+        "classification": {
+          "scheme": "CPV",
+          "id": "42414100",
+          "description": "Cranes"
+        },
+        "additionalClassifications": [
+          {
+            "scheme": "CPV",
+            "id": "45510000",
+            "description": "Hire of cranes with operator"
+          }
+        ],
+        "value": {
+          "amount": 4000000,
+          "currency": "GBP"
+        },
+        "tenderPeriod": {
+          "endDate": "2026-12-03T15:00:00Z"
+        },
+        "documents": [
+          {
+            "id": "1",
+            "documentType": "tenderNotice",
+            "description": "Opportunity notice on Contracts Finder",
+            "url": "https://www.contractsfinder.service.gov.uk/Notice/60a48dfe-b2c0-461e-a34c-50e398cc9c9a",
+            "datePublished": "2026-11-05T12:04:03Z",
+            "format": "text/html",
+            "language": "en"
+          },
+          {
+            "id": "2",
+            "description": "Additional data",
+            "url": "https://uk.eu-supply.com/app/rfq/rwlentrance_s.asp?PID=110721&B=KBS"
+          },
+          {
+            "id": "3",
+            "description": "User / Company",
+            "url": "https://uk.eu-supply.com/ctm/Company/CompanyInformation/Index/153032"
+          }
+        ]
+      },
+      "parties": [
+        {
+          "id": "GB-CFS-284339",
+          "name": "KBS Maritime Ltd",
+          "roles": [
+            "buyer"
+          ]
+        }
+      ],
+      "buyer": {
+        "id": "GB-CFS-284339",
+        "name": "KBS Maritime Ltd"
+      }
+    },
+    {
+      "ocid": "ocds-b5fd17-5264e46e-cff4-462f-915a-e1a43a138077",
+      "id": "24d33f16-5423-43b8-9aec-68e19200e363-920665",
+      "date": "2026-11-05T11:50:03Z",
+      "tag": [
+        "tender"
+      ],
+      "tender": {
+        "id": "BIP1081928718",
+        "title": "Shropshire 0-25 Public Health Nursing Service (PHNS)",
+        "status": "active",
+        "classification": {
+          "scheme": "CPV",
+          "id": "85100000",
+          "description": "Health services"
+        },
+        "value": {
+          "amount": 25296852,
+          "currency": "GBP"
+        },
+        "tenderPeriod": {
+          "endDate": "2026-12-21T12:00:00Z"
+        },
+        "documents": [
+          {
+            "id": "1",
+            "documentType": "tenderNotice",
+            "description": "Opportunity notice on Contracts Finder",
+            "url": "https://www.contractsfinder.service.gov.uk/Notice/24d33f16-5423-43b8-9aec-68e19200e363",
+            "datePublished": "2026-11-05T11:50:03Z",
+            "format": "text/html",
+            "language": "en"
+          },
+          {
+            "id": "2",
+            "documentType": "tenderNotice",
+            "description": "Please follow this link to view the notice.",
+            "url": "https://www.delta-esourcing.com/tenders/UK-UK-Shrewsbury:-Health-services./AE836UE763"
+          }
+        ]
+      },
+      "parties": [
+        {
+          "id": "GB-CFS-310686",
+          "name": "Shropshire Council",
+          "roles": [
+            "buyer"
+          ]
+        }
+      ],
+      "buyer": {
+        "id": "GB-CFS-310686",
+        "name": "Shropshire Council"
+      }
+    }
+  ],
+  "links": {
+    "next": "https://www.contractsfinder.service.gov.uk/Published/Notices/OCDS/Search?limit=2&stages=tender,planning&publishedTo=2026-11-05T19:34:49Z&cursor=cHVibGlzaGVkVG89MjAyNi0xMS0wNVQxOTozNDo0OVp8c3RhZ2VzPXRlbmRlcixwbGFubmluZ3xsaW1pdD0yfG5leHRDdXJzb3I9Nzg4OTg3"
+  }
+}

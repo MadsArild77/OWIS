@@ -46,8 +46,11 @@ class OpportunitiesRepository:
                     cpv_codes,
                     content_hash,
                     fetched_at,
+                    deadline_raw,
+                    estimated_value,
+                    currency,
                     status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     notice_id,
@@ -61,6 +64,9 @@ class OpportunitiesRepository:
                     json.dumps(cpv_codes, ensure_ascii=True),
                     content_hash,
                     str(item.get("fetched_at") or ""),
+                    item.get("deadline_raw"),
+                    item.get("estimated_value"),
+                    item.get("currency"),
                     "new",
                 ),
             )
@@ -109,6 +115,9 @@ class OpportunitiesRepository:
                     opportunity_family,
                     mechanism_type,
                     deadline,
+                    deadline_source,
+                    estimated_value,
+                    currency,
                     strategic_fit,
                     competition_level,
                     matched_services,
@@ -119,7 +128,7 @@ class OpportunitiesRepository:
                     confidence,
                     profile_name,
                     processed_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     processed["raw_item_id"],
@@ -132,6 +141,9 @@ class OpportunitiesRepository:
                     processed["opportunity_family"],
                     processed["mechanism_type"],
                     processed.get("deadline"),
+                    processed.get("deadline_source"),
+                    processed.get("estimated_value"),
+                    processed.get("currency"),
                     processed["strategic_fit"],
                     processed["competition_level"],
                     processed["matched_services"],
@@ -201,3 +213,26 @@ class OpportunitiesRepository:
                 (item_id,),
             ).fetchone()
             return dict(row) if row else None
+
+    def save_source_run(self, source_report: dict[str, Any], started_at: str, completed_at: str) -> None:
+        with get_conn() as conn:
+            conn.execute(
+                """INSERT INTO opportunity_source_runs
+                (source_name, started_at, completed_at, status, error, fetched, new_items, filtered)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (source_report["source"], started_at, completed_at, source_report["status"],
+                 source_report.get("error"), source_report.get("items", 0),
+                 source_report.get("new_items", 0), source_report.get("filtered", 0)),
+            )
+
+    def latest_source_runs(self) -> dict[str, dict[str, Any]]:
+        with get_conn() as conn:
+            rows = conn.execute("""SELECT * FROM opportunity_source_runs WHERE id IN
+                (SELECT MAX(id) FROM opportunity_source_runs GROUP BY source_name)""").fetchall()
+            return {row["source_name"]: dict(row) for row in rows}
+
+    def successful_source_starts(self) -> dict[str, str]:
+        with get_conn() as conn:
+            rows = conn.execute("""SELECT source_name, MAX(started_at) AS started_at
+                FROM opportunity_source_runs WHERE status = 'ok' GROUP BY source_name""").fetchall()
+            return {row["source_name"]: row["started_at"] for row in rows}

@@ -1,0 +1,114 @@
+{
+  "numHitsTotal": 176,
+  "numHitsAccessible": 176,
+  "hits": [
+    {
+      "id": "2026-117155",
+      "buyer": [
+        {
+          "id": "b96199a15ebd24ff1d77dc32f3b4ed7d",
+          "organizationId": "964965226",
+          "name": "Stavanger kommune"
+        }
+      ],
+      "heading": "Rammeavtale vektertjenester",
+      "description": "Stavanger kommune (heretter oppdragsgiver) \u00f8nsker gjennom denne konkurransen \u00e5 inng\u00e5 rammeavtale for levering av vektertjenester.",
+      "locationId": [
+        "NO0A1"
+      ],
+      "estimatedValue": {
+        "currencyCode": "NOK",
+        "amount": 26000000.0
+      },
+      "type": "ANNOUNCEMENT_OF_COMPETITION",
+      "allTypes": [
+        "ANNOUNCEMENT_OF_COMPETITION",
+        "COMPETITION"
+      ],
+      "status": "ACTIVE",
+      "issueDate": "2026-11-03T13:52:34Z",
+      "deadline": "2026-12-18T11:00:00Z",
+      "sentToTed": true,
+      "publicationDate": "2026-11-05",
+      "placeOfPerformance": [
+        "Rogaland"
+      ],
+      "procurementStrategicLabels": []
+    },
+    {
+      "id": "2026-117157",
+      "buyer": [
+        {
+          "id": "3bcee9d5c62777e3458df82ddd9b2279",
+          "organizationId": "985 686 092",
+          "name": "Stiftelsen Nasjonalmuseet for kunst"
+        }
+      ],
+      "heading": "Vakttjenester",
+      "description": "Nasjonalmuseet gjennomf\u00f8rer konkurranse for vakttjenester iht. kravspesifikasjon.",
+      "locationId": [
+        "NO081"
+      ],
+      "estimatedValue": null,
+      "type": "ANNOUNCEMENT_OF_COMPETITION",
+      "allTypes": [
+        "ANNOUNCEMENT_OF_COMPETITION",
+        "COMPETITION"
+      ],
+      "status": "ACTIVE",
+      "issueDate": "2026-11-03T14:22:37Z",
+      "deadline": "2026-11-30T11:00:00Z",
+      "sentToTed": true,
+      "publicationDate": "2026-11-05",
+      "placeOfPerformance": [
+        "Oslo"
+      ],
+      "procurementStrategicLabels": []
+    }
+  ],
+  "activeFacets": {
+    "buyer": {
+      "items": []
+    },
+    "winner": {
+      "items": []
+    },
+    "cpvCodes": {
+      "items": []
+    },
+    "status": {
+      "items": []
+    },
+    "type": {
+      "items": [
+        {
+          "id": "COMPETITION",
+          "value": null
+        },
+        {
+          "id": "ANNOUNCEMENT_OF_COMPETITION",
+          "value": null
+        },
+        {
+          "id": "PRE_ANNOUNCEMENT",
+          "value": null
+        }
+      ]
+    },
+    "locations": {
+      "items": []
+    },
+    "cpvCodesLabel": {
+      "items": []
+    },
+    "cpvCodesId": {
+      "items": []
+    },
+    "contractNature": {
+      "items": []
+    },
+    "procurementStrategicLabels": {
+      "items": []
+    }
+  }
+}

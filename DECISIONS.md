@@ -447,3 +447,18 @@ beslutningen med lenke til den nye.
 - **Svar fra Stortinget:** for besvarte spørsmål hentes spørsmålstekst, begrunnelse og statsrådens svar
   (data.stortinget.no/eksport/enkeltsporsmal), én gang per spørsmål. Vises under «Question and answer» og
   brukes i «The big picture» og helikopterbildet.
+
+
+## D28 – Opportunities samles i OWIS med åpne anbudskilder
+
+**Implementert på oppgavegren 5. november 2026; ikke produksjonsvalidert.**
+- Opportunities samler TED (EU/EØS), Doffin (Norge), Verdensbanken, Find a Tender
+  og Contracts Finder (Storbritannia) og CanadaBuys. Ingen nye betalte tjenester.
+- OWIS-profilen «Offshore wind market» gir markedsinnsikt på havvindord uten
+  ekstra kvalifikator. Eksisterende selskapsprofiler beholder kvalifikatorene.
+- Kildens frist går foran datoer i fritekst. Anslått verdi og valuta bevares når
+  strukturerte kildefelt finnes. Migrasjonen fyller ikke ut gamle rader.
+- Hver kildekjøring får lagret status og antall. UK/Canada fortsetter fra siste
+  vellykkede kjøring; UK-kildene deler identitet (`ocid`) for å unngå duplikater.
+- Kildestatus leveres gjennom `/api/opportunities/sources`. Grensesnittet kommer
+  i kort 008. Notion-eksporten beholdes.

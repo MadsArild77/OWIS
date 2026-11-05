@@ -1,0 +1,118 @@
+{
+  "notices": [
+    {
+      "notice-type": "pin-only",
+      "publication-number": "756525-2026",
+      "classification-cpv": [
+        "79342310",
+        "79300000",
+        "79310000",
+        "79342300",
+        "79342311",
+        "79342321",
+        "79342310",
+        "79300000",
+        "79310000",
+        "79342300",
+        "79342311",
+        "79342321"
+      ],
+      "publication-date": "2026-11-02+01:00",
+      "buyer-name": {
+        "eng": [
+          "Skyss"
+        ]
+      },
+      "estimated-value-proc": "20000000",
+      "estimated-value-cur-proc": "NOK",
+      "links": {
+        "html": {
+          "ENG": "https://ted.europa.eu/en/notice/-/detail/756525-2026"
+        }
+      },
+      "notice-title": {
+        "eng": "Norway \u2013 Customer survey services \u2013 RFI - Procurement of market insights and customer insights for Skyss"
+      },
+      "buyer-country": [
+        "NOR"
+      ]
+    },
+    {
+      "deadline-receipt-request": [
+        "2026-11-27T11:00:00Z"
+      ],
+      "deadline-receipt-tender-date-lot": [
+        "2026-11-27Z"
+      ],
+      "notice-type": "cn-standard",
+      "publication-number": "756751-2026",
+      "classification-cpv": [
+        "37420000",
+        "37421000",
+        "37422000",
+        "37424000",
+        "37425000",
+        "37426000",
+        "37450000",
+        "37420000",
+        "37421000",
+        "37422000",
+        "37424000",
+        "37425000",
+        "37426000",
+        "37450000"
+      ],
+      "publication-date": "2026-11-02+01:00",
+      "buyer-name": {
+        "eng": [
+          "Vefsn Kommune"
+        ]
+      },
+      "links": {
+        "html": {
+          "ENG": "https://ted.europa.eu/en/notice/-/detail/756751-2026"
+        }
+      },
+      "notice-title": {
+        "eng": "Norway \u2013 Gymnasium equipment \u2013 Equipment for a basic hall for gymnastics/gymnastics."
+      },
+      "buyer-country": [
+        "NOR"
+      ]
+    },
+    {
+      "notice-type": "cn-standard",
+      "publication-number": "756815-2026",
+      "classification-cpv": [
+        "85312000",
+        "85311200",
+        "85312400",
+        "85312000",
+        "85311200",
+        "85312400"
+      ],
+      "publication-date": "2026-11-02+01:00",
+      "buyer-name": {
+        "eng": [
+          "Gran Kommune"
+        ]
+      },
+      "estimated-value-proc": "135000000.00",
+      "estimated-value-cur-proc": "NOK",
+      "links": {
+        "html": {
+          "ENG": "https://ted.europa.eu/en/notice/-/detail/756815-2026"
+        }
+      },
+      "notice-title": {
+        "eng": "Norway \u2013 Social work services without accommodation \u2013 Service concession BPA - Gran municipality"
+      },
+      "buyer-country": [
+        "NOR"
+      ]
+    }
+  ],
+  "totalNoticeCount": 181,
+  "iterationNextToken": null,
+  "timedOut": false
+}

@@ -1,0 +1,43 @@
+{
+  "rows": 2,
+  "os": "0",
+  "page": "1",
+  "total": "17",
+  "procnotices": [
+    {
+      "id": "OP00472554",
+      "notice_type": "Request for Expression of Interest",
+      "noticedate": "01-Oct-2026",
+      "notice_lang_name": "English",
+      "notice_status": "Published",
+      "submission_deadline_date": "2026-10-22T00:00:00Z",
+      "submission_deadline_time": "16:30",
+      "project_ctry_name": "St. Kitts and Nevis",
+      "project_id": "P181991",
+      "project_name": "GFPP SKN Caribbean Resilient Renewable Energy Infrastructure Investment Facility",
+      "bid_reference_no": "KN-MPIEU-528498-CS-CDS",
+      "bid_description": "Technical assessment for sub-sea interconnection",
+      "procurement_group": "CS",
+      "procurement_method_code": "CQS",
+      "procurement_method_name": "Consultant Qualification  Selection",
+      "contact_organization": "Ministry of Public Infrastructure, Energy and Utilities",
+      "submission_date": "2026-10-01T00:00:00Z"
+    },
+    {
+      "id": "OP00434682",
+      "notice_type": "Contract Award",
+      "noticedate": "25-Mar-2026",
+      "notice_lang_name": "English",
+      "notice_status": "Published",
+      "project_ctry_name": "Liberia",
+      "project_id": "P180498",
+      "project_name": "Liberia Electricity Sector Strengthening and Access Project (LESSAP) Phase 2",
+      "bid_reference_no": "LR-RREA-520937-GO-DIR",
+      "bid_description": "design, supply, and installation of the 4.0 MWp Lofa County Mini-grid Solar Plant, including a 9.4 MWh lithium-ion Battery Energy Storage System (BESS)",
+      "procurement_group": "GO",
+      "procurement_method_code": "DIR",
+      "procurement_method_name": "Direct Selection",
+      "submission_date": "2026-03-25T00:00:00Z"
+    }
+  ]
+}
