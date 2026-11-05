@@ -477,3 +477,13 @@ beslutningen med lenke til den nye.
   kildestatus. Tre kildefeil på rad løftes øverst. «Show more» åpner neste side.
 - Morgenrapporten bruker inntil 40 nye poster fra siste døgn, med `all`-kilder først, og viser
   inntil ti lenker. Ingen fullteksthenting, ekstra søk eller AI-kall i innhentingen.
+
+## D30 – Nyhetssidens stil og skript ligger i egne filer
+
+**Implementert på oppgavegren 5. november 2026; ikke produksjonsvalidert.**
+- `news.html` beholder HTML-oppsettet. Sidestilen ligger i `news.css`, og JavaScript
+  er delt etter område i `news-*.js`, med samme kode og rekkefølge som før.
+- Vanlige skripttagger beholder globale funksjoner og eksisterende HTML-handlinger.
+  De nye filene har `?v=1`. `/static/` sender `Cache-Control: no-store` gjennom
+  en liten middleware rundt eksisterende `StaticFiles`, slik at filene hentes på nytt
+  etter utrulling. Dette gjelder også de øvrige statiske filene.

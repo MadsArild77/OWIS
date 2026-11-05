@@ -4,6 +4,10 @@ Oppdatert 5. oktober 2026. [Dokumentasjon](DOCUMENTATION.md) · [Beslutninger](D
 
 ## Gjeldende status
 
+Kort 002 er implementert på oppgavegren 5. november 2026: nyhetssidens stil og JavaScript
+ligger i egne filer, uten endret utseende eller funksjoner. Statiske filer sendes med
+`Cache-Control: no-store`. Se D30 og `oppgaver/002-del-opp-nyhetssiden.svar.md`.
+
 Kort 004 er implementert på oppgavegren 5. november 2026: politikkilder med RSS/Atom og HTML-lister
 hentes separat, med temaarv, intervaller og kjøringslogg. Egen liste i Policy & regulation og siste døgn
 i morgenrapporten. Import, API-adaptere og kontroll mot produksjonskildene er ikke utført her. Se D29.

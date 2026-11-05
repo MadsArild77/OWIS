@@ -15,6 +15,16 @@ from owis.modules.policy.api import router as policy_router
 
 app = FastAPI(title="Offshore Wind Intelligence API", version="0.1.0")
 app.middleware("http")(require_login)
+
+
+@app.middleware("http")
+async def static_cache_control(request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 app.include_router(news_router)
 app.include_router(source_config_router)
 app.include_router(opportunities_router)
