@@ -462,3 +462,18 @@ beslutningen med lenke til den nye.
   vellykkede kjøring; UK-kildene deler identitet (`ocid`) for å unngå duplikater.
 - Kildestatus leveres gjennom `/api/opportunities/sources`. Grensesnittet kommer
   i kort 008. Notion-eksporten beholdes.
+
+## D29 – Overvåkede politikkilder hentes separat fra nyhetene
+
+**Implementert på oppgavegren 5. november 2026; ikke produksjonsvalidert.**
+- Aktive politikkilder uten `news`, med RSS/Atom eller HTML-liste, hentes ved `OWI_FETCH_HOURS`.
+  Jobben følger eksisterende `OWI_SCHEDULED_FETCH_ENABLED`, har egen tråd og egne databasekrav
+  mot dobbeltkjøring, og inngår ikke i nyhetsjobbens tidsgrense.
+- Kildeintervall gjelder også etter feil. Første vellykkede henting tar bare siste 30 dager,
+  med unntak for kalenderposter og poster uten dato. Temavalg og temaord arves fra organisasjoner.
+- `policy_items` har én rad per URL uten sporingsparametre (`utm_*`) og fragment. Første kilde og
+  tidspunkt beholdes; innholdstypen kan oppgraderes til kalender eller høring ved overlapp.
+- Policy & regulation viser siste 30 dager, region- og typefilter, sider på inntil 100 poster og
+  kildestatus. Tre kildefeil på rad løftes øverst. «Show more» åpner neste side.
+- Morgenrapporten bruker inntil 40 nye poster fra siste døgn, med `all`-kilder først, og viser
+  inntil ti lenker. Ingen fullteksthenting, ekstra søk eller AI-kall i innhentingen.

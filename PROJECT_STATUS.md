@@ -4,6 +4,10 @@ Oppdatert 5. oktober 2026. [Dokumentasjon](DOCUMENTATION.md) · [Beslutninger](D
 
 ## Gjeldende status
 
+Kort 004 er implementert på oppgavegren 5. november 2026: politikkilder med RSS/Atom og HTML-lister
+hentes separat, med temaarv, intervaller og kjøringslogg. Egen liste i Policy & regulation og siste døgn
+i morgenrapporten. Import, API-adaptere og kontroll mot produksjonskildene er ikke utført her. Se D29.
+
 Driftsrapport er implementert i Settings → News sources → System health og som skrivebeskyttet CLI (`python -m owis.scripts.ops_report --db <sti> --days 30`). Produksjonsdata er ikke kontrollert.
 
 Sist kontrollerte kodegrunnlag er `main`, inkludert PR #8 (`4258468`) og
@@ -50,8 +54,8 @@ under 56. 180 tester består lokalt.
 ## Neste arbeid og begrensninger
 
 Neste utviklingstrinn er **trinn 2: felles innhentingsmotor**, etter den lagrede
-[planen](IMPLEMENTATION_PLAN.md). Konfigurerbare intervaller, tema-/personregler
-og kalenderkilder betyr foreløpig ikke at disse brukes av innhentingen.
+[planen](IMPLEMENTATION_PLAN.md). Konfigurerbare intervaller, temaregler
+og kalenderkilder brukes nå for politikkilder med RSS/Atom og HTML-lister (004); andre adaptere gjenstår.
 Morgenrapportens eksisterende politikkoppslag bruker fortsatt egne kildegrupper.
 
 Aktiv produksjonsversjon, miljøvariabler, kildehelse og automatisk kjøring er ikke

@@ -14,7 +14,9 @@ og importeres i **Settings → Regulatory → Import**.
   Railway kan få andre svar. Regjeringen.no har tidligere stoppet oppslag fra Railway (D25).
 - **Importen er prøvd** to ganger etter hverandre i en tom testdatabase. Den lager ikke duplikater, fordi den slår sammen på stabil ID.
 - **Ingen av kildene har innholdstypen `news`.** Derfor havner de ikke i nyhetsstrømmen. Før [oppgave 004](oppgaver/004-innhenting-politikkilder.md)
-  er gjort, lagres de bare i registeret og kan testes der.
+  ble gjort, ble de bare lagret i registeret. RSS/Atom og HTML-lister hentes nå av en egen bakgrunnsjobb
+  ved `OWI_FETCH_HOURS`, med kildeintervall, temafilter og pauseregler. Postene vises under
+  **Policy & regulation → From monitored sources** og tas med i morgenrapporten. API-adaptere gjenstår i 005.
 - Kildene følger **alt** når organisasjonen er sentral for havvind (for eksempel Energidepartementet, DG ENER, DESNZ, BSH, BOEM og Litauens
   energidepartement), og ellers **bare tematreff**. Temaordene står på organisasjonen på landets eget språk og arves av kildene.
 
