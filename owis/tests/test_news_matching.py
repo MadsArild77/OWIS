@@ -1,3 +1,4 @@
+from owis.modules.news.presentation.api import MatchRunRequest
 import json
 import sqlite3
 from types import SimpleNamespace
@@ -132,17 +133,17 @@ def test_decision_rolls_back_when_merge_fails(repo):
     assert repo.list_collection_overrides()=={}
 
 def test_disabled_ai_is_explicit(repo,monkeypatch):
-    from owis.modules.news.presentation import api
+    from owis.modules.news.processing import match_review as api
     from fastapi import HTTPException
     monkeypatch.setattr(api,"AIClient",lambda:SimpleNamespace(enabled=False))
-    with pytest.raises(HTTPException) as exc:api._run_match_review(api.MatchRunRequest())
+    with pytest.raises(HTTPException) as exc:api._run_match_review(MatchRunRequest())
     assert exc.value.status_code==503
 
 
 def test_api_review_roundtrip_and_duplicate_decision(repo, monkeypatch):
     from fastapi.testclient import TestClient
     from owis.apps.api.main import app
-    from owis.modules.news.presentation import api
+    from owis.modules.news.processing import match_review as api
     ids=[seed(repo,i) for i in range(2)]
     p=pair(repo,*ids,relation="update")
     with TestClient(app) as client:
@@ -154,29 +155,29 @@ def test_api_review_roundtrip_and_duplicate_decision(repo, monkeypatch):
 
 
 def test_semantic_match_api_with_mocked_openai(repo, monkeypatch):
-    from owis.modules.news.presentation import api
+    from owis.modules.news.processing import match_review as api
     ids=[seed(repo,i) for i in range(2)]
     monkeypatch.setattr(api,"AIClient",lambda:SimpleNamespace(enabled=True,judge_news_match=lambda **kw:dict(relationship="same_event",same_story="yes",confidence=0.95,reason_short="Same decision")))
     monkeypatch.setattr(api,"embed_articles",lambda rows:{int(r["id"]):[1,0] for r in rows})
     # Avoid tying this test to wall-clock date or classification quality.
     monkeypatch.setattr(api,"window_start_iso",lambda days:"2020-01-01T00:00:00Z")
-    manual=api._run_match_review(api.MatchRunRequest(domain_bucket="all",auto_apply=False))
+    manual=api._run_match_review(MatchRunRequest(domain_bucket="all",auto_apply=False))
     assert manual["checked_pairs"]==1 and manual["enqueued_pairs"]==1 and manual["auto_merged_pairs"]==0
     assert repo.list_match_review_pairs()[0]["relationship"]=="same_event"
 
 
 def test_confident_same_event_is_merged_automatically(repo, monkeypatch):
-    from owis.modules.news.presentation import api
+    from owis.modules.news.processing import match_review as api
     ids=[seed(repo,i) for i in range(2)]
     monkeypatch.setattr(api,"AIClient",lambda:SimpleNamespace(enabled=True,judge_news_match=lambda **kw:dict(relationship="same_event",same_story="yes",confidence=0.95,reason_short="Same decision")))
     monkeypatch.setattr(api,"embed_articles",lambda rows:{int(r["id"]):[1,0] for r in rows})
     monkeypatch.setattr(api,"window_start_iso",lambda days:"2020-01-01T00:00:00Z")
-    result=api._run_match_review(api.MatchRunRequest(domain_bucket="all"))
+    result=api._run_match_review(MatchRunRequest(domain_bucket="all"))
     assert result["auto_merged_pairs"]==1 and repo.list_match_review_pairs()==[]
     keys={o["collection_key"] for o in repo.list_collection_overrides().values()}
     assert len(keys)==1 and set(repo.list_collection_overrides())==set(ids)
     # A second run neither re-judges nor re-merges the decided pair.
-    again=api._run_match_review(api.MatchRunRequest(domain_bucket="all"))
+    again=api._run_match_review(MatchRunRequest(domain_bucket="all"))
     assert again["checked_pairs"]==0 and again["auto_merged_pairs"]==0
 
 
@@ -187,31 +188,31 @@ def _mock_match_run(api, monkeypatch, relationship):
 
 
 def test_auto_update_link_is_merged_when_rejudged_as_same_event(repo, monkeypatch):
-    from owis.modules.news.presentation import api
+    from owis.modules.news.processing import match_review as api
     ids=[seed(repo,i) for i in range(2)]
     repo.apply_match_decision(pair(repo,*ids,relation="update"),"link_update","auto")
     _mock_match_run(api,monkeypatch,"same_event")
-    result=api._run_match_review(api.MatchRunRequest(domain_bucket="all"))
+    result=api._run_match_review(MatchRunRequest(domain_bucket="all"))
     assert result["auto_merged_pairs"]==1
     assert set(repo.list_collection_overrides())==set(ids) and repo.list_story_links()==[]
 
 
 def test_auto_update_link_stays_when_still_an_update(repo, monkeypatch):
-    from owis.modules.news.presentation import api
+    from owis.modules.news.processing import match_review as api
     ids=[seed(repo,i) for i in range(2)]
     repo.apply_match_decision(pair(repo,*ids,relation="update"),"link_update","auto")
     _mock_match_run(api,monkeypatch,"update")
-    result=api._run_match_review(api.MatchRunRequest(domain_bucket="all"))
+    result=api._run_match_review(MatchRunRequest(domain_bucket="all"))
     assert result["auto_merged_pairs"]==0 and result["auto_linked_pairs"]==0
     assert len(repo.list_story_links())==1 and repo.list_collection_overrides()=={}
 
 
 def test_human_update_link_is_never_reopened(repo, monkeypatch):
-    from owis.modules.news.presentation import api
+    from owis.modules.news.processing import match_review as api
     ids=[seed(repo,i) for i in range(2)]
     repo.apply_match_decision(pair(repo,*ids,relation="update"),"link_update","mads")
     _mock_match_run(api,monkeypatch,"same_event")
-    result=api._run_match_review(api.MatchRunRequest(domain_bucket="all"))
+    result=api._run_match_review(MatchRunRequest(domain_bucket="all"))
     assert result["checked_pairs"]==0 and repo.list_collection_overrides()=={}
 
 

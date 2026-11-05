@@ -212,7 +212,7 @@ def test_research_history_includes_every_attempt(story, status):
 
 
 def test_research_history_marks_interrupted_attempt(story):
-    from owis.modules.news.presentation.api import researched_stories
+    from owis.modules.news.processing.item_view import researched_stories
     with db.get_conn() as conn:
         conn.execute("INSERT INTO news_story_research(processed_id,status,started_at,run_id) VALUES(?,'running',?,'old')",
                      (story, (datetime.now(timezone.utc)-timedelta(minutes=20)).isoformat()))

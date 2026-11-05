@@ -1,4 +1,4 @@
-from owis.modules.news.presentation.api import _build_collections
+from owis.modules.news.processing.collections import _build_collections
 
 
 def test_fresh_story_precedes_old_high_scoring_group():

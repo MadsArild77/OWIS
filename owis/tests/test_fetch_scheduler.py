@@ -4,7 +4,7 @@ import pytest
 
 from owis.core.storage import db
 from owis.modules.news.processing import fetch_scheduler as scheduler
-from owis.modules.news.presentation import api
+from owis.modules.news.processing import jobs as api
 
 
 @pytest.fixture

@@ -101,7 +101,7 @@ def test_editorial_api_and_separate_draft_signal(setup,monkeypatch):
     from fastapi.testclient import TestClient
     from owis.apps.api.main import app
     _,raw,item=setup
-    from owis.modules.news.presentation import api
+    from owis.modules.news.processing import jobs as api
     monkeypatch.setattr(api,'_create_job',lambda *a:'test-job')
     with TestClient(app) as client:
         result=client.post(f'/api/news/item/{item}/feedback',json={'topic':'grid','value':'relevant'})
