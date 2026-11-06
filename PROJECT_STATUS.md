@@ -32,7 +32,7 @@ hvilken versjon eller konfigurasjon som kjører i produksjon.
 | Felles innhentingsmotor (trinn 2) | Ikke startet | Betinget henting, endringskontroll og versjoner |
 | Norge-adaptere (trinn 3) | Ikke startet | Regjeringens kalender/høringer og Stortingets komiteer, med prioritering |
 | Morgenrapport og drift (trinn 4) | Videre integrasjon gjenstår | Koble ny motor og adaptere til rapporten, kontrollere dekning og drift |
-| Opportunities | Kort 007 implementert på oppgavegren 5. november 2026 | Seks åpne anbudskilder, OWIS-profil, kildefrist/verdi og status-API; D28. Grensesnitt i 008. Ikke kjørt mot produksjon. |
+| Opportunities | Kort 007 og 008 implementert på oppgavegren | Seks åpne kilder, filterbar anbudsliste, lesepanel og lagret/skjult i databasen; D28. Settings på Opportunities. Nettlesersjekk og produksjonskontroll gjenstår. |
 | Lyd/NotebookLM | Åpent forslag | Ingen automatisk integrasjon implementert |
 
 ## Sist gjennomførte validering

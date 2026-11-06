@@ -1,240 +1,323 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>OWIS Opportunities</title>
-  <link rel="stylesheet" href="/static/theme.css" />
-  <script src="/static/theme.js"></script>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Opportunities - OWIS</title><link rel="stylesheet" href="/static/theme.css"><script src="/static/theme.js"></script>
   <style>
-    /* Page styles for /opportunities. Colours come from the tokens in theme.css. */
-    .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px 40px; }
-    .topbar {
-      position: sticky; top: 0; z-index: 20;
-      margin: 0 -24px 24px; padding: 12px 24px;
-      display: flex; justify-content: space-between; align-items: center; gap: 12px;
-      background: var(--surface); border-bottom: 1px solid var(--line);
+    /* Page styles for /einnsyn. Layout and components follow /news; colours come from the tokens in theme.css. */
+    [hidden] { display: none !important; }
+    * { box-sizing: border-box; }
+
+    /* ---------- App shell: sidebar + main column (as /news) ---------- */
+    .app { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100vh; }
+    .sidebar {
+      position: sticky; top: 0; height: 100vh;
+      display: flex; flex-direction: column; gap: 4px;
+      padding: 18px 12px 14px;
+      background: var(--sidebar);
+      border-right: 1px solid var(--line);
+      overflow-y: auto;
     }
-    .brand-mark { display: flex; align-items: center; gap: 10px; color: var(--ink); font-size: 0.9rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; }
-    .brand-dot { width: 12px; height: 12px; border-radius: 999px; background: var(--brand); }
-    .nav { display: flex; align-items: center; gap: 18px; font-size: 0.95rem; }
-    .nav a { color: var(--muted); font-weight: 600; text-decoration: none; }
-    .nav a:hover, .nav a[aria-current="page"] { color: var(--brand); }
-    h1 { margin: 0 0 18px; font-size: 1.75rem; }
-    h2 { font-size: 1.35rem; }
-    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; box-shadow: var(--shadow); }
-    .card h2 { margin-top: 0; }
-    .controls { margin-top: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
-    label { display: block; color: var(--muted); font-size: 0.875rem; font-weight: 600; margin-bottom: 4px; }
-    input, select {
-      width: 100%; box-sizing: border-box;
-      border: 1px solid var(--line-strong); border-radius: 8px; padding: 8px 10px;
-      font: inherit; font-size: 0.95rem;
+    .brand { display: flex; align-items: center; gap: 10px; padding: 4px 10px 18px; color: var(--ink); text-decoration: none; }
+    .brand:hover { color: var(--ink); text-decoration: none; }
+    .brand-logo {
+      display: grid; place-items: center; width: 32px; height: 32px; flex: none;
+      border-radius: 8px; background: var(--brand); color: var(--brand-ink);
+    }
+    .brand-logo svg { width: 20px; height: 20px; }
+    .brand-name { display: block; font-weight: 700; font-size: 1rem; letter-spacing: 0.02em; line-height: 1.2; }
+    .brand-sub { display: block; font-size: 0.75rem; color: var(--muted); line-height: 1.3; }
+    .side-nav { display: flex; flex-direction: column; gap: 2px; }
+    .nav-label { padding: 14px 10px 6px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    .nav-item {
+      display: flex; align-items: center; justify-content: flex-start; gap: 10px; width: 100%;
+      margin: 0; padding: 8px 10px;
+      border: 0; border-radius: 8px;
+      background: transparent; color: var(--ink-2);
+      font: inherit; font-size: 0.94rem; font-weight: 500; text-align: left; text-decoration: none;
+      cursor: pointer;
+    }
+    .nav-item svg { width: 18px; height: 18px; flex: none; color: var(--muted); }
+    .nav-item:hover { background: var(--surface-hover); color: var(--ink); text-decoration: none; }
+    .nav-item.active, .nav-item.active:hover { background: var(--active-bg); color: var(--active-ink); font-weight: 600; }
+    .nav-item.active svg { color: var(--brand); }
+    .nav-count { margin-left: auto; padding: 0 7px; border-radius: 999px; background: var(--surface-2); color: var(--muted); font-size: 0.78rem; font-weight: 600; line-height: 1.6; }
+    .nav-count:empty { display: none; }
+    .sidebar-foot { margin-top: auto; padding: 12px 10px 0; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+    .theme-toggle:hover:not([disabled]) { background: var(--surface-hover); border-color: var(--line-strong); color: var(--ink); }
+
+    .main { min-width: 0; }
+    .main-head {
+      position: sticky; top: 0; z-index: 30;
+      display: flex; align-items: center; justify-content: space-between; gap: 20px;
+      padding: 16px 32px;
+      background: color-mix(in srgb, var(--page) 88%, transparent);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--line);
+    }
+    .main-head h1 { margin: 0; font-size: 1.5rem; font-weight: 700; }
+    .main-head p { margin: 2px 0 0; color: var(--muted); font-size: 0.92rem; }
+    .head-actions { display: flex; align-items: center; gap: 10px; flex: none; }
+    .head-actions .muted { font-size: 0.85rem; max-width: 240px; }
+    .head-actions button { white-space: nowrap; }
+    .content { max-width: 1080px; padding: 22px 32px 64px; }
+
+    /* ---------- Controls ---------- */
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line-strong); border-radius: 8px;
+      padding: 8px 11px;
+      font: inherit; font-size: 0.94rem;
       background: var(--surface); color: var(--ink);
     }
+    input:focus, select:focus, textarea:focus { outline: 2px solid var(--brand); outline-offset: 0; border-color: var(--brand); }
+    input[type="checkbox"] { width: auto; accent-color: var(--brand); }
     button {
-      border: 1px solid transparent; border-radius: 8px; padding: 9px 14px;
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      border: 1px solid var(--brand); border-radius: 8px;
+      padding: 8px 14px;
       background: var(--brand); color: var(--brand-ink);
-      font: inherit; font-size: 0.95rem; font-weight: 600; cursor: pointer;
-      margin-right: 8px; margin-bottom: 8px;
+      font: inherit; font-size: 0.92rem; font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.12s ease, border-color 0.12s ease;
     }
-    button:hover { filter: brightness(1.08); }
-    .btn-secondary { background: var(--secondary-bg); color: var(--secondary-ink); border-color: var(--line); }
-    .status { margin-top: 10px; color: var(--ok); }
-    .status.warn { color: var(--warn); }
-    section { margin: 20px 0 30px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
-    .item h3 { margin: 0 0 6px; font-size: 1.05rem; line-height: 1.35; }
-    .muted { color: var(--muted); font-size: 0.95rem; }
-    .meta { margin-top: 8px; color: var(--muted); font-size: 0.875rem; }
+    button:hover:not([disabled]) { background: var(--brand-hover); border-color: var(--brand-hover); }
+    button[disabled] { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary { background: var(--secondary-bg); color: var(--secondary-ink); border-color: var(--line-strong); box-shadow: var(--shadow); }
+    .btn-secondary:hover:not([disabled]) { background: var(--surface-hover); border-color: var(--line-strong); }
+    .btn-ghost { background: transparent; color: var(--brand); border-color: transparent; padding: 6px 8px; }
+    .btn-ghost:hover:not([disabled]) { background: var(--brand-soft); border-color: transparent; }
     a { text-decoration: none; }
     a:hover { text-decoration: underline; }
-    .pill {
-      display: inline-block; padding: 2px 9px; border-radius: 999px;
-      font-size: 0.8rem; font-weight: 700;
-      background: var(--tag-bg); color: var(--tag-ink); margin-left: 6px;
+    .muted { color: var(--muted); font-size: 0.94rem; }
+    .meta { margin-top: 4px; font-size: 0.86rem; color: var(--muted); }
+    .status { color: var(--ok); }
+    .status.warn { color: var(--warn); }
+    code { font-family: var(--mono); font-size: 0.88rem; overflow-wrap: anywhere; }
+
+    /* ---------- Toolbar: projects, theme, views ---------- */
+    .toolbar { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      margin: 0; padding: 6px 14px;
+      border: 1px solid var(--line-strong); border-radius: 999px;
+      background: var(--surface); color: var(--ink-2);
+      font-size: 0.88rem; font-weight: 500; box-shadow: none;
     }
-    @media (max-width: 600px) {
-      .wrap { padding: 0 16px 32px; }
-      .topbar { margin: 0 -16px 16px; padding: 10px 16px; }
-      .nav { gap: 12px; font-size: 0.875rem; }
-      .topbar, .nav { flex-wrap: wrap; }
+    .chip:hover:not([disabled]) { background: var(--surface-hover); border-color: var(--line-strong); }
+    .chip[aria-pressed="true"], .chip[aria-pressed="true"]:hover:not([disabled]) { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+    .chip .chip-count { margin-left: 2px; font-size: 0.78rem; opacity: 0.7; font-variant-numeric: tabular-nums; }
+    .chip.untagged { font-style: italic; }
+    .filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .filter-row .spacer { flex: 1; }
+    .pill-select { width: auto; max-width: 260px; padding: 6px 30px 6px 12px; border-radius: 8px; font-size: 0.88rem; font-weight: 500; }
+    .view-toggle { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); }
+    .view-toggle button { margin: 0; padding: 4px 12px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 0.85rem; box-shadow: none; }
+    .view-toggle button:hover:not([disabled]) { background: transparent; color: var(--ink); }
+    .view-toggle button.active, .view-toggle button.active:hover:not([disabled]) { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+    .summary-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+    .summary-chip { display: inline-flex; align-items: baseline; gap: 6px; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); font-size: 0.86rem; color: var(--muted); }
+    .summary-chip b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+    /* ---------- Feed (as the /news story list) ---------- */
+    .story-list { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; }
+    .day-head { margin: 0; padding: 14px 20px 8px; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: var(--surface-2); border-bottom: 1px solid var(--line); }
+    .story-list .day-head:not(:first-child) { border-top: 1px solid var(--line); }
+    .story { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; padding: 16px 20px; position: relative; transition: background-color 0.12s ease; }
+    .story-list .story + .story { border-top: 1px solid var(--line); }
+    .story.is-clickable { cursor: pointer; }
+    .story.is-clickable:hover { background: var(--surface-hover); }
+    .story-source { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 0.84rem; color: var(--muted); }
+    .source-avatar { display: grid; place-items: center; width: 20px; height: 20px; flex: none; border-radius: 5px; background: var(--brand-soft); color: var(--brand); font-size: 0.7rem; font-weight: 800; }
+    .source-name { color: var(--ink-2); font-weight: 600; }
+    .sources-badge { padding: 0 8px; border-radius: 999px; border: 1px solid var(--line-strong); font-size: 0.75rem; font-weight: 600; color: var(--ink-2); line-height: 1.6; }
+    .focus-badge { padding: 0 8px; border-radius: 999px; background: var(--tag-actor-bg); color: var(--tag-actor-ink); font-size: 0.75rem; font-weight: 600; line-height: 1.6; }
+    .dir-badge { padding: 0 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; line-height: 1.7; }
+    .story h3 { margin: 6px 0 0; font-size: 1.02rem; line-height: 1.38; font-weight: 650; }
+    .story-open { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; color: var(--ink); font: inherit; text-align: left; display: inline; cursor: pointer; }
+    .story-open:hover:not([disabled]) { background: none; border: 0; color: var(--brand); }
+    .story-open::after { content: ""; position: absolute; inset: 0; }
+    .story-description { margin: 6px 0 0; color: var(--muted); font-size: 0.94rem; line-height: 1.55; max-width: 72ch; }
+    .story-side { align-self: center; text-align: right; font-size: 0.84rem; color: var(--muted); white-space: nowrap; }
+    .story-side b { display: block; font-size: 1.3rem; color: var(--ink); font-variant-numeric: tabular-nums; }
+    .story h3 a { color: var(--ink); }
+    .story-tags { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; position: relative; }
+    .chip-tag { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; background: var(--tag-bg); color: var(--tag-ink); }
+    .chip-tag.is-theme { background: var(--tag-plain-bg); color: var(--tag-plain-ink); }
+    .story .row-links { position: relative; z-index: 1; margin-top: 8px; font-size: 0.86rem; }
+    .empty-state { padding: 48px 24px; text-align: center; color: var(--muted); }
+    .empty-state strong { display: block; margin-bottom: 4px; color: var(--ink); font-size: 1.05rem; }
+    .subhead { margin: 28px 0 10px; font-size: 1.05rem; }
+    .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; box-shadow: var(--shadow); }
+    .panel + .panel { margin-top: 14px; }
+    .panel h2 { margin: 0 0 4px; font-size: 1.05rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; font-size: 0.8rem; }
+    td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    td.date { white-space: nowrap; }
+    .table-wrap { overflow-x: auto; }
+    /* ---------- Case pane (as the /news reading pane) ---------- */
+    .detail-overlay { position: fixed; inset: 0; z-index: 1000; display: none; justify-content: flex-end; background: var(--overlay); }
+    .detail-overlay.open { display: flex; }
+    .detail-panel { width: min(760px, 100%); height: 100%; overflow-y: auto; background: var(--surface); border-left: 1px solid var(--line); box-shadow: var(--shadow-strong); animation: drawerIn 0.18s ease-out; }
+    @keyframes drawerIn { from { transform: translateX(24px); opacity: 0.6; } to { transform: none; opacity: 1; } }
+    .detail-head { position: sticky; top: 0; z-index: 2; display: flex; flex-direction: column; gap: 12px; padding: 14px 28px 16px; background: var(--surface); border-bottom: 1px solid var(--line); }
+    .detail-controls { display: flex; gap: 6px; align-items: center; justify-content: flex-end; order: -1; }
+    .detail-controls .grow { flex: 1; font-size: 0.8rem; color: var(--muted); }
+    .detail-close { margin: 0; padding: 5px 11px; font-size: 0.85rem; background: var(--secondary-bg); color: var(--secondary-ink); border-color: var(--line-strong); }
+    .detail-close:hover:not([disabled]) { background: var(--surface-hover); border-color: var(--line-strong); }
+    #detailTitle { margin: 0; font-size: 1.5rem; line-height: 1.3; font-weight: 700; }
+    .detail-body { padding: 20px 28px 40px; color: var(--ink); font-size: 1rem; line-height: 1.65; }
+    .detail-body summary { cursor: pointer; color: var(--muted); font-weight: 600; font-size: 0.9rem; }
+    .detail-summary, .detail-why { margin-top: 18px; color: var(--ink); line-height: 1.65; }
+    .detail-summary > strong, .detail-why > strong {
+      display: block; margin: 0 0 6px;
+      color: var(--muted); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+    }
+    .detail-summary p, .detail-why p { margin: 0 0 10px; }
+    .detail-why { padding: 14px 16px; border-radius: 10px; background: var(--surface-2); }
+    .detail-why p:last-child { margin-bottom: 0; }
+    .detail-meta-strip { display: flex; flex-wrap: wrap; gap: 6px; }
+    .detail-meta-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); }
+    .detail-meta-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); white-space: nowrap; }
+    .detail-meta-value { font-size: 0.86rem; line-height: 1.4; word-break: break-word; }
+    .detail-meta-chip.is-stage { background: var(--active-bg); border-color: transparent; }
+    .detail-meta-chip.is-stage .detail-meta-value { color: var(--active-ink); font-weight: 600; }
+    .bp-headline { font-weight: 700; font-size: 1.08rem; margin: 0 0 8px; }
+    .detail-body sup { color: var(--brand); font-size: 0.72rem; }
+    .sources { margin: 10px 0 0; padding-left: 22px; font-size: 0.875rem; line-height: 1.5; }
+    .sources li { margin: 4px 0; }
+    .context { margin-top: 14px; }
+    .context h4 { margin: 12px 0 4px; font-size: 0.9rem; }
+    .context .plain-list li { padding: 8px 0; font-size: 0.94rem; }
+    .case-timeline { list-style: none; padding: 0; margin: 8px 0 0; border-left: 2px solid var(--line-strong); }
+    .case-timeline li { position: relative; padding: 0 0 16px 16px; }
+    .case-timeline li::before { content: ""; position: absolute; left: -6px; top: 7px; width: 10px; height: 10px; border-radius: 50%; background: var(--brand); }
+    .case-timeline li.is-outgoing::before { background: var(--surface); border: 2px solid var(--brand); }
+    .case-timeline li.is-internal::before { background: var(--line-strong); }
+    .case-timeline time { font-size: 0.8rem; color: var(--muted); }
+    .case-timeline .tl-title { display: block; margin: 2px 0; font-weight: 650; }
+    .doc { display: inline-block; margin: 4px 6px 0 0; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line-strong); font-size: 0.8rem; }
+    /* ---------- Responsive (as /news) ---------- */
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar {
+        position: sticky; top: 0; z-index: 40; height: auto;
+        flex-direction: row; align-items: center; gap: 8px;
+        padding: 8px 12px; border-right: 0; border-bottom: 1px solid var(--line);
+        overflow-x: auto; overflow-y: hidden;
+      }
+      .brand { padding: 0 6px 0 0; }
+      .brand-text, .nav-label { display: none; }
+      .side-nav { flex-direction: row; gap: 2px; }
+      .nav-item { white-space: nowrap; padding: 7px 10px; }
+      .sidebar-foot { margin: 0 0 0 auto; padding: 0; }
+      .main-head { position: static; flex-wrap: wrap; padding: 14px 16px; }
+      .content { padding: 16px 16px 48px; }
+    }
+    @media (max-width: 640px) {
+      .chip-row, .filter-row { flex-wrap: nowrap; overflow-x: auto; margin: 0 -16px; padding: 0 16px 2px; scrollbar-width: none; }
+      .chip-row::-webkit-scrollbar, .filter-row::-webkit-scrollbar { display: none; }
+      .chip, .pill-select, .view-toggle { flex: none; white-space: nowrap; }
+      .filter-row .spacer { display: none; }
+      .story { grid-template-columns: 1fr; padding: 14px 16px; gap: 6px; }
+      .story-side { text-align: left; }
+      .story-side b { display: inline; font-size: 1rem; margin-right: 4px; }
+      .main-head h1 { font-size: 1.3rem; }
+      .head-actions { width: 100%; justify-content: space-between; }
+      .head-actions .muted { max-width: none; }
+      .detail-head { padding: 12px 16px 14px; }
+      .detail-body { padding: 16px 16px 32px; }
+      #detailTitle { font-size: 1.25rem; }
     }
   </style>
-</head>
-<body>
-  <div class="wrap">
-    <header class="topbar">
-      <a class="brand-mark" href="/news" aria-label="OWIS News"><span class="brand-dot"></span><span>OWIS Intelligence</span></a>
-      <nav class="nav" aria-label="Primary navigation">
-        <a href="/news">News</a>
-        <a href="/opportunities" aria-current="page">Opportunities</a>
-        <a href="/einnsyn">eInnsyn</a>
-        <button type="button" class="theme-toggle" data-theme-toggle>Dark mode</button>
+</head><body><div class="app">
+    <aside class="sidebar">
+      <a class="brand" href="/news" aria-label="OWIS – news">
+        <span class="brand-logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="1.6"/><path d="M12 10.6V22M12 9 7 3.5M12 9l7.2-1.6M12 9l-4.6 6.4M9 22h6"/></svg>
+        </span>
+        <span class="brand-text"><span class="brand-name">OWIS</span><span class="brand-sub">Offshore wind intelligence</span></span>
+      </a>
+      <nav class="side-nav" aria-label="Sections">
+        <div class="nav-label">Briefing</div>
+        <a class="nav-item" href="/news#morning">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v2M5.6 5.6 7 7M3 13h2M19 13h2M17 7l1.4-1.4M7 17a5 5 0 0 1 10 0M3 21h18"/></svg>
+          Morning brief
+        </a>
+        <a class="nav-item" href="/news">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h13a2 2 0 0 1 2 2v12a2 2 0 0 0 2-2V9h-2M4 5v12a2 2 0 0 0 2 2h13M8 9h7M8 13h7M8 16h4"/></svg>
+          News
+        </a>
+        <a class="nav-item" href="/news#governance">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M7 21h10M5 7h14M5 7l-3 6a3 3 0 0 0 6 0zM19 7l-3 6a3 3 0 0 0 6 0z"/></svg>
+          Policy &amp; regulation
+        </a>
+        <div class="nav-label">More</div>
+        <a class="nav-item active" href="/opportunities" aria-current="page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h16v11H4zM9 8V5h6v3M4 13h16"/></svg>
+          Opportunities
+        </a>
+<div class="nav-label">Tenders</div><button class="nav-item" data-view="open">Open<span class="nav-count" data-count="open"></span></button><button class="nav-item" data-view="closing-soon">Closing soon<span class="nav-count" data-count="closing-soon"></span></button><button class="nav-item" data-view="new">New this week<span class="nav-count" data-count="new"></span></button><button class="nav-item" data-view="saved">Saved<span class="nav-count" data-count="saved"></span></button><button class="nav-item" data-view="hidden">Hidden<span class="nav-count" data-count="hidden"></span></button>        <a class="nav-item" href="/einnsyn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6"/></svg>
+          eInnsyn
+        </a>
+        <a class="nav-item" href="/news#settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+          Settings
+        </a>
       </nav>
-    </header>
-    <h1>Opportunities</h1>
+    </aside>
 
-    <section class="card">
-      <h2>DealEngine Bridge</h2>
-      <p class="muted">Fetch notices from TED, Doffin and World Bank, classify against local profiles, and optionally export to Notion.</p>
-
-      <div class="controls">
-        <div>
-          <label>Days Back</label>
-          <input id="daysBack" type="number" min="1" value="30" />
-        </div>
-        <div>
-          <label>Sources (comma-separated)</label>
-          <input id="sources" value="TED,DOFFIN,WORLDBANK" />
-        </div>
-        <div>
-          <label>Profiles (comma-separated)</label>
-          <input id="profiles" value="AGR,MAV" />
-        </div>
-        <div>
-          <label>Notion Export Limit</label>
-          <input id="notionLimit" type="number" min="1" value="30" />
-        </div>
-        <div>
-          <label>Notion Export Mode</label>
-          <select id="notionMode">
-            <option value="high_relevance">high_relevance</option>
-            <option value="latest">latest</option>
-            <option value="upcoming_deadlines">upcoming_deadlines</option>
-          </select>
-        </div>
+<main class="main">
+  <header class="main-head"><h1>Opportunities</h1><div class="head-actions">
+    <input id="search" type="search" placeholder="Search tenders (/)" aria-label="Search tenders">
+    <button id="fetchBtn">Fetch tenders</button><button class="btn-secondary theme-toggle" data-theme-toggle>Dark mode</button>
+  </div></header>
+  <div class="content">
+    <div class="toolbar"><div class="chip-row" id="profileFilters" aria-label="Profiles"></div>
+      <div class="filter-row">
+        <select class="pill-select" id="region" aria-label="Region"><option value="">All regions</option><option>Norway</option><option>Nordics</option><option>UK</option><option>Europe</option><option>Americas</option><option>Asia-Pacific</option><option>Middle East &amp; Africa</option></select>
+        <select class="pill-select" id="source" aria-label="Source"><option value="">All sources</option></select>
+        <select class="pill-select" id="fit" aria-label="Fit"><option value="">All fit levels</option><option>High</option><option>Medium</option><option>Low</option></select>
+        <button class="btn-ghost" id="clear">Clear filters</button><a href="#settings">Settings → Opportunities</a>
       </div>
-
-      <div style="margin-top:12px;">
-        <button id="runBtn">Run Fetch + Processing</button>
-        <button id="exportBtn" class="btn-secondary">Export to Notion</button>
-        <button id="exportDryBtn" class="btn-secondary">Dry Run Export</button>
-      </div>
-      <div id="status" class="status"></div>
-    </section>
-
-    <section>
-      <h2>Upcoming Deadlines</h2>
-      <div id="deadlines" class="grid"></div>
-    </section>
-
-    <section>
-      <h2>High Relevance</h2>
-      <div id="high" class="grid"></div>
-    </section>
-
-    <section>
-      <h2>Latest Opportunities</h2>
-      <div id="latest" class="grid"></div>
+    </div>
+    <p id="status" class="status" role="status" aria-live="polite"></p><progress id="progress" aria-label="Fetching tenders" hidden></progress>
+    <h2 id="viewTitle">Open</h2><div id="list" class="story-list"></div>
+    <section id="settings" class="panel" style="margin-top:32px"><h2>Settings → Opportunities</h2>
+      <h3>Sources</h3><div id="sourceStatus"></div><h3>Profiles</h3><div id="profileInfo"></div>
+      <h3>Manual run</h3><div class="controls">
+        <label>Days back<input id="daysBack" type="number" min="1" value="30"></label>
+        <label>Sources (comma-separated)<input id="sources"></label>
+        <label>Profiles (comma-separated)<input id="profiles"></label>
+      </div><button id="runBtn">Run Fetch + Processing</button>
+      <h3>Notion export</h3><div class="controls">
+        <label>Notion Export Limit<input id="notionLimit" type="number" min="1" value="30"></label>
+        <label>Notion Export Mode<select id="notionMode"><option value="high_relevance">high_relevance</option><option value="latest">latest</option><option value="upcoming_deadlines">upcoming_deadlines</option></select></label>
+      </div><button id="exportBtn" class="btn-secondary">Export to Notion</button> <button id="exportDryBtn" class="btn-secondary">Dry Run Export</button>
     </section>
   </div>
-
-  <script>
-    async function getJson(path) {
-      const res = await fetch(path);
-      if (!res.ok) throw new Error(`Request failed: ${path}`);
-      return await res.json();
-    }
-
-    async function postJson(path, body = {}) {
-      const res = await fetch(path, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const maybe = await res.json().catch(() => ({}));
-        throw new Error(maybe.detail || `Request failed: ${path}`);
-      }
-      return await res.json();
-    }
-
-    function setStatus(msg, warn = false) {
-      const el = document.getElementById('status');
-      el.textContent = msg;
-      el.className = warn ? 'status warn' : 'status';
-    }
-
-    function renderCards(elId, items) {
-      const root = document.getElementById(elId);
-      root.innerHTML = '';
-
-      if (!items.length) {
-        root.innerHTML = '<p class="muted">No opportunities yet. Run fetch + processing.</p>';
-        return;
-      }
-
-      for (const item of items) {
-        const div = document.createElement('article');
-        div.className = 'card item';
-        div.innerHTML = `
-          <h3>${item.title}<span class="pill">${item.strategic_fit || 'n/a'}</span></h3>
-          <p class="muted">${item.summary || 'No summary'}</p>
-          <div class="meta">Score: ${item.signal_score} | Source: ${item.source_name || 'Unknown'} | Profile: ${item.profile_name || 'n/a'}</div>
-          <div class="meta">Country: ${item.country || 'Unknown'} | Deadline: ${item.deadline || 'n/a'} | Family: ${item.opportunity_family || 'n/a'}</div>
-          <div class="meta">Action: ${item.recommended_action || 'n/a'}</div>
-          <div class="meta"><a href="${item.source_url}" target="_blank" rel="noopener noreferrer">Open source</a></div>
-        `;
-        div.style.cursor = 'pointer';
-        div.title = 'Click card to open source';
-        div.addEventListener('click', (evt) => {
-          if (evt.target.closest('a')) return;
-          const url = item.source_url || '';
-          if (url) window.open(url, '_blank', 'noopener,noreferrer');
-        });
-        root.appendChild(div);
-      }
-    }
-
-    async function refresh() {
-      const [deadlines, high, latest] = await Promise.all([
-        getJson('/api/opportunities/upcoming-deadlines?limit=12'),
-        getJson('/api/opportunities/high-relevance?limit=12'),
-        getJson('/api/opportunities/latest?limit=12'),
-      ]);
-
-      renderCards('deadlines', deadlines);
-      renderCards('high', high);
-      renderCards('latest', latest);
-    }
-
-    function readPipelineInputs() {
-      const daysBack = Number(document.getElementById('daysBack').value || '30');
-      const sources = document.getElementById('sources').value
-        .split(',')
-        .map(s => s.trim())
-        .filter(Boolean);
-      const profiles = document.getElementById('profiles').value
-        .split(',')
-        .map(p => p.trim())
-        .filter(Boolean);
-      return { daysBack, sources, profiles };
-    }
-
+</main>
+<div class="detail-overlay" id="overlay"><section class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+  <div class="detail-head"><div class="detail-controls"><span class="grow">j / k · Next / previous</span><button class="detail-close" id="close">Close (Esc)</button></div><h2 id="detailTitle"></h2><div id="badges" class="detail-meta-strip"></div></div>
+  <div class="detail-body"><div class="chip-row"><button id="save">Save</button><button id="hide" class="btn-secondary">Not relevant</button><button id="copy" class="btn-secondary">Copy info</button></div><p id="detailStatus" role="status"></p><div id="detailContent"></div></div>
+</section></div>
+<style>
+  .controls { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin:12px 0; }
+  .story, .detail-body, .detail-head, #settings { overflow-wrap:anywhere; }
+  .deadline.urgent { color:var(--warn); font-weight:700; }
+  .fit-high { background:var(--tag-bg); color:var(--tag-ink); font-weight:800; }
+  .fit-medium { background:var(--tag-actor-bg); color:var(--tag-actor-ink); }
+  .fit-low { background:var(--tag-plain-bg); color:var(--tag-plain-ink); }
+  .head-actions { flex-wrap:wrap; flex:1; justify-content:flex-end; min-width:0; }
+  #search { width: min(280px,100%); }
+  @media(max-width:900px) { .sidebar { position:static; flex-wrap:wrap; } .side-nav { flex-wrap:wrap; } }
+  @media(max-width:640px) { .chip-row,.filter-row { flex-wrap:wrap; margin:0; padding:0; overflow:visible; } .chip { white-space:normal; } .head-actions { justify-content:flex-start; } }
+</style>
+</div><script>
     function readNotionInputs() {
       const limit = Number(document.getElementById('notionLimit').value || '30');
       const mode = document.getElementById('notionMode').value;
       return { limit, mode };
-    }
-
-    async function runPipeline() {
-      const { daysBack, sources, profiles } = readPipelineInputs();
-      setStatus('Running opportunities fetch + processing ...');
-
-      const result = await postJson('/api/opportunities/run/fetch-process', {
-        days_back: daysBack,
-        sources,
-        profiles,
-      });
-
-      const reportText = (result.source_report || [])
-        .map(x => `${x.source}:${x.items}${x.error ? ` (${x.error})` : ''}`)
-        .join(' | ');
-
-      const msg = `Done. fetched=${result.fetched_candidates}, new=${result.new_raw_items}, processed=${result.processed_items}, rejected=${result.rejected_items}${reportText ? ` | ${reportText}` : ''}`;
-      setStatus(msg, (result.fetched_candidates || 0) === 0);
-      await refresh();
     }
 
     async function exportToNotion(dryRun) {
@@ -251,43 +334,99 @@
       setStatus(msg, (result.failed || 0) > 0);
     }
 
-    async function boot() {
-      document.getElementById('runBtn').addEventListener('click', async () => {
-        try {
-          await runPipeline();
-        } catch (err) {
-          console.error(err);
-          setStatus(`Failed: ${err.message || err}`, true);
-        }
-      });
 
-      document.getElementById('exportBtn').addEventListener('click', async () => {
-        try {
-          await exportToNotion(false);
-        } catch (err) {
-          console.error(err);
-          setStatus(`Failed: ${err.message || err}`, true);
-        }
-      });
-
-      document.getElementById('exportDryBtn').addEventListener('click', async () => {
-        try {
-          await exportToNotion(true);
-        } catch (err) {
-          console.error(err);
-          setStatus(`Failed: ${err.message || err}`, true);
-        }
-      });
-
-      try {
-        await refresh();
-      } catch (err) {
-        console.error(err);
-        setStatus('Failed loading opportunities. Check API logs.', true);
-      }
-    }
-
-    boot();
-  </script>
-</body>
-</html>
+const $ = id => document.getElementById(id);
+const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let params = new URLSearchParams(location.search), rows = [], selected = null, today = '', sourceNames = {}, profileRows = [], loadVersion = 0;
+function setStatus(msg, warn=false) { $('status').textContent=msg; $('status').className=warn?'status warn':'status'; }
+async function request(path, body) {
+  const res=await fetch('/api/opportunities'+path, body===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const data=await res.json(); if(!res.ok) throw Error(data.detail || `HTTP ${res.status}`); return data;
+}
+const postJson = (path, body) => request(path.replace('/api/opportunities',''), body);
+function sync() { history.replaceState(null,'',location.pathname+(params.size?'?'+params:'')+location.hash); }
+function filter(key,value) { value?params.set(key,value):params.delete(key); sync(); load(); }
+function deadline(item) {
+  if(!item.deadline) return ['No deadline',false];
+  const days=Math.round((Date.parse(item.deadline.slice(0,10))-Date.parse(today))/86400000);
+  if(days===0) return ['Closes today',true];
+  if(days>0&&days<=7) return [`Closes in ${days} ${days===1?'day':'days'}`,true];
+  return [(days<0?'Closed ':'Closes ')+new Date(item.deadline).toLocaleDateString('en-GB',{day:'numeric',month:'short',timeZone:'UTC'}),false];
+}
+function value(item) {
+  if(item.estimated_value===null || item.estimated_value==='' || item.estimated_value===undefined) return '';
+  const n=Number(item.estimated_value); if(!Number.isFinite(n)) return '';
+  const amount=n>=1e6?(n/1e6).toFixed(1).replace(/\.0$/,'')+'m':n>=1e3?(n/1e3).toFixed(1).replace(/\.0$/,'')+'k':Math.round(n).toString();
+  return [item.currency,amount].filter(Boolean).join(' ');
+}
+function fitBadge(item) { return `<span class="chip-tag fit-${esc(item.fit.toLowerCase())}">${esc(item.fit)}</span>`; }
+async function load() {
+  const version=++loadVersion;
+  try {
+    const data=await request('/list?'+params); if(version!==loadVersion) return;
+    rows=data.items; today=data.today;
+    document.querySelectorAll('[data-count]').forEach(el=>el.textContent=data.counts[el.dataset.count]??0);
+    document.querySelectorAll('[data-view]').forEach(el=> { const active=el.dataset.view===(params.get('view')||'open'); el.classList.toggle('active',active); if(active) $('viewTitle').textContent=el.childNodes[0].textContent; });
+    document.querySelectorAll('[data-profile]').forEach(el=>el.setAttribute('aria-pressed',String(params.getAll('profile').includes(el.dataset.profile))));
+    ['region','source','fit'].forEach(key=>$(key).value=params.get(key)||''); $('search').value=params.get('q')||'';
+    $('list').innerHTML=rows.length?rows.map(item=>{const [label,urgent]=deadline(item); return `<article class="story is-clickable"><div><h3><button class="story-open" data-id="${item.id}">${esc(item.title)}</button></h3><div class="meta">${[item.buyer,item.country,sourceNames[item.source_name]||item.source_name,item.publication_date?.slice(0,10)].filter(Boolean).map(esc).join(' · ')}</div></div><div class="story-side"><span class="deadline ${urgent?'urgent':''}">${esc(label)}</span><br>${fitBadge(item)}</div></article>`;}).join(''):`<div class="empty-state">${data.total?'No open tenders match these filters.':'No tenders fetched yet. Use Fetch tenders.'}</div>`;
+  } catch(err) { setStatus(err.message,true); }
+}
+function openItem(item) {
+  selected=item; $('detailTitle').textContent=item.title;
+  $('badges').innerHTML=[sourceNames[item.source_name]||item.source_name,item.country,...profileRows.filter(p=>p.company===item.profile_name).map(p=>p.name)].filter(Boolean).map(x=>`<span class="chip-tag">${esc(x)}</span>`).join('')+fitBadge(item);
+  $('save').textContent=item.state==='saved'?'Saved':'Save'; $('save').setAttribute('aria-pressed',String(item.state==='saved'));
+  $('hide').textContent=item.state==='hidden'?'Restore':'Not relevant'; $('detailStatus').textContent='';
+  let cpv=[]; try {cpv=JSON.parse(item.cpv_codes||'[]');} catch {};
+  const fields=[['Deadline',item.deadline||'No deadline'],['Estimated value',value(item)],['Buyer',item.buyer],['Summary',item.summary],['Why it matters',item.why_it_matters],['Keywords',item.matched_qualifiers],['Services',item.matched_services],['CPV codes',Array.isArray(cpv)?cpv.join(', '):'']];
+  $('detailContent').innerHTML=fields.filter(([,v])=>v).map(([k,v])=>`<div class="${k==='Why it matters'?'detail-why':'detail-summary'}"><strong>${k}</strong><p>${esc(v)}</p></div>`).join('');
+  try { const url=new URL(item.source_url); if(['http:','https:'].includes(url.protocol)) $('detailContent').insertAdjacentHTML('beforeend',`<p><a href="${esc(url.href)}" target="_blank" rel="noopener noreferrer">Open original notice</a></p>`); } catch {};
+  $('overlay').classList.add('open'); document.body.style.overflow='hidden'; $('close').focus();
+}
+function close() { $('overlay').classList.remove('open'); document.body.style.overflow=''; document.querySelector(`[data-id="${selected?.id}"]`)?.focus(); selected=null; }
+async function state(next) {
+  if(!selected) return; const item=selected; $('save').disabled=$('hide').disabled=true;
+  try { await request(`/item/${item.id}/state`,{state:next}); item.state=next; if(selected===item) openItem(item); await load(); }
+  catch(err) { $('detailStatus').textContent=err.message; }
+  finally { $('save').disabled=$('hide').disabled=false; }
+}
+async function fetchTenders(manual=false) {
+  const body=manual?{days_back:Number($('daysBack').value),sources:$('sources').value.split(',').map(s=>s.trim()).filter(Boolean),profiles:$('profiles').value.split(',').map(s=>s.trim()).filter(Boolean)}:{};
+  if(manual&&(!Number.isInteger(body.days_back)||body.days_back<1)) {setStatus('Days back must be a positive whole number.',true);return;}
+  $('fetchBtn').disabled=$('runBtn').disabled=true; $('progress').hidden=false; setStatus('Fetching and processing tenders...');
+  try { const result=await request('/run/fetch-process',body); setStatus(`Done. fetched=${result.fetched_candidates}, new=${result.new_raw_items}, processed=${result.processed_items}, rejected=${result.rejected_items}. `+(result.source_report||[]).map(x=>`${x.source}: ${x.items}${x.error?' ('+x.error+')':''}`).join(' | ')); await Promise.all([load(),loadSources()]); }
+  catch(err) {setStatus(err.message,true);} finally {$('fetchBtn').disabled=$('runBtn').disabled=false; $('progress').hidden=true;}
+}
+async function loadSources() {
+  const sources=await request('/sources'); sourceNames=Object.fromEntries(sources.map(s=>[s.source,s.name]));
+  $('source').innerHTML='<option value="">All sources</option>'+sources.map(s=>`<option value="${esc(s.source)}">${esc(s.name)}</option>`).join(''); $('source').value=params.get('source')||'';
+  $('sourceStatus').innerHTML=sources.map(s=>`<p><strong>${esc(s.name)}</strong> · ${s.enabled?'Enabled':'Disabled'} · ${esc(s.status)}<br><span class="muted">${esc(s.completed_at||'Not run yet')} · Fetched: ${s.fetched} · New: ${s.new} · Filtered: ${s.filtered}</span></p>`).join('');
+}
+document.querySelectorAll('[data-view]').forEach(el=>el.onclick=()=>{close();filter('view',el.dataset.view);});
+['region','source','fit'].forEach(key=>$(key).onchange=()=>filter(key,$(key).value));
+let timer; $('search').oninput=()=>{clearTimeout(timer); const query=$('search').value; timer=setTimeout(()=>filter('q',query),200);};
+$('clear').onclick=()=>{clearTimeout(timer); const view=params.get('view'); params=new URLSearchParams(); if(view)params.set('view',view); sync();load();};
+$('list').onclick=e=>{const button=e.target.closest('[data-id]');if(button)openItem(rows.find(r=>r.id===Number(button.dataset.id)));};
+$('close').onclick=close; $('overlay').onclick=e=>{if(e.target===$('overlay'))close();};
+$('save').onclick=()=>state(selected.state==='saved'?'none':'saved'); $('hide').onclick=()=>state(selected.state==='hidden'?'none':'hidden');
+$('copy').onclick=async()=>{if(!selected)return; const item=selected; try {await navigator.clipboard.writeText([item.title,`Buyer: ${item.buyer||''}`,`Country: ${item.country||''}`,`Deadline: ${item.deadline||'No deadline'}`,`Estimated value: ${value(item)||'Unknown'}`,item.source_url,item.summary].join('\n')); $('detailStatus').textContent='Copied.';}catch{$('detailStatus').textContent='Could not copy. Please try again.';}};
+$('fetchBtn').onclick=()=>fetchTenders(); $('runBtn').onclick=()=>fetchTenders(true);
+$('exportBtn').onclick=()=>exportToNotion(false).catch(err=>setStatus(err.message,true)); $('exportDryBtn').onclick=()=>exportToNotion(true).catch(err=>setStatus(err.message,true));
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){close();return;}
+  if(e.ctrlKey||e.metaKey||e.altKey||e.target.closest('input,select,textarea,[contenteditable]'))return;
+  if(e.key==='/'){e.preventDefault();$('search').focus();}
+  if(e.key==='s'&&selected){e.preventDefault();if(!$('save').disabled)$('save').click();}
+  if(['j','k'].includes(e.key)&&rows.length){e.preventDefault();const i=selected?rows.findIndex(r=>r.id===selected.id):-1;openItem(rows[Math.max(0,Math.min(rows.length-1,i+(e.key==='j'?1:-1)))]);}
+  if(e.key==='Tab'&&selected){const focusable=[...$('overlay').querySelectorAll('button:not([disabled]),a[href]')]; const first=focusable[0],last=focusable.at(-1); if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}
+});
+window.addEventListener('popstate',()=>{params=new URLSearchParams(location.search);load();});
+(async()=>{try {
+  const [,data]=await Promise.all([loadSources(),request('/profiles')]); profileRows=data.profiles;
+  $('profileFilters').innerHTML=profileRows.map(p=>`<button class="chip" data-profile="${esc(p.name)}" aria-pressed="false">${esc(p.name)}</button>`).join('');
+  $('profileFilters').onclick=e=>{const el=e.target.closest('[data-profile]'); if(!el)return; const name=el.dataset.profile, chosen=params.getAll('profile');params.delete('profile');(chosen.includes(name)?chosen.filter(p=>p!==name):[...chosen,name]).forEach(p=>params.append('profile',p));sync();load();};
+  $('profileInfo').innerHTML=profileRows.map(p=>`<p><strong>${esc(p.name)} (${esc(p.company)})</strong><br>${esc(p.keywords.join(', '))}<br><span class="muted">Qualifiers: ${esc(p.qualifier.join(', ')||'None')} · CPV: ${esc(p.cpv_eu.join(', ')||'None')}</span></p>`).join('');
+  $('daysBack').value=data.defaults.days_back; $('sources').value=data.defaults.sources.join(',');$('profiles').value=data.defaults.profiles.join(',');
+  await load();
+}catch(err){setStatus(err.message,true);}})();
+</script></body></html>

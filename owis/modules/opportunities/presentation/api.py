@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
+from typing import Literal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from owis.core.config.settings import (
@@ -41,6 +42,39 @@ class ExportNotionRequest(BaseModel):
     limit: int = 50
     mode: str = "high_relevance"
     dry_run: bool = False
+
+
+class ItemStateRequest(BaseModel):
+    state: Literal["saved", "hidden", "none"]
+
+
+@router.post("/item/{item_id}/state")
+def item_state(item_id: int, payload: ItemStateRequest):
+    init_db()
+    if not repo.set_state(item_id, payload.state):
+        raise HTTPException(status_code=404, detail="Opportunity item not found")
+    return {"id": item_id, "state": payload.state}
+
+
+@router.get("/list")
+def list_opportunities(
+    view: Literal["open", "closing-soon", "new", "saved", "hidden"] = "open",
+    profile: list[str] = Query(default=[]), region: str = "", source: str = "",
+    fit: str = "", q: str = "", limit: int = Query(default=100, ge=1, le=1000),
+):
+    init_db()
+    return repo.list_items(view=view, profiles=profile, region=region, source=source, fit=fit, q=q, limit=limit)
+
+
+@router.get("/profiles")
+def profiles():
+    # A nonempty list of blanks disables company filtering in the loader.
+    bundle = load_profile_bundle(active_profiles=[" "])
+    return {"profiles": [{"company": company, **profile}
+                         for company, rows in bundle["by_company"].items() for profile in rows],
+            "defaults": {"days_back": OPPORTUNITIES_DAYS_BACK,
+                         "sources": OPPORTUNITIES_ENABLED_SOURCES,
+                         "profiles": OPPORTUNITIES_ACTIVE_PROFILES}}
 
 
 @router.get("/sources")

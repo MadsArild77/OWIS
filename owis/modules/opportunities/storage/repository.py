@@ -2,12 +2,93 @@ from __future__ import annotations
 
 import hashlib
 import json
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from owis.core.storage.db import get_conn
 
 
+REGIONS = {
+    "Norway": "NOR",
+    "Nordics": "SWE DNK FIN ISL",
+    "UK": "GBR",
+    "Europe": "ALB AND AUT BEL BGR BIH BLR CHE CYP CZE DEU ESP EST FRA FRO GGY GIB GRC HRV HUN IMN IRL ITA JEY LIE LTU LUX LVA MCO MDA MKD MLT MNE NLD POL PRT ROU RUS SJM SMR SRB SVK SVN TUR UKR VAT XKX EU EUR EUE",
+    "Americas": "ABW AIA ARG ATG BES BHS BLZ BMU BOL BRA BRB CAN CHL COL CRI CUB CUW CYM DMA DOM ECU FLK GLP GRD GRL GTM GUF GUY HND HTI JAM KNA LCA MAF MEX MSR MTQ NIC PAN PER PRI PRY SPM SLV SUR SXM TCA TTO URY USA VCT VEN VGB VIR",
+    "Asia-Pacific": "AFG ARM ASM AUS AZE BGD BRN BTN CCK CHN COK CXR FJI FSM GEO GUM HKG HMD IDN IND JPN KAZ KGZ KHM KIR KOR LAO LKA MAC MDV MHL MMR MNG MNP MYS NCL NFK NIU NPL NRU NZL PAK PCN PHL PLW PNG PRK PYF SGP SLB THA TJK TKL TKM TLS TON TUV TWN UMI UZB VNM VUT WLF WSM",
+    "Middle East & Africa": "AGO ARE BDI BEN BFA BHR BWA CAF CIV CMR COD COG COM CPV DJI DZA EGY ERI ESH ETH GAB GHA GIN GMB GNB GNQ IRN IRQ ISR JOR KEN KWT LBN LBR LBY LSO MAR MDG MLI MOZ MRT MUS MWI MYT NAM NER NGA OMN PSE QAT REU RWA SAU SDN SEN SHN SLE SOM SSD STP SWZ SYC SYR TCD TGO TUN TZA UGA YEM ZAF ZMB ZWE",
+}
+
+
+def country_region(country: str) -> str:
+    return next((region for region, codes in REGIONS.items() if (country or "").upper() in codes.split()), "")
+
+
 class OpportunitiesRepository:
+    @staticmethod
+    def _ensure_states(conn):
+        conn.execute("""CREATE TABLE IF NOT EXISTS opportunity_item_states (
+            raw_item_id INTEGER PRIMARY KEY REFERENCES opportunity_raw_items(id),
+            state TEXT NOT NULL CHECK (state IN ('saved', 'hidden', 'none'))
+        )""")
+
+    def set_state(self, item_id: int, state: str) -> bool:
+        with get_conn() as conn:
+            self._ensure_states(conn)
+            row = conn.execute("SELECT raw_item_id FROM opportunity_processed_items WHERE id = ?", (item_id,)).fetchone()
+            if row is None:
+                return False
+            conn.execute("""INSERT INTO opportunity_item_states (raw_item_id, state) VALUES (?, ?)
+                ON CONFLICT(raw_item_id) DO UPDATE SET state = excluded.state""", (row[0], state))
+            return True
+
+    def list_items(self, *, view="open", profiles=(), region="", source="", fit="", q="", limit=100):
+        today = datetime.now(timezone.utc).date()
+        with get_conn() as conn:
+            self._ensure_states(conn)
+            rows = conn.execute("""SELECT p.*, r.publication_date, r.cpv_codes,
+                COALESCE(s.state, 'none') AS state
+                FROM opportunity_processed_items p
+                JOIN opportunity_raw_items r ON r.id = p.raw_item_id
+                LEFT JOIN opportunity_item_states s ON s.raw_item_id = p.raw_item_id""").fetchall()
+        total = len(rows)
+        matches = []
+        for row in rows:
+            item = dict(row)
+            item["region"] = country_region(item["country"])
+            item["fit"] = {"Strong": "High", "Weak": "Low"}.get(item["strategic_fit"], item["strategic_fit"])
+            services = (item.get("matched_services") or "").split(",")
+            if profiles and not any(p == item["profile_name"] or p in services for p in profiles):
+                continue
+            if region and item["region"] != region:
+                continue
+            if source and item["source_name"] != source:
+                continue
+            if fit and item["fit"].lower() != fit.lower():
+                continue
+            if q and q.casefold() not in " ".join(str(item.get(k) or "") for k in ("title", "buyer", "summary", "country", "matched_services", "matched_qualifiers")).casefold():
+                continue
+            matches.append(item)
+
+        def in_view(item, selected):
+            if selected in {"saved", "hidden"}:
+                return item["state"] == selected
+            deadline = (item.get("deadline") or "")[:10]
+            if item["state"] == "hidden" or (deadline and deadline < today.isoformat()):
+                return False
+            if selected == "closing-soon":
+                return bool(deadline) and deadline <= (today + timedelta(days=14)).isoformat()
+            if selected == "new":
+                return (today - timedelta(days=6)).isoformat() <= (item.get("publication_date") or "")[:10] <= today.isoformat()
+            return True
+
+        counts = {name: sum(in_view(item, name) for item in matches) for name in ("open", "closing-soon", "new", "saved", "hidden")}
+        items = [item for item in matches if in_view(item, view)]
+        if view == "new":
+            items.sort(key=lambda item: (item.get("publication_date") or "", item["id"]), reverse=True)
+        else:
+            items.sort(key=lambda item: (item.get("deadline") or "9999-12-31", item["id"]))
+        return {"items": items[:limit], "counts": counts, "total": total, "today": today.isoformat()}
+
     def upsert_raw_item(self, item: dict[str, Any]) -> bool:
         notice_id = str(item.get("id") or "").strip()
         if not notice_id:

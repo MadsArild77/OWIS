@@ -460,8 +460,17 @@ beslutningen med lenke til den nye.
   strukturerte kildefelt finnes. Migrasjonen fyller ikke ut gamle rader.
 - Hver kildekjøring får lagret status og antall. UK/Canada fortsetter fra siste
   vellykkede kjøring; UK-kildene deler identitet (`ocid`) for å unngå duplikater.
-- Kildestatus leveres gjennom `/api/opportunities/sources`. Grensesnittet kommer
-  i kort 008. Notion-eksporten beholdes.
+- Kildestatus leveres gjennom `/api/opportunities/sources`. Kort 008 gir samme
+  ramme som eInnsyn, filterbar anbudsliste og lesepanel. Notion-eksporten beholdes
+  i Settings-seksjonen nederst på Opportunities, sammen med manuell kjøring.
+- Open og Closing soon sorteres etter frist, uten frist sist. New this week
+  viser de siste sju kalenderdagene, inkludert i dag, etter publisering.
+  Datoavgrensninger bruker UTC. Utløpte anbud finnes fortsatt i Saved/Hidden.
+- Lagret/skjult er én tilstand per råanbud i databasen; Restore setter den til
+  none. Profilfilteret bruker profilnavn fra registeret og lagrede tjenestetreff.
+  High/Low er visningsnavn for Strong/Weak; poenglogikken er uendret.
+- Filtervalg og søk står i adressen. Menyantall følger filtrene, før listegrensen.
+  Fetch viser pågående kjøring og sluttrapport fra det eksisterende endepunktet.
 
 ## D29 – Overvåkede politikkilder hentes separat fra nyhetene
 
