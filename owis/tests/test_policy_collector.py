@@ -187,3 +187,18 @@ def test_morning_payload_and_saved_report(setup, monkeypatch):
     assert 'monitored_policy' in sent[0][1]
     assert 'Ministry' in sent[0][1]
     assert 'power markets' in sent[0][0]
+
+
+@pytest.mark.parametrize('topic,text,expected', [
+    ('PPE', 'plan de développement régional', False),
+    ('PPE', 'la ppe révisée', True),
+    ('wind', 'a new window for applications', False),
+    ('wind', 'offshore wind auction', True),
+    ('asta', 'pasta exports', False),
+    ('energi', 'energiministeren svarer', True),
+    ('havvind', 'ny havvindpark i nord', True),
+    ('éolien en mer', "l'éolien en mer flottant", True),
+    ('  ', 'anything', False),
+])
+def test_topic_matching_ignores_parts_of_other_words(topic, text, expected):
+    assert collector.matches_topic(topic, text) is expected

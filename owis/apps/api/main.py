@@ -90,7 +90,7 @@ def news_page():
 
 @app.get("/opportunities", include_in_schema=False)
 def opportunities_page():
-    return FileResponse(web_dir / "opportunities.html")
+    return FileResponse(web_dir / "opportunities.html", headers={"Cache-Control": "no-store"})
 
 
 @app.get("/einnsyn", include_in_schema=False)

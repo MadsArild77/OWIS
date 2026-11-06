@@ -1,6 +1,7 @@
 """Bounded RSS/HTML collection using the source preview's public fetch rules."""
 import calendar
 import logging
+import re
 from datetime import datetime, timedelta, timezone
 from threading import Event, Thread
 from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
@@ -16,6 +17,12 @@ from owis.modules.policy import storage, adapters
 PRIORITY = {'regulation': 0, 'calendar': 1, 'consultation': 2}
 CONSULTATION = ('consultation', 'call for evidence', 'request for comment', 'comment period', 'høringsfrist')
 logger = logging.getLogger(__name__)
+
+
+def matches_topic(topic, text):
+    # Short terms (PPE, wind) must be whole words; longer ones may start a compound (energi-, havvind-).
+    term = topic.strip().casefold()
+    return bool(term) and re.search(r'(?<!\w)' + re.escape(term) + (r'(?!\w)' if len(term) <= 4 else ''), text) is not None
 
 
 def normalize_url(value):
@@ -94,7 +101,7 @@ def collect(now=None):
                 url = normalize_url(item['url'])
                 old = (api_kind != 'hys' and first and kind != 'calendar' and item['published_at']
                        and datetime.fromisoformat(item['published_at']) < now - timedelta(days=30))
-                if not url or not item['title'] or old or (api_kind != 'hys' and mode != 'all' and not any(t.casefold() in text for t in topics if t.strip())):
+                if not url or not item['title'] or old or (api_kind != 'hys' and mode != 'all' and not any(matches_topic(t, text) for t in topics)):
                     filtered += 1
                     continue
                 parsed.append({**item, 'url': url, 'content_type': kind})

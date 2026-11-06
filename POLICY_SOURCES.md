@@ -7,7 +7,7 @@ og importeres i **Settings → Regulatory → Import**.
 
 ## Status
 
-- **78 organisasjoner og 89 kilder i 30 land og EU.** 60 kilder er aktive. De 29 pausede kildene er viktige, men kan ikke leses uten egen adapter (se under).
+- **78 organisasjoner og 89 kilder i 30 land og EU.** 58 kilder er aktive. De 31 pausede kildene er viktige, men kan ikke leses uten egen adapter (se under).
 - **14 nye jurisdiksjoner utenfor Europa** følger med i filen: Japan, Sør-Korea, Taiwan, Australia, Filippinene, Vietnam, India, USA,
   Brasil, Colombia, Tyrkia, Saudi-Arabia, Oman og De forente arabiske emirater. De har gruppene `Asia-Pacific`, `Americas` og `Middle East`.
 - **Testet 3. november 2026** med appens egen kildetest (`owis/core/sources/probe.py`) fra en vanlig nettlinje i Norge. Alle aktive kilder ga innhold.
@@ -27,13 +27,13 @@ og importeres i **Settings → Regulatory → Import**.
 | **Norge** | Energidepartementet: nyheter (med ministerens ukekalender), kalender, høringer, dokumenter, lover og regler · KLD og NFD: høringer · EØS-notater · Stortinget: lovvedtak, innstillinger, komitéhøringer, Europautvalget, spørsmål til energiministeren, saker (API) · Norsk Lovtidend | RSS, API |
 | **EU** | DG ENER · Have your say (API) · Kommisjonen · Rådet · ACER · ENTSO-E · EUR-Lex | RSS, API |
 | **Nordsjøen** | UK: DESNZ (nyheter, konsultasjoner, policy), Ofgem, The Crown Estate, NESO, lovforslag · DK: Høringsportalen, Folketinget (API) · DE: BMWE, Bundesnetzagentur, BSH, Bundestag · NL: Internetconsultatie, Tweede Kamer (API) | Atom, RSS, HTML-liste, API |
-| **Østersjøen** | SE: regjeringens pressemeldinger, näringsutskottet, Svenska kraftnät (2), Havs- och vattenmyndigheten · FI: Eduskunta (API) · PL: URE, PSE, Sejm (API) · EE: Kliimaministeerium, Riigikogu · LV: Ekonomikas ministrija, Saeima · LT: Energetikos ministerija | RSS, HTML-liste, API |
+| **Østersjøen** | SE: regjeringens pressemeldinger, näringsutskottet, Svenska kraftnät (2), Havs- och vattenmyndigheten · PL: URE, PSE · EE: Kliimaministeerium, Riigikogu · LV: Ekonomikas ministrija, Saeima · LT: Energetikos ministerija | RSS, HTML-liste, API |
 | **Flytende havvind, Sør-Europa** | FR: departementets pressemeldinger og nyheter, CRE · ES: MITECO, CNMC · PT: DGEG · IT: Gazzetta Ufficiale | RSS, HTML-liste |
 | **Globalt** | USA: Federal Register for BOEM · Vietnam: MOIT | RSS, HTML-liste |
 
 Seks kilder er API-er: Stortinget, Have your say, Folketinget, Tweede Kamer, Eduskunta og Sejm.
 Have your say, Folketinget og Tweede Kamer har adaptere og forhåndsvisning av inntil fem poster.
-Stortinget hoppes over med «Collected by the Storting tab (D25)». Eduskunta og Sejm er ikke med i 005;
+Stortinget hoppes over med «Collected by the Storting tab (D25)». Eduskunta (Finland) og Sejm (Polen) er pauset i importfilen til de får egen adapter;
 API-er uten adapter gir «No adapter for this API» i kjøringsloggen.
 
 Adapterne leser høyst 500 poster per kjøring fra registerets endepunkt. Folketinget og Tweede Kamer
