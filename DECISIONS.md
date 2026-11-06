@@ -496,3 +496,15 @@ beslutningen med lenke til den nye.
   De nye filene har `?v=1`. `/static/` sender `Cache-Control: no-store` gjennom
   en liten middleware rundt eksisterende `StaticFiles`, slik at filene hentes på nytt
   etter utrulling. Dette gjelder også de øvrige statiske filene.
+
+## D31 – Politikk-API-er og konsultasjonsfrister
+
+**Implementert på oppgavegren 6. november 2026; ikke produksjonsvalidert.**
+- Have your say, Folketinget og Tweede Kamer bruker egne adaptere valgt etter URL, med høyst
+  500 poster per kjøring. Registerets endepunkt beholdes. Stortinget hentes fortsatt bare av Storting-fanen.
+- Have your say beholder åpne perioder uansett alder; andre initiativer krever en periodedato
+  innen 30 dager. Ingen temafiltrering av det allerede energiavgrensede EU-endepunktet.
+- `policy_items.deadline` og innholdstype oppdateres ved ny EU-henting, også når perioden lukkes.
+  Åpne frister vises utover 30-dagersvinduet. Consultations sorterer nærmeste åpne frist først.
+- Frister innen sju dager får temaets varselfarge; morgenrapporten inkluderer frist og prioriterer
+  konsultasjoner med frist innen 14 dager foran øvrige poster.

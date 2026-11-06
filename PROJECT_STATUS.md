@@ -4,13 +4,17 @@ Oppdatert 5. oktober 2026. [Dokumentasjon](DOCUMENTATION.md) · [Beslutninger](D
 
 ## Gjeldende status
 
+Kort 005 er implementert på oppgavegren 6. november 2026: API-adaptere for Have your say,
+Folketinget og Tweede Kamer, frister i politikklisten og prioritering i morgenrapporten.
+Offentlige API-svar er kontrollert og lagret som testutdrag. Ingen produksjonsinnhenting er kjørt.
+
 Kort 002 er implementert på oppgavegren 5. november 2026: nyhetssidens stil og JavaScript
 ligger i egne filer, uten endret utseende eller funksjoner. Statiske filer sendes med
 `Cache-Control: no-store`. Se D30 og `oppgaver/002-del-opp-nyhetssiden.svar.md`.
 
 Kort 004 er implementert på oppgavegren 5. november 2026: politikkilder med RSS/Atom og HTML-lister
 hentes separat, med temaarv, intervaller og kjøringslogg. Egen liste i Policy & regulation og siste døgn
-i morgenrapporten. Import, API-adaptere og kontroll mot produksjonskildene er ikke utført her. Se D29.
+i morgenrapporten. API-adaptere følger i kort 005; import og produksjonskontroll er ikke utført her. Se D29.
 
 Driftsrapport er implementert i Settings → News sources → System health og som skrivebeskyttet CLI (`python -m owis.scripts.ops_report --db <sti> --days 30`). Produksjonsdata er ikke kontrollert.
 
@@ -36,6 +40,9 @@ hvilken versjon eller konfigurasjon som kjører i produksjon.
 | Lyd/NotebookLM | Åpent forslag | Ingen automatisk integrasjon implementert |
 
 ## Sist gjennomførte validering
+
+6. november, kort 005: alle 348 tester bestod med lokal Python og isolert testmappe.
+JavaScript-syntaks og fem kontroller av fristvisningen bestod. Nettlesersjekk er ikke utført.
 
 3. oktober: 166 tester bestod lokalt for trinn 1, og GitHub-testene for PR #8
 bestod. Nettlesertest med isolert database kontrollerte organisasjonshierarki,

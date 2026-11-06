@@ -16,7 +16,7 @@ og importeres i **Settings → Regulatory → Import**.
 - **Ingen av kildene har innholdstypen `news`.** Derfor havner de ikke i nyhetsstrømmen. Før [oppgave 004](oppgaver/004-innhenting-politikkilder.md)
   ble gjort, ble de bare lagret i registeret. RSS/Atom og HTML-lister hentes nå av en egen bakgrunnsjobb
   ved `OWI_FETCH_HOURS`, med kildeintervall, temafilter og pauseregler. Postene vises under
-  **Policy & regulation → From monitored sources** og tas med i morgenrapporten. API-adaptere gjenstår i 005.
+  **Policy & regulation → From monitored sources** og tas med i morgenrapporten. Kort 005 legger til API-adaptere for Have your say, Folketinget og Tweede Kamer.
 - Kildene følger **alt** når organisasjonen er sentral for havvind (for eksempel Energidepartementet, DG ENER, DESNZ, BSH, BOEM og Litauens
   energidepartement), og ellers **bare tematreff**. Temaordene står på organisasjonen på landets eget språk og arves av kildene.
 
@@ -31,8 +31,20 @@ og importeres i **Settings → Regulatory → Import**.
 | **Flytende havvind, Sør-Europa** | FR: departementets pressemeldinger og nyheter, CRE · ES: MITECO, CNMC · PT: DGEG · IT: Gazzetta Ufficiale | RSS, HTML-liste |
 | **Globalt** | USA: Federal Register for BOEM · Vietnam: MOIT | RSS, HTML-liste |
 
-Seks kilder er API-er: Stortinget, Have your say, Folketinget, Tweede Kamer, Eduskunta og Sejm. Appens kildetest viser «unsupported» for API-er.
-Det er riktig, for adapterne kommer i [oppgave 005](oppgaver/005-api-adaptere-politikk.md). Eduskunta og Sejm er ikke med i 005 ennå.
+Seks kilder er API-er: Stortinget, Have your say, Folketinget, Tweede Kamer, Eduskunta og Sejm.
+Have your say, Folketinget og Tweede Kamer har adaptere og forhåndsvisning av inntil fem poster.
+Stortinget hoppes over med «Collected by the Storting tab (D25)». Eduskunta og Sejm er ikke med i 005;
+API-er uten adapter gir «No adapter for this API» i kjøringsloggen.
+
+Adapterne leser høyst 500 poster per kjøring fra registerets endepunkt. Folketinget og Tweede Kamer
+leses i synkende endringsdato til 30-dagersgrensen, med vanlig temafilter. Folketingets svar mangler
+normalt samlingskoden som trengs for en sikker ft.dk-lenke; da brukes API-postens adresse.
+Have your say leser alle sider innen grensen, uten temafilter: åpne perioder beholdes uansett alder,
+andre initiativer bare når nyeste periodedato er innen 30 dager. Frist og type oppdateres også på eksisterende poster.
+Åpne konsultasjoner vises utover 30 dager, med frist og varselfarge innen sju dager. Consultations
+sorterer etter nærmeste åpne frist; morgenrapporten prioriterer frister innen 14 dager og inkluderer `deadline`.
+Eksempelsvar hentet 6. november 2026 er lagret som avgrensede utdrag uten personopplysninger i
+`owis/tests/fixtures/policy_*.json`. Testene bruker bare lokale svar.
 
 ## Pauset, med begrunnelse
 

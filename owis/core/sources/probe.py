@@ -35,7 +35,15 @@ def fetch(url):
 
 def preview(value):
     source = Source.model_validate(value)
-    if source.method in {'ics', 'api'}:
+    if source.method == 'api':
+        from itertools import islice
+        from owis.modules.policy import adapters
+        if adapters.adapter(source.url) == 'storting':
+            return {'status': 'unsupported', 'message': 'Collected by the Storting tab (D25)', 'items': []}
+        items = [{**item, 'text': item.get('summary', '')} for item in
+                 islice(adapters.records(source.model_dump(), preview=True), 5)]
+        return {'status': 'ok' if items else 'empty', 'message': 'API preview: showing up to five records.', 'items': items}
+    if source.method == 'ics':
         return {'status': 'unsupported', 'message': 'Configuration can be saved. This preview adapter is not implemented yet.', 'items': []}
     raw, url, content_type, encoding = fetch(source.url)
     if source.method == 'rss':

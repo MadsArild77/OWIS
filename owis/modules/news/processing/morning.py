@@ -189,7 +189,7 @@ def write_brief(stories, events=(), earlier=(), monitored_policy=()):
         prompt = BRIEF_PROMPT.format(max_items=max_items) + (TREND_PROMPT if earlier else '')
         payload = {'stories': _story_input(stories)}
         payload['monitored_policy'] = [{k: item.get(k) for k in
-            ('title', 'organisation', 'jurisdiction', 'content_type', 'published_at', 'first_seen_at')}
+            ('title', 'organisation', 'jurisdiction', 'content_type', 'published_at', 'first_seen_at', 'deadline')}
             for item in monitored_policy]
         if earlier:
             payload['earlier_stories'] = [{'id': s['id'], 'title': s['title'], 'date': (s['published_at'] or '')[:10],

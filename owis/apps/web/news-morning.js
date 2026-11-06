@@ -9,8 +9,14 @@
 
     function monitoredRow(item) {
       const kind = {consultation:'Consultation', calendar:'Calendar', regulation:'Regulation'}[item.content_type] || '';
+      const deadline = item.deadline ? new Date(item.deadline) : null;
+      const now = new Date();
+      const urgent = deadline && deadline > now && deadline - now <= 7 * 86400000;
+      const deadlineText = deadline && !isNaN(deadline) ? deadline.toLocaleDateString('en-GB', {
+        day:'numeric', month:'short', ...(deadline.getUTCFullYear() !== now.getUTCFullYear() ? {year:'numeric'} : {}), timeZone:'UTC'
+      }) : '';
       return `<article class="research-panel"><h4>${reportSourceLink(item.url, item.title)}</h4>
-        <p class="muted">${escapeHtml(item.organisation)} · ${escapeHtml(item.jurisdiction)} · ${item.content_type === 'regulation' ? kind : `<span class="sources-badge">${kind}</span>`} · ${osloTime(item.published_at || item.first_seen_at)}</p></article>`;
+        <p class="muted">${escapeHtml(item.organisation)} · ${escapeHtml(item.jurisdiction)} · ${item.content_type === 'regulation' ? kind : `<span class="sources-badge">${kind}</span>`} · ${osloTime(item.published_at || item.first_seen_at)}${deadlineText ? ` · <span${urgent ? ' style="color:var(--warn)"' : ''}>Deadline ${deadlineText}</span>` : ''}</p></article>`;
     }
 
     async function loadMonitoredPolicy(more = false) {
@@ -26,7 +32,7 @@
         let day = '';
         const html = data.items.map(item => {
           const date = new Date(item.published_at || item.first_seen_at).toLocaleDateString('en-GB', {timeZone:'Europe/Oslo'});
-          const heading = date !== day ? `<h4>${escapeHtml(date)}</h4>` : '';
+          const heading = monitoredType !== 'consultation' && date !== day ? `<h4>${escapeHtml(date)}</h4>` : '';
           day = date;
           return heading + monitoredRow(item);
         }).join('');

@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 from owis.core.sources import probe, registry
 from owis.core.storage.db import get_conn
 from owis.modules.news.processing.fetch_scheduler import OSLO, schedule_info
-from owis.modules.policy import storage
+from owis.modules.policy import storage, adapters
 
 PRIORITY = {'regulation': 0, 'calendar': 1, 'consultation': 2}
 CONSULTATION = ('consultation', 'call for evidence', 'request for comment', 'comment period', 'høringsfrist')
@@ -76,18 +76,25 @@ def collect(now=None):
                                   (source['id'], now.isoformat())).lastrowid
         read, saved, filtered = 0, 0, 0
         try:
+            api_kind = adapters.adapter(source['url']) if source['method'] == 'api' else None
+            if api_kind == 'storting':
+                with get_conn() as conn:
+                    conn.execute("UPDATE policy_runs SET status='skipped',error=? WHERE id=?",
+                                 ('Collected by the Storting tab (D25)', run_id))
+                continue
             mode, topics = storage.following(source, orgs)
             parsed = []
-            for item in parse(source):
+            entries = adapters.records(source, now) if source['method'] == 'api' else parse(source)
+            for item in entries:
                 read += 1
                 text = (item['title'] + ' ' + item['summary']).casefold()
-                kind = source['content_types'][0]
-                if 'consultation' in source['content_types'] and any(word in text for word in CONSULTATION):
+                kind = item.get('content_type', source['content_types'][0])
+                if api_kind != 'hys' and 'consultation' in source['content_types'] and any(word in text for word in CONSULTATION):
                     kind = 'consultation'
                 url = normalize_url(item['url'])
-                old = (first and kind != 'calendar' and item['published_at']
+                old = (api_kind != 'hys' and first and kind != 'calendar' and item['published_at']
                        and datetime.fromisoformat(item['published_at']) < now - timedelta(days=30))
-                if not url or not item['title'] or old or (mode != 'all' and not any(t.casefold() in text for t in topics if t.strip())):
+                if not url or not item['title'] or old or (api_kind != 'hys' and mode != 'all' and not any(t.casefold() in text for t in topics if t.strip())):
                     filtered += 1
                     continue
                 parsed.append({**item, 'url': url, 'content_type': kind})
@@ -96,13 +103,19 @@ def collect(now=None):
                 for item in parsed:
                     existing = conn.execute('SELECT id,content_type FROM policy_items WHERE url=?', (item['url'],)).fetchone()
                     if existing:
-                        if PRIORITY[item['content_type']] > PRIORITY[existing['content_type']]:
+                        if api_kind == 'hys':
+                            conn.execute('UPDATE policy_items SET content_type=?,deadline=?,published_at=? WHERE id=?',
+                                (item['content_type'], item.get('deadline'), item['published_at'], existing['id']))
+                        elif PRIORITY[item['content_type']] > PRIORITY[existing['content_type']]:
                             conn.execute('UPDATE policy_items SET content_type=? WHERE id=?', (item['content_type'], existing['id']))
                         continue
+                    if not item.get('retain', True):
+                        filtered += 1
+                        continue
                     conn.execute('''INSERT INTO policy_items(url,title,summary,published_at,source_id,
-                        organisation_id,jurisdiction_id,content_type,first_seen_at) VALUES(?,?,?,?,?,?,?,?,?)''',
+                        organisation_id,jurisdiction_id,content_type,first_seen_at,deadline) VALUES(?,?,?,?,?,?,?,?,?,?)''',
                         (item['url'], item['title'], item['summary'], item['published_at'], source['id'],
-                         source.get('organisation_id'), source.get('jurisdiction_id'), item['content_type'], now.isoformat()))
+                         source.get('organisation_id'), source.get('jurisdiction_id'), item['content_type'], now.isoformat(), item.get('deadline')))
                     saved += 1
                 conn.execute("UPDATE policy_runs SET status='ok',items_read=?,items_saved=?,items_filtered=? WHERE id=?",
                              (read, saved, filtered, run_id))
