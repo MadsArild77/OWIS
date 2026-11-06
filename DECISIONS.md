@@ -508,3 +508,14 @@ beslutningen med lenke til den nye.
   Åpne frister vises utover 30-dagersvinduet. Consultations sorterer nærmeste åpne frist først.
 - Frister innen sju dager får temaets varselfarge; morgenrapporten inkluderer frist og prioriterer
   konsultasjoner med frist innen 14 dager foran øvrige poster.
+
+## D32 – Globale politikksøk med rotasjon
+
+**Implementert på oppgavegren 6. november 2026; ikke produksjonsvalidert.**
+- Åtte eksisterende kildegrupper søkes daglig, før seks nye grupper for Sør-Europa,
+  Norden, Baltikum, Asia-Pacific, Americas og Middle East.
+- De nye gruppene kjøres i tre faste par etter dagnummer i året modulo 3 (0, 1, 2).
+  To ekstra søk per rapport gir 60 på 30 dager ved daglig kjøring, innen eksisterende D17-budsjett.
+- Kjente kommende kilder fra forrige rapport kontrolleres også utenom søkedagen,
+  uten søkeforbruk. Uten kjente kilder får gruppen `not_scheduled`, uten advarsel.
+- Domene- og evidenskontroll beholdes, inkludert skillet mellom EU-rett og norsk gjennomføring.

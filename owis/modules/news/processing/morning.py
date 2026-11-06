@@ -229,7 +229,7 @@ def build(as_of, source_report, warnings, policy):
         warnings = [*warnings, f'{uncertain} newly collected articles lack an exact publication timestamp and are excluded from the 24-hour window.']
     day = as_of.astimezone(OSLO).date().isoformat()
     events = sorted(policy['events'], key=lambda e: (
-        {'Norway': 0, 'EU': 1, 'Nordics': 2, 'Europe': 3}.get(e['region'], 4),
+        {'Norway': 0, 'EU': 1, 'Nordics': 2, 'Europe': 3, 'Asia-Pacific': 4, 'Americas': 5, 'Middle East': 6}.get(e['region'], 7),
         e['event_date'] or '9999', e['title']))
     today = [e for e in events if e['event_date'] == day]
     upcoming = [e for e in events if e['event_date'] and e['event_date'] > day]
@@ -248,7 +248,7 @@ def build(as_of, source_report, warnings, policy):
             'watchlist': [e for e in events if not e['event_date']],
             'policy_coverage': policy['coverage'], 'news_coverage': source_report,
             'warnings': [*warnings, *policy['warnings']],
-            'coverage_note': 'Targeted official-source discovery, not a complete legal calendar. Norway and EU are prioritised; Nordic and other European coverage depends on the listed sources. Dates and legal status are AI-extracted; check the cited original before acting.'}
+            'coverage_note': 'Targeted official-source discovery, not a complete legal calendar. Norway and EU are prioritised; Nordic, European, Asia-Pacific, Americas and Middle East coverage is search-based and depends on the listed official domains. Dates and legal status are AI-extracted; check the cited original before acting.'}
 
 
 def run(day, run_id, as_of):

@@ -4,6 +4,10 @@ Oppdatert 5. oktober 2026. [Dokumentasjon](DOCUMENTATION.md) · [Beslutninger](D
 
 ## Gjeldende status
 
+Kort 006 er implementert på oppgavegren 6. november 2026: seks nye søkegrupper for
+flytende havvind og globale markeder, med to ekstra søk per dag i datostyrt rotasjon.
+Kjente kilder kontrolleres også utenom søkedagen. Se D32. Ingen ekte søk er kjørt.
+
 Kort 005 er implementert på oppgavegren 6. november 2026: API-adaptere for Have your say,
 Folketinget og Tweede Kamer, frister i politikklisten og prioritering i morgenrapporten.
 Offentlige API-svar er kontrollert og lagret som testutdrag. Ingen produksjonsinnhenting er kjørt.

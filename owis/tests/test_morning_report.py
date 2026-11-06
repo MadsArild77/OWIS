@@ -238,6 +238,96 @@ def test_blank_quote_is_not_evidence(monkeypatch):
     assert extract_event(monkeypatch, event) == ([], 1)
 
 
+@pytest.mark.parametrize('day', [date(2026, 1, 3), date(2026, 1, 4), date(2026, 1, 5),
+                               date(2028, 2, 29), date(2026, 12, 31), date(2027, 1, 1)])
+def test_global_groups_rotate_in_pairs_after_daily_searches(monkeypatch, day):
+    monkeypatch.setattr(governance, 'capabilities', lambda: {'available': True})
+    monkeypatch.setattr(governance, 'previous_sources', lambda today: [])
+    calls = []
+    def search(query, purpose):
+        calls.append((query, purpose))
+        return []
+    monkeypatch.setattr(governance, 'search', search)
+    result = governance.collect(day)
+    pair = day.timetuple().tm_yday % 3
+    indices = list(range(8)) + [8 + pair * 2, 9 + pair * 2]
+    assert len(governance.REGIONS) == 14
+    assert len(calls) == 10
+    assert all(purpose == 'policy' for _, purpose in calls)
+    assert all('site:' + governance.REGIONS[i][1][0] in call[0]
+               for i, call in zip(indices, calls))
+    assert [i for i, row in enumerate(result['coverage']) if row['status'] != 'not_scheduled'] == indices
+    assert len(result['warnings']) == 10  # No warning for the four unscheduled groups.
+
+
+@pytest.mark.parametrize('index,day', [(11, date(2026, 10, 1)), (12, date(2026, 10, 2)),
+                                     (13, date(2026, 10, 2))])
+def test_global_search_validates_domains_and_keeps_region(monkeypatch, index, day):
+    region, domains, _ = governance.REGIONS[index]
+    url = 'https://' + domains[0] + '/auction'
+    monkeypatch.setattr(governance, 'capabilities', lambda: {'available': True})
+    monkeypatch.setattr(governance, 'previous_sources', lambda today: [])
+    def search(query, purpose):
+        if 'site:' + domains[0] not in query:
+            return []
+        return [{'url': url, 'title': 'Auction'},
+                {'url': 'https://' + domains[0] + '.evil.test/auction', 'title': 'Fake'}]
+    monkeypatch.setattr(governance, 'search', search)
+    fetched = []
+    def fetch(url):
+        fetched.append(url)
+        return 'open', source()['text'], url
+    monkeypatch.setattr(governance, 'fetch_public', fetch)
+    event = model_event()
+    event['jurisdiction'] = {'Asia-Pacific': 'Japan', 'Americas': 'USA', 'Middle East': 'Turkey'}[region]
+    def answer(self, prompt, text, **kw):
+        assert 'Region: ' + region in prompt
+        assert 'An EU decision is NOT automatically in force in Norway' in prompt
+        assert len(json.loads(text)) == 1
+        return {'events': [event]}
+    monkeypatch.setattr(governance.AIClient, '_post_json_prompt', answer)
+    result = governance.collect(day)
+    assert fetched == [url]
+    assert len(result['events']) == 1
+    assert result['events'][0]['region'] == region
+    assert result['events'][0]['source']['url'] == url
+
+
+def test_unscheduled_group_rechecks_previous_report_without_search(monkeypatch):
+    known = dict(source(), url='https://meti.go.jp/auction')
+    saved = {'upcoming': [{'event_date': '2026-10-03', 'source': known}]}
+    with db.get_conn() as c:
+        c.execute('INSERT INTO news_morning_reports VALUES(?,?,?,?,?,?,?)',
+                  ('2026-10-01', 'completed', NOW.isoformat(), NOW.isoformat(), 'previous', json.dumps(saved), None))
+    monkeypatch.setattr(governance, 'capabilities', lambda: {'available': True})
+    calls, fetched = [], []
+    def search(query, purpose):
+        calls.append(query)
+        assert 'site:meti.go.jp' not in query
+        return []
+    def fetch(url):
+        fetched.append(url)
+        return 'open', known['text'], url
+    monkeypatch.setattr(governance, 'search', search)
+    monkeypatch.setattr(governance, 'fetch_public', fetch)
+    monkeypatch.setattr(governance.AIClient, '_post_json_prompt', lambda *a, **kw: {'events': [model_event()]})
+    result = governance.collect(date(2026, 10, 3))
+    assert len(calls) == 10
+    assert fetched == [known['url']]
+    assert result['coverage'][11]['status'] == 'completed'
+    assert result['coverage'][11]['sources_read'] == 1
+    assert result['events'][0]['region'] == 'Asia-Pacific'
+    assert not any('Asia-Pacific' in warning for warning in result['warnings'])
+
+
+def test_build_orders_global_regions_and_describes_coverage():
+    regions = ['Norway', 'EU', 'Nordics', 'Europe', 'Asia-Pacific', 'Americas', 'Middle East']
+    events = [dict(title=region, region=region, event_date=None) for region in reversed(regions)]
+    result = morning.build(NOW, [], [], {'events': events, 'coverage': [], 'warnings': []})
+    assert [event['region'] for event in result['watchlist']] == regions
+    assert 'Asia-Pacific, Americas and Middle East coverage is search-based' in result['coverage_note']
+
+
 def test_brief_keeps_only_known_story_ids(monkeypatch):
     stories = [{'id': 1, 'title': 'A', 'summary': 's', 'why_it_matters': 'w', 'signal_score': 9, 'sources': [{'source_name': 'X'}]}]
     monkeypatch.setattr(morning.AIClient, 'enabled', True, raising=False)

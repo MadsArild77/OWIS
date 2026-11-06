@@ -34,6 +34,13 @@ i rapporten. De omfatter myndigheter og parlamenter i Norge og EU, Sverige,
 Danmark, Finland, Island, Storbritannia, Tyskland, Nederland, Frankrike, Belgia,
 Irland, Polen, Spania, Italia, Portugal, Sveits, Østerrike, Tsjekkia og Baltikum.
 
+Seks ekstra søkegrupper dekker flytende havvind i Sør-Europa, Norden, Baltikum,
+Asia-Pacific, Americas og Middle East. De følger faste par: Sør-Europa/Norden,
+Baltikum/Asia-Pacific og Americas/Middle East. Dagnummer i året modulo 3 velger
+henholdsvis par 0, 1 eller 2. Rotasjonen beregnes på nytt ved årsskiftet.
+De åtte opprinnelige gruppene søkes hver dag, før dagens ekstra par.
+Grupper uten tur og uten kjente kilder vises som `not_scheduled`, uten advarsel.
+
 ## Automatisk kjøring kl. 06
 
 Sett `OWI_MORNING_REPORT_ENABLED=true` i OWIS-serverens miljø og start serveren
@@ -72,9 +79,13 @@ morgenjobben.
 
 Politikkdelen krever eksisterende AI-oppsett og `TAVILY_API_KEY` eller
 `BRAVE_SEARCH_API_KEY`. Uten disse lagres nyhetsrapporten med beskjed om at
-politikkdelen ikke er undersøkt. Inntil åtte søk, 40 kildeforsøk og åtte
-AI-ekstraksjoner brukes per rapport, i tillegg til vanlig nyhetsbehandling.
-Inntil to kjente kommende kilder per gruppe undersøkes på nytt innen samme grense.
+politikkdelen ikke er undersøkt. Inntil ti søk brukes per rapport, i tillegg til
+vanlig nyhetsbehandling: åtte eksisterende og to ekstra. Ved én daglig rapport
+blir økningen 60 søk på 30 dager (56–62 avhengig av månedslengde), innen D17.
+Inntil to kjente kommende kilder per gruppe undersøkes på nytt, også utenom
+gruppens søkedag, uten søkeforbruk. Hver søkt gruppe leser høyst fem kilder;
+de fire gruppene uten tur kan lese to hver. Det gir høyst 58 kildeforsøk og
+14 AI-ekstraksjoner per rapport. Stramt søkebudsjett kan redusere dekningen.
 Dette er antallsgrenser, ikke en kostnadsgrense i kroner.
 
 Bare tillatte myndighetsdomener godtas. Kildeutdrag og datoquote lagres. Funn må

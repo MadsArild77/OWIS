@@ -57,8 +57,15 @@ Eksempelsvar hentet 6. november 2026 er lagret som avgrensede utdrag uten person
 | Éoliennes en mer (FR), HEREMA og YPEN (GR), MASE (IT) | Viktige for flytende havvind, men svarer 403 eller viser bare menylenker. |
 | Japan (METI), Sør-Korea, Taiwan, Australia, Brasil, India, Filippinene, Colombia, Tyrkia, Saudi-Arabia, Oman, De forente arabiske emirater | Svarer 403, lastes med JavaScript, får tidsavbrudd eller nås ikke fra Norge. |
 
-De pausede markedene skal dekkes av den søkebaserte politikkdelen. Den søker på offisielle domener per region
-([oppgave 006](oppgaver/006-sokebasert-politikk-globalt.md)). EU-vedtak dekkes av Rådet og EUR-Lex.
+De pausede markedene inngår nå i den søkebaserte politikkdelen, avgrenset til de offisielle domenene
+i `governance.py` ([oppgave 006](oppgaver/006-sokebasert-politikk-globalt.md)). EU-vedtak dekkes av Rådet og EUR-Lex.
+De åtte opprinnelige søkegruppene kjøres daglig. Seks nye grupper roterer i faste par:
+flytende havvind i Sør-Europa/Norden, Baltikum/Asia-Pacific og Americas/Middle East.
+Dagnummer i året modulo 3 velger par 0, 1 eller 2. Det gir to ekstra søk per rapport,
+60 på 30 dager ved daglig kjøring. Kjente kommende kilder fra forrige rapport kontrolleres
+også utenom søkedagen uten søkeforbruk; uten slike kilder vises `not_scheduled` uten advarsel.
+Dekningen avhenger av søketreff og lesbar tekst; blokkeringer er ikke løst med egne adaptere.
+Registeret og de pausede kildenes status er uendret.
 
 ## Ting å vite
 
