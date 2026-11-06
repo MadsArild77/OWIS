@@ -58,7 +58,7 @@ def parse(source):
     for node in nodes:
         for anchor in ([node] if node.name == 'a' and node.has_attr('href') else node.select('a[href]')):
             target = urljoin(url, anchor['href'])
-            title = anchor.get_text(' ', strip=True)
+            title = ' '.join(anchor.get_text(' ', strip=True).split())
             if len(title) >= 15 and target not in seen and urlsplit(target).scheme in {'http', 'https'}:
                 seen.add(target)
                 yield dict(title=title[:240], url=target, summary='', published_at=None)

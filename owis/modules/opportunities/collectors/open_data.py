@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import io
+import time
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from urllib.parse import urljoin, urlparse
@@ -106,14 +107,24 @@ def _release_time(raw: dict[str, Any]) -> datetime:
         raise ValueError("Invalid OCDS release date") from None
 
 
+def _get_with_retry(client: httpx.Client, url: str, **kwargs: Any) -> httpx.Response:
+    # Contracts Finder answers 429 during long reads; wait as told, at most a minute per try.
+    for attempt in range(4):
+        response = client.get(url, **kwargs)
+        if response.status_code != 429 or attempt == 3:
+            return response
+        wait = response.headers.get("Retry-After", "")
+        time.sleep(min(int(wait), 60) if wait.isdigit() else 15)
+    return response
+
+
 def fetch_uk_notices(source: str, days_back: int, since: str | None = None,
                      until: str | None = None) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     endpoint = UK_ENDPOINTS[source]
     start = window_start(days_back, since)
     end = until or datetime.now(timezone.utc).isoformat()
     prefix = "updated" if source == "UK_FTS" else "published"
-    params = {f"{prefix}From": start[:19] if source == "UK_FTS" else start,
-              f"{prefix}To": end[:19] if source == "UK_FTS" else end, "limit": 100}
+    params = {f"{prefix}From": start[:19], f"{prefix}To": end[:19], "limit": 100}
     latest: dict[str, dict[str, Any]] = {}
     fetched = 0
     error = None
@@ -125,7 +136,7 @@ def fetch_uk_notices(source: str, days_back: int, since: str | None = None,
                 if url in visited:
                     raise ValueError("Repeated pagination link")
                 visited.add(url)
-                response = client.get(url, params=params, headers={"Accept": "application/json"})
+                response = _get_with_retry(client, url, params=params, headers={"Accept": "application/json"})
                 response.raise_for_status()
                 data = response.json()
                 if not isinstance(data.get("releases"), list):
@@ -154,7 +165,7 @@ def fetch_canadabuys_notices(days_back: int, since: str | None = None,
     fetched = 0
     error = None
     try:
-        with httpx.Client(timeout=120, follow_redirects=True) as client:
+        with httpx.Client(timeout=120, follow_redirects=True, headers={"User-Agent": "OWIS/1.0"}) as client:
             response = client.get(CANADA_URL)
             response.raise_for_status()
             reader = csv.DictReader(io.StringIO(response.content.decode("utf-8-sig")))

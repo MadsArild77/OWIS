@@ -102,3 +102,12 @@ def test_empty_qualifier_profile_can_match_within_mixed_company():
     ]}}
     item = pipeline.classify_notice({"description": "havvindpark survey"}, bundle, ["OWIS"])
     assert item["matched_services"] == ["Market"]
+
+
+def test_profile_terms_do_not_match_inside_other_words():
+    from owis.modules.opportunities.processing.pipeline import _matches_term
+    assert not _matches_term("port", "financial support for a sports strategy")
+    assert not _matches_term("wind", "window replacement")
+    assert _matches_term("port", "strategy for the port of bergen")
+    assert _matches_term("wind", "offshore wind advisory")
+    assert _matches_term("renewable", "renewables market analysis")

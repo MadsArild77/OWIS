@@ -7,7 +7,7 @@ og importeres i **Settings → Regulatory → Import**.
 
 ## Status
 
-- **78 organisasjoner og 89 kilder i 30 land og EU.** 58 kilder er aktive. De 31 pausede kildene er viktige, men kan ikke leses uten egen adapter (se under).
+- **78 organisasjoner og 89 kilder i 30 land og EU.** 57 kilder er aktive. De 32 pausede kildene er viktige, men kan ikke leses uten egen adapter (se under).
 - **14 nye jurisdiksjoner utenfor Europa** følger med i filen: Japan, Sør-Korea, Taiwan, Australia, Filippinene, Vietnam, India, USA,
   Brasil, Colombia, Tyrkia, Saudi-Arabia, Oman og De forente arabiske emirater. De har gruppene `Asia-Pacific`, `Americas` og `Middle East`.
 - **Testet 3. november 2026** med appens egen kildetest (`owis/core/sources/probe.py`) fra en vanlig nettlinje i Norge. Alle aktive kilder ga innhold.
@@ -28,7 +28,7 @@ og importeres i **Settings → Regulatory → Import**.
 | **EU** | DG ENER · Have your say (API) · Kommisjonen · Rådet · ACER · ENTSO-E · EUR-Lex | RSS, API |
 | **Nordsjøen** | UK: DESNZ (nyheter, konsultasjoner, policy), Ofgem, The Crown Estate, NESO, lovforslag · DK: Høringsportalen, Folketinget (API) · DE: BMWE, Bundesnetzagentur, BSH, Bundestag · NL: Internetconsultatie, Tweede Kamer (API) | Atom, RSS, HTML-liste, API |
 | **Østersjøen** | SE: regjeringens pressemeldinger, näringsutskottet, Svenska kraftnät (2), Havs- och vattenmyndigheten · PL: URE, PSE · EE: Kliimaministeerium, Riigikogu · LV: Ekonomikas ministrija, Saeima · LT: Energetikos ministerija | RSS, HTML-liste, API |
-| **Flytende havvind, Sør-Europa** | FR: departementets pressemeldinger og nyheter, CRE · ES: MITECO, CNMC · PT: DGEG · IT: Gazzetta Ufficiale | RSS, HTML-liste |
+| **Flytende havvind, Sør-Europa** | FR: departementets pressemeldinger og nyheter, CRE · ES: MITECO, CNMC · IT: Gazzetta Ufficiale | RSS, HTML-liste |
 | **Globalt** | USA: Federal Register for BOEM · Vietnam: MOIT | RSS, HTML-liste |
 
 Seks kilder er API-er: Stortinget, Have your say, Folketinget, Tweede Kamer, Eduskunta og Sejm.
@@ -77,4 +77,5 @@ Registeret og de pausede kildenes status er uendret.
 - **Valgperioder i adressene:** Stortinget (`2025-2026`) og Sejm (`term10`). Adapterne bør regne dem ut selv.
 - **Departementsnavn endres.** Regjeringen.no-feedene bruker departementets nummer (`owner=750` = Energidepartementet).
   Ved regjeringsskifte må nummeret kontrolleres.
+- **Prøvekjørt med ekte data 6. november 2026:** Ofgems feed var tom denne dagen. BMWE, Rådet og Have your say fikk tidsavbrudd, mens anbudsprøven og testene gikk samtidig. En kilde som feiler, prøves igjen etter sitt vanlige intervall.
 - **Ikke med ennå:** Irland, Belgia, Kina, Canada, Chile, Sør-Afrika og Marokko. De kan legges til på samme måte.

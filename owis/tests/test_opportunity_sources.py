@@ -347,3 +347,13 @@ def test_uk_latest_release_compares_timezone_offsets(mock_http):
     items, report = open_data.fetch_uk_notices("UK_FTS", 30)
     assert items == []
     assert report["status"] == "ok"
+
+
+def test_uk_rate_limit_waits_and_retries(mock_http, monkeypatch):
+    waits = []
+    monkeypatch.setattr(open_data.time, "sleep", waits.append)
+    answers = [httpx.Response(429, headers={"Retry-After": "7"}), httpx.Response(200, json={"releases": []})]
+    mock_http(lambda request: answers.pop(0))
+    items, report = open_data.fetch_uk_notices("UK_CF", 30)
+    assert waits == [7]
+    assert report["status"] == "ok"

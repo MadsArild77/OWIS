@@ -57,11 +57,13 @@ def items(now=None, recent=False, snapshot=None):
     ensure()
     now = now or datetime.now(timezone.utc)
     field = 'first_seen_at' if recent else 'COALESCE(published_at,first_seen_at)'
+    upcoming = '' if recent else "OR (content_type='calendar' AND published_at > ?)"
     with get_conn() as conn:
         rows = conn.execute(f'''SELECT * FROM policy_items WHERE ({field} >= ? AND {field} <= ?)
-            OR (content_type='consultation' AND deadline > ?)
+            OR (content_type='consultation' AND deadline > ?) {upcoming}
             ORDER BY {field} DESC,id DESC''',
-            ((now - timedelta(days=1 if recent else 30)).isoformat(), now.isoformat(), now.isoformat())).fetchall()
+            ((now - timedelta(days=1 if recent else 30)).isoformat(), now.isoformat(), now.isoformat(),
+             *(() if recent else (now.isoformat(),)))).fetchall()
     if not rows:
         return []
     data = snapshot if snapshot is not None else registry.snapshot()

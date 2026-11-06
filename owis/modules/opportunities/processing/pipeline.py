@@ -25,6 +25,12 @@ SECONDARY_MARKETS = {
 }
 
 
+def _matches_term(term: str, text: str) -> bool:
+    # Short terms (port, wind) must be whole words; longer ones may start a compound.
+    pattern = r"(?<!\w)" + re.escape(term) + (r"(?!\w)" if len(term) <= 4 else "")
+    return re.search(pattern, text) is not None
+
+
 def _clean_text(raw_text: str) -> str:
     return re.sub(r"\s+", " ", raw_text or "").strip()
 
@@ -177,12 +183,12 @@ def classify_notice(
         for profile in company_profiles:
             qualifier_terms.update(profile.get("qualifier") or [])
 
-        matched_qualifiers = sorted(term for term in qualifier_terms if term in description)
+        matched_qualifiers = sorted(term for term in qualifier_terms if _matches_term(term, description))
         matched_profiles = [
             profile
             for profile in company_profiles
             if (not profile.get("qualifier") or matched_qualifiers)
-            and any(keyword in description for keyword in profile.get("keywords") or [])
+            and any(_matches_term(keyword, description) for keyword in profile.get("keywords") or [])
         ]
         if not matched_profiles:
             continue

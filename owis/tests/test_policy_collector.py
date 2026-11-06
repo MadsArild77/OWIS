@@ -202,3 +202,14 @@ def test_morning_payload_and_saved_report(setup, monkeypatch):
 ])
 def test_topic_matching_ignores_parts_of_other_words(topic, text, expected):
     assert collector.matches_topic(topic, text) is expected
+
+
+def test_upcoming_calendar_events_are_listed_but_not_as_recent(setup):
+    storage.ensure()
+    now = datetime(2026, 11, 6, tzinfo=timezone.utc)
+    with db.get_conn() as conn:
+        conn.execute("""INSERT INTO policy_items(url,title,summary,published_at,source_id,organisation_id,jurisdiction_id,
+            content_type,first_seen_at) VALUES('https://example.org/next','Minister visits Utsira','',?,'s','child','NO','calendar',?)""",
+            ((now + timedelta(days=5)).isoformat(), (now - timedelta(days=3)).isoformat()))
+    assert [i['title'] for i in storage.items(now)] == ['Minister visits Utsira']
+    assert storage.items(now, recent=True) == []
