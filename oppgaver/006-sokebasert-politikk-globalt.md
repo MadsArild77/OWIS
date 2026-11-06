@@ -20,7 +20,8 @@ Claude testet myndighetskildene 3. november 2026 ([POLICY_SOURCES.md](../POLICY_
 - [ ] Sorteringen i `morning.py` (`{'Norway': 0, 'EU': 1, 'Nordics': 2, 'Europe': 3}`) får `'Asia-Pacific': 4, 'Americas': 5, 'Middle East': 6`.
 - [ ] `coverage_note` i `morning.py` nevner de nye regionene: «Norway and EU are prioritised; Nordic, European, Asia-Pacific, Americas and Middle East coverage is search-based and depends on the listed official domains.»
 - [ ] Regionvelgeren på Policy & regulation har valgene Asia-Pacific, Americas og Middle East (gjør det her hvis 004 ikke er gjort ennå, ellers finnes de).
-- [ ] Søkene teller mot søkebudsjettet som før (D17). Skriv i svar-filen hvor mange ekstra søk dette gir per morgenrapport og per måned. Er det mer enn 150 i måneden, stopp og spør.
+- [ ] **Rotasjon for å spare søkebudsjettet:** de seks nye radene søkes ikke hver dag. Hver morgenrapport søker to av dem etter faste par i rekkefølgen over, valgt ut fra datoen (dag i året modulo 3), slik at hver rad søkes hver tredje dag. Det gir 2 ekstra søk per rapport, rundt 60 i måneden. De åtte eksisterende radene søkes hver dag som før. En rad som ikke er på tur, gjør ingen søk, men sjekker fortsatt kjente kilder fra forrige rapport på nytt (`previous_sources`) uten at det teller mot søkebudsjettet. Finnes ingen slike kilder, får raden status `not_scheduled` i dekningen, uten advarsel.
+- [ ] Søkene teller mot søkebudsjettet som før (D17). Skriv i svar-filen faktisk antall ekstra søk per morgenrapport og per måned.
 - [ ] `pytest owis/tests -q` er grønn. Test (mocket søk og AI) at en ny region gir hendelser med riktig `region`, og at et treff fra et domene utenfor listen avvises (`official_url`).
 - [ ] `MORNING_REPORT.md` og `POLICY_SOURCES.md` er oppdatert.
 
