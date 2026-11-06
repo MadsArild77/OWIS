@@ -1,4 +1,4 @@
-"""Bounded discovery of policy milestones from official European sources.
+"""Bounded discovery of policy milestones from official sources worldwide.
 
 Search is discovery, not exhaustive monitoring. Preserve the evidence and do not
 place excerpt-only or undated findings in the confirmed-date calendar.
@@ -34,6 +34,18 @@ REGIONS = [
      'energy maritime renewables legislation consultation deadline Ireland Poland Spain Italy Portugal'),
     ('Europe', ['admin.ch', 'bmluk.gv.at', 'vlada.cz', 'valitsus.ee', 'mk.gov.lv', 'lrv.lt'],
      'energy grid renewables legislation consultation deadline Europe'),
+    ('Europe', ['eoliennesenmer.fr', 'cre.fr', 'ypen.gov.gr', 'herema.gr', 'dgeg.gov.pt', 'mase.gov.it', 'miteco.gob.es'],
+     'floating offshore wind tender auction éolien flottant eólica flotante eolico galleggiante deadline'),
+    ('Nordics', ['tem.fi', 'valtioneuvosto.fi', 'metsa.fi', 'energiavirasto.fi', 'regeringen.se', 'energimyndigheten.se'],
+     'offshore wind merituulivoima havsbaserad vindkraft auction permit legislation deadline'),
+    ('Europe', ['enmin.lrv.lt', 'kem.gov.lv', 'kliimaministeerium.ee', 'gov.pl', 'ure.gov.pl'],
+     'offshore wind auction Baltic Sea legislation deadline Lithuania Latvia Estonia Poland'),
+    ('Asia-Pacific', ['meti.go.jp', 'enecho.meti.go.jp', 'mlit.go.jp', 'motie.go.kr', 'moeaea.gov.tw', 'dcceew.gov.au', 'oir.gov.au', 'doe.gov.ph', 'moit.gov.vn', 'mnre.gov.in'],
+     'offshore wind auction round tender floating legislation deadline'),
+    ('Americas', ['boem.gov', 'doi.gov', 'federalregister.gov', 'gov.br', 'minenergia.gov.co'],
+     'offshore wind lease sale auction legislation permit deadline'),
+    ('Middle East', ['enerji.gov.tr', 'moenergy.gov.sa', 'mem.gov.om', 'moei.gov.ae', 'masdar.ae'],
+     'offshore wind tender feasibility memorandum auction'),
 ]
 
 
@@ -97,7 +109,7 @@ def extract(sources, today, region):
         'Copy evidence_quote verbatim from the source to support the event and legal_status, '
         'and date_quote verbatim to support event_date. Include future milestones within 90 days '
         'or relevant current proposals with no confirmed date. Exclude past/closed/cancelled events. '
-        f'Today is {today.isoformat()} in Europe/Oslo. Region: {region}. '
+        f'Today is {today.isoformat()} in Europe/Oslo. Region: {region}. Cover the supplied jurisdictions in this region. '
         'Return JSON matching: ' + json.dumps(Findings.model_json_schema())
     )
     data = AIClient()._post_json_prompt(prompt, json.dumps(sources, ensure_ascii=False),
@@ -148,16 +160,23 @@ def collect(today):
     events, coverage, warnings = [], [], []
     seen = set()
     known = previous_sources(today)
-    for region, domains, keywords in REGIONS:
+    for index, (region, domains, keywords) in enumerate(REGIONS):
+        # Keep the original eight groups daily; rotate consecutive new pairs.
+        scheduled = index < 8 or (index - 8) // 2 == today.timetuple().tm_yday % 3
         row = {'region': region, 'domains': domains, 'status': 'completed', 'sources_read': 0}
         sources = []
         try:
             sites = ' OR '.join('site:' + d for d in domains)
             query = f'{today.year} ({sites}) {keywords}'[:300]
             retained = [s for s in known if official_url(s['url'], domains)][:2]
+            if not scheduled and not retained:
+                row.update(status='not_scheduled', fulltext_sources=0)
+                coverage.append(row)
+                continue
             hits = [{'url': s['url'], 'title': s['title'], 'description': ''} for s in retained]
             try:
-                hits.extend(search(query, purpose='policy'))
+                if scheduled:
+                    hits.extend(search(query, purpose='policy'))
             except Exception:
                 if not retained:
                     raise

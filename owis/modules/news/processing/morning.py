@@ -150,6 +150,7 @@ BRIEF_PROMPT = (
     "important first, each with headline, what_happened (1-2 sentences), why_it_matters (1 sentence) and "
     "story_ids (ids from the input)), policy (0-4 short sentences on the policy events, empty if none) and "
     "watch (0-3 short sentences on what to follow next)."
+    " Use monitored_policy items in policy points when relevant to offshore wind, grid and power markets."
 )
 TREND_PROMPT = (
     " The input also has earlier_stories from the previous days (id, title, date, score). Compare them with "
@@ -177,16 +178,19 @@ def _fallback_brief(stories, max_items):
                                  for s in stories[:max_items]]}
 
 
-def write_brief(stories, events=(), earlier=()):
+def write_brief(stories, events=(), earlier=(), monitored_policy=()):
     """An editorial summary of the stories: the important developments, not a list of everything."""
     max_items = 6
-    if not stories and not events:
+    if not stories and not events and not monitored_policy:
         return None
     ai = AIClient()
     data = None
     if ai.enabled:
         prompt = BRIEF_PROMPT.format(max_items=max_items) + (TREND_PROMPT if earlier else '')
         payload = {'stories': _story_input(stories)}
+        payload['monitored_policy'] = [{k: item.get(k) for k in
+            ('title', 'organisation', 'jurisdiction', 'content_type', 'published_at', 'first_seen_at', 'deadline')}
+            for item in monitored_policy]
         if earlier:
             payload['earlier_stories'] = [{'id': s['id'], 'title': s['title'], 'date': (s['published_at'] or '')[:10],
                                            'score': s.get('signal_score')} for s in earlier]
@@ -225,24 +229,26 @@ def build(as_of, source_report, warnings, policy):
         warnings = [*warnings, f'{uncertain} newly collected articles lack an exact publication timestamp and are excluded from the 24-hour window.']
     day = as_of.astimezone(OSLO).date().isoformat()
     events = sorted(policy['events'], key=lambda e: (
-        {'Norway': 0, 'EU': 1, 'Nordics': 2, 'Europe': 3}.get(e['region'], 4),
+        {'Norway': 0, 'EU': 1, 'Nordics': 2, 'Europe': 3, 'Asia-Pacific': 4, 'Americas': 5, 'Middle East': 6}.get(e['region'], 7),
         e['event_date'] or '9999', e['title']))
     today = [e for e in events if e['event_date'] == day]
     upcoming = [e for e in events if e['event_date'] and e['event_date'] > day]
     # Earlier days in the database, when there are any, let the brief point out trends.
     earlier = recent_news(as_of - timedelta(hours=24), lower=as_of - timedelta(days=TREND_DAYS))[0][:60]
-    brief = write_brief(stories[:30], [*today, *upcoming[:10]], earlier)
+    from owis.modules.policy.storage import items as policy_items
+    monitored_policy = policy_items(as_of, recent=True)
+    brief = write_brief(stories[:30], [*today, *upcoming[:10]], earlier, monitored_policy)
     cited = {i for trend in (brief or {}).get('trends', []) for i in trend['story_ids']}
     return {'report_date': day, 'window_start': (as_of - timedelta(hours=24)).isoformat(),
             'window_end': as_of.isoformat(), 'generated_at': utcnow().isoformat(),
             'timezone': 'Europe/Oslo', 'brief': brief,
             'news': stories[:30], 'news_total': len(stories),
             'trend_stories': [{k: s[k] for k in ('id', 'title', 'published_at', 'sources')} for s in earlier if s['id'] in cited],
-            'today': today, 'upcoming': upcoming,
+            'today': today, 'upcoming': upcoming, 'monitored_policy': monitored_policy,
             'watchlist': [e for e in events if not e['event_date']],
             'policy_coverage': policy['coverage'], 'news_coverage': source_report,
             'warnings': [*warnings, *policy['warnings']],
-            'coverage_note': 'Targeted official-source discovery, not a complete legal calendar. Norway and EU are prioritised; Nordic and other European coverage depends on the listed sources. Dates and legal status are AI-extracted; check the cited original before acting.'}
+            'coverage_note': 'Targeted official-source discovery, not a complete legal calendar. Norway and EU are prioritised; Nordic, European, Asia-Pacific, Americas and Middle East coverage is search-based and depends on the listed official domains. Dates and legal status are AI-extracted; check the cited original before acting.'}
 
 
 def run(day, run_id, as_of):

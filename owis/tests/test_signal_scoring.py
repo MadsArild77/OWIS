@@ -1,6 +1,6 @@
 from owis.core.storage import db
 from owis.modules.news.collectors.scrape_fetcher import is_junk_link
-from owis.modules.news.presentation.api import _filter_domain
+from owis.modules.news.processing.item_view import _filter_domain
 from owis.modules.news.processing import rescore, signal, taxonomy
 
 

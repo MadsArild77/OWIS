@@ -43,9 +43,9 @@ def claim(day: str, hour: int, now: datetime) -> bool:
 
 
 def _fetch_running() -> bool:
-    from owis.modules.news.presentation import api
-    with api._JOBS_LOCK:
-        return any(j["operation"] == "fetch_process" and j["status"] in {"queued", "running"} for j in api._JOBS.values())
+    from owis.modules.news.processing import jobs
+    with jobs._JOBS_LOCK:
+        return any(j["operation"] == "fetch_process" and j["status"] in {"queued", "running"} for j in jobs._JOBS.values())
 
 
 def tick(now: datetime | None = None) -> bool:
@@ -57,8 +57,8 @@ def tick(now: datetime | None = None) -> bool:
         return False
     if not claim(local.date().isoformat(), passed[-1], now):
         return False
-    from owis.modules.news.presentation import api
-    api._create_job("fetch_process", {"days_back": 2})
+    from owis.modules.news.processing import jobs
+    jobs._create_job("fetch_process", {"days_back": 2})
     logger.info("Scheduled news fetch started")
     return True
 

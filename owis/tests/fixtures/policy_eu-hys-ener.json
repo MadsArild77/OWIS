@@ -1,0 +1,464 @@
+{
+  "exactMatch": true,
+  "initiativeResultDtoPage": {
+    "content": [
+      {
+        "id": 18695.0,
+        "initiativeStatus": "ACTIVE",
+        "reference": "Ares(2026)6682358",
+        "foreseenActType": "COMMUNIC",
+        "shortTitle": "Hydrogen strategy",
+        "currentStatuses": [
+          {
+            "frontEndStage": "PLANNING_WORKFLOW",
+            "receivingFeedbackStatus": "OPEN",
+            "feedbackStartDate": "2026/10/26 10:17:00",
+            "feedbackEndDate": "2026/11/23 23:59:59",
+            "isCurrent": true
+          }
+        ],
+        "initiativeTranslations": [
+          {
+            "value": "Чиста енергия — нова стратегия на ЕС за водорода",
+            "language": "BG",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Čistá energie – nová vodíková strategie EU",
+            "language": "CS",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Ren energi – ny EU-strategi for brint",
+            "language": "DA",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Saubere Energie – neue EU-Wasserstoffstrategie",
+            "language": "DE",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Καθαρή ενέργεια — νέα στρατηγική της ΕΕ για το υδρογόνο",
+            "language": "EL",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Clean energy – new EU hydrogen strategy",
+            "language": "EN",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Energía limpia: nueva estrategia de la UE para el hidrógeno",
+            "language": "ES",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Puhas energia – ELi uus vesinikustrateegia",
+            "language": "ET",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Énergie propre – Nouvelle stratégie de l’UE pour l’hydrogène",
+            "language": "FR",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Fuinneamh glan – straitéis hidrigine nua an Aontais Eorpaigh",
+            "language": "GA",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Čista energija – nova Unijina strategija za vodik",
+            "language": "HR",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Energia pulita - nuova strategia dell'UE per l'idrogeno",
+            "language": "IT",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Puhdas energia – EU:n uusi vetystrategia",
+            "language": "FI",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Tiszta energia – új uniós hidrogénstratégia",
+            "language": "HU",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Švari energija: nauja ES vandenilio strategija",
+            "language": "LT",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Tīra enerģija – jauna ES Ūdeņraža stratēģija",
+            "language": "LV",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Enerġija nadifa – strateġija ġdida tal-UE għall-idroġenu",
+            "language": "MT",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Schone energie – nieuwe waterstofstrategie van de EU",
+            "language": "NL",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Czysta energia – nowa unijna strategia w zakresie wodoru",
+            "language": "PL",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Energia limpa — Nova Estratégia da UE para o Hidrogénio",
+            "language": "PT",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Energie curată – noua strategie a UE pentru hidrogen",
+            "language": "RO",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Čistá energia – nová vodíková stratégia EÚ",
+            "language": "SK",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Čista energija – nova strategija EU za vodik",
+            "language": "SL",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Ren energi – EU:s nya vätgasstrategi",
+            "language": "SV",
+            "field": "SHORT_TITLE"
+          }
+        ],
+        "topics": [
+          {
+            "code": "ENER",
+            "label": "Energy"
+          }
+        ]
+      },
+      {
+        "id": 15032.0,
+        "initiativeStatus": "ACTIVE",
+        "reference": "Ares(2025)8122470",
+        "foreseenActType": "REG_IMPL",
+        "shortTitle": "Revision of network code on capacity allocation mechanisms in gas transmission systems ",
+        "currentStatuses": [
+          {
+            "frontEndStage": "ISC_WORKFLOW",
+            "receivingFeedbackStatus": "OPEN",
+            "feedbackStartDate": "2026/10/13 15:32:00",
+            "feedbackEndDate": "2026/11/10 23:59:59",
+            "isCurrent": true
+          }
+        ],
+        "initiativeTranslations": [
+          {
+            "value": "Мрежов кодекс относно механизмите за разпределяне на капацитет в газопреносни системи — преразглеждане",
+            "language": "BG",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Kodex sítě pro mechanismy přidělování kapacity v plynárenských přenosových soustavách – revize",
+            "language": "CS",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Netregler om mekanismer til tildeling af kapacitet i gastransmissionssystemer — revision",
+            "language": "DA",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Netzkodex über Mechanismen für die Kapazitätszuweisung in Gasfernleitungsnetzen – Überarbeitung",
+            "language": "DE",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Κώδικας δικτύου σχετικά με μηχανισμούς κατανομής δυναμικότητας στα συστήματα μεταφοράς αερίου — αναθεώρηση",
+            "language": "EL",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Network code on capacity allocation mechanisms in gas transmission systems – revision",
+            "language": "EN",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Código de red sobre los mecanismos de asignación de capacidad en las redes de transporte de gas. Revisión",
+            "language": "ES",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Gaasi ülekandesüsteemide võimsuse jaotamise mehhanismide võrgueeskiri – läbivaatamine",
+            "language": "ET",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Code de réseau sur les mécanismes d’attribution des capacités dans les systèmes de transport de gaz — Révision",
+            "language": "FR",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Cód gréasáin maidir le sásraí leithdháilte acmhainne i gcórais tarchurtha gáis — athbhreithniú",
+            "language": "GA",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Mrežna pravila za mehanizme raspodjele kapaciteta u transportnim sustavima za plin – revizija",
+            "language": "HR",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Codice di rete relativo ai meccanismi di allocazione di capacità nei sistemi di trasporto del gas - revisione",
+            "language": "IT",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Kaasunsiirtoverkkojen kapasiteetinjakomekanismeja koskeva verkkosääntö – tarkistaminen",
+            "language": "FI",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "A földgázszállító rendszerekben alkalmazott kapacitásallokációs mechanizmusokra vonatkozó üzemi és kereskedelmi szabályzat – felülvizsgálat",
+            "language": "HU",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Dujų perdavimo sistemų pajėgumų paskirstymo mechanizmų tinklo kodekso peržiūra",
+            "language": "LT",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Gāzes pārvades sistēmu jaudas piešķiršanas mehānismu tīkla kodeksa pārskatīšana",
+            "language": "LV",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Kodiċi tan-network dwar il-mekkaniżmi tal-allokazzjoni tal-kapaċità fis-sistemi tat-trażmissjoni tal-gass – reviżjoni",
+            "language": "MT",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Netcode betreffende capaciteitstoewijzingsmechanismen in gastransmissiesystemen — herziening",
+            "language": "NL",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Kodeks sieci dotyczący mechanizmów alokacji zdolności w systemach przesyłowych gazu – przegląd",
+            "language": "PL",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Código de rede para os mecanismos de atribuição de capacidade em redes de transporte de gás — revisão",
+            "language": "PT",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Codul rețelei privind mecanismele de alocare a capacității în sistemele de transport al gazelor – revizuire",
+            "language": "RO",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Sieťový predpis o mechanizmoch prideľovania kapacity v plynárenských prepravných sieťach – revízia",
+            "language": "SK",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Kodeks omrežja za mehanizme za dodeljevanje zmogljivosti v prenosnih sistemih plina – revizija",
+            "language": "SL",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Nätföreskrifter för mekanismer för kapacitetstilldelning i överföringssystem för gas – översyn",
+            "language": "SV",
+            "field": "SHORT_TITLE"
+          }
+        ],
+        "topics": [
+          {
+            "code": "ENER",
+            "label": "Energy"
+          }
+        ]
+      },
+      {
+        "id": 14450.0,
+        "initiativeStatus": "ACTIVE",
+        "reference": "Ares(2024)8249446",
+        "foreseenActType": "REG_IMPL",
+        "shortTitle": "Implementing act on templates for reporting methane emissions",
+        "currentStatuses": [
+          {
+            "frontEndStage": "ISC_WORKFLOW",
+            "receivingFeedbackStatus": "OPEN",
+            "feedbackStartDate": "2026/10/09 18:32:00",
+            "feedbackEndDate": "2026/11/06 23:59:59",
+            "isCurrent": true
+          }
+        ],
+        "initiativeTranslations": [
+          {
+            "value": "Докладване на емисиите — акт за изпълнение относно образците за докладване на емисиите на метан в енергийния сектор",
+            "language": "BG",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Vykazování emisí – prováděcí akt o vzorech výkazů emisí metanu v odvětví energetiky",
+            "language": "CS",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Rapportering af emissioner – gennemførelsesretsakt om modeller for rapportering af metanemissioner i energisektoren",
+            "language": "DA",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Emissionsberichterstattung – Durchführungsrechtsakt zu Vorlagen für die Berichterstattung über Methanemissionen im Energiesektor",
+            "language": "DE",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Υποβολή εκθέσεων σχετικά με τις εκπομπές — εκτελεστική πράξη για τη θέσπιση υποδειγμάτων για την υποβολή εκθέσεων σχετικά με τις εκπομπές μεθανίου στον τομέα της ενέργειας",
+            "language": "EL",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Emissions reporting – implementing act on templates for reporting methane emissions in the energy sector",
+            "language": "EN",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Notificación de emisiones: acto de ejecución relativo a modelos para la notificación de las emisiones de metano en el sector de la energía",
+            "language": "ES",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Heitearuandlus – rakendusakt, millega sätestatakse metaaniheidet käsitlevad aruandevormid",
+            "language": "ET",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Déclaration des émissions – acte d’exécution établissant des modèles pour la déclaration des émissions de méthane dans le secteur de l’énergie",
+            "language": "FR",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Tuairisciú astaíochtaí – gníomhartha cur chun feidhme maidir le teimpléid chun astaíochtaí meatáin a thuairisciú in earnáil an fhuinnimh",
+            "language": "GA",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Izvješćivanje o emisijama – provedbeni akt o predlošcima za izvješćivanje o emisijama metana u energetskom sektoru",
+            "language": "HR",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Comunicazione delle emissioni - atto di esecuzione riguardante i modelli per comunicare le emissioni di metano nel settore energetico",
+            "language": "IT",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Päästöraportointi – täytäntöönpanosäädös energiateollisuuden metaanipäästöjen raportoinnin malleista",
+            "language": "FI",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Kibocsátási jelentés – végrehajtási jogi aktus az energiaágazat metánkibocsátásának bejelentésére szolgáló sablonokról",
+            "language": "HU",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Ataskaitos apie išmetamųjų teršalų kiekį. Įgyvendinimo aktas dėl ataskaitų apie energetikos sektoriuje išmetamo metano kiekį šablonų",
+            "language": "LT",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Ziņošana par emisijām: īstenošanas akts par veidnēm, kas izmantojamas ziņošanai par enerģētikas sektora metāna emisijām",
+            "language": "LV",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Rapportar dwar l-emissjonijiet – att ta’ implimentazzjoni dwar mudelli għar-rapportar tal-emissjonijiet tal-metan fis-settur tal-enerġija",
+            "language": "MT",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Emissierapportage — uitvoeringshandeling inzake modellen voor de rapportage van methaanemissies in de energiesector",
+            "language": "NL",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Raportowanie emisji – akt wykonawczy w sprawie wzorów, które mają być stosowane do raportowania emisji metanu w sektorze energetycznym",
+            "language": "PL",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Comunicação das emissões — ato de execução relativo a modelos para a comunicação das emissões de metano no setor da energia",
+            "language": "PT",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Raportarea emisiilor – act de punere în aplicare privind modelele de raportare a emisiilor de metan în sectorul energetic",
+            "language": "RO",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Vykazovanie emisií – vykonávací akt o vzoroch na vykazovanie emisií metánu v odvetví energetiky",
+            "language": "SK",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Poročanje o emisijah – izvedbeni akt o predlogah za poročanje o emisijah metana v energetskem sektorju",
+            "language": "SL",
+            "field": "SHORT_TITLE"
+          },
+          {
+            "value": "Rapportering av utsläpp – mallar för rapportering av metanutsläpp i energisektorn",
+            "language": "SV",
+            "field": "SHORT_TITLE"
+          }
+        ],
+        "topics": [
+          {
+            "code": "ENER",
+            "label": "Energy"
+          }
+        ]
+      }
+    ],
+    "pageable": {
+      "pageNumber": 0,
+      "pageSize": 10,
+      "sort": {
+        "sorted": false,
+        "unsorted": true,
+        "empty": true
+      },
+      "offset": 0,
+      "paged": true,
+      "unpaged": false
+    },
+    "last": false,
+    "totalPages": 22,
+    "totalElements": 211,
+    "sort": {
+      "sorted": false,
+      "unsorted": true,
+      "empty": true
+    },
+    "numberOfElements": 10,
+    "size": 10,
+    "number": 0,
+    "first": true,
+    "empty": false
+  }
+}

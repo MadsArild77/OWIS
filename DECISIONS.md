@@ -447,3 +447,75 @@ beslutningen med lenke til den nye.
 - **Svar fra Stortinget:** for besvarte spørsmål hentes spørsmålstekst, begrunnelse og statsrådens svar
   (data.stortinget.no/eksport/enkeltsporsmal), én gang per spørsmål. Vises under «Question and answer» og
   brukes i «The big picture» og helikopterbildet.
+
+
+## D28 – Opportunities samles i OWIS med åpne anbudskilder
+
+**Implementert på oppgavegren 5. november 2026; ikke produksjonsvalidert.**
+- Opportunities samler TED (EU/EØS), Doffin (Norge), Verdensbanken, Find a Tender
+  og Contracts Finder (Storbritannia) og CanadaBuys. Ingen nye betalte tjenester.
+- OWIS-profilen «Offshore wind market» gir markedsinnsikt på havvindord uten
+  ekstra kvalifikator. Eksisterende selskapsprofiler beholder kvalifikatorene.
+- Kildens frist går foran datoer i fritekst. Anslått verdi og valuta bevares når
+  strukturerte kildefelt finnes. Migrasjonen fyller ikke ut gamle rader.
+- Hver kildekjøring får lagret status og antall. UK/Canada fortsetter fra siste
+  vellykkede kjøring; UK-kildene deler identitet (`ocid`) for å unngå duplikater.
+- Kildestatus leveres gjennom `/api/opportunities/sources`. Kort 008 gir samme
+  ramme som eInnsyn, filterbar anbudsliste og lesepanel. Notion-eksporten beholdes
+  i Settings-seksjonen nederst på Opportunities, sammen med manuell kjøring.
+- Open og Closing soon sorteres etter frist, uten frist sist. New this week
+  viser de siste sju kalenderdagene, inkludert i dag, etter publisering.
+  Datoavgrensninger bruker UTC. Utløpte anbud finnes fortsatt i Saved/Hidden.
+- Lagret/skjult er én tilstand per råanbud i databasen; Restore setter den til
+  none. Profilfilteret bruker profilnavn fra registeret og lagrede tjenestetreff.
+  High/Low er visningsnavn for Strong/Weak; poenglogikken er uendret.
+- Filtervalg og søk står i adressen. Menyantall følger filtrene, før listegrensen.
+  Fetch viser pågående kjøring og sluttrapport fra det eksisterende endepunktet.
+
+## D29 – Overvåkede politikkilder hentes separat fra nyhetene
+
+**Implementert på oppgavegren 5. november 2026; ikke produksjonsvalidert.**
+- Aktive politikkilder uten `news`, med RSS/Atom eller HTML-liste, hentes ved `OWI_FETCH_HOURS`.
+  Jobben følger eksisterende `OWI_SCHEDULED_FETCH_ENABLED`, har egen tråd og egne databasekrav
+  mot dobbeltkjøring, og inngår ikke i nyhetsjobbens tidsgrense.
+- Kildeintervall gjelder også etter feil. Første vellykkede henting tar bare siste 30 dager,
+  med unntak for kalenderposter og poster uten dato. Temavalg og temaord arves fra organisasjoner.
+- `policy_items` har én rad per URL uten sporingsparametre (`utm_*`) og fragment. Første kilde og
+  tidspunkt beholdes; innholdstypen kan oppgraderes til kalender eller høring ved overlapp.
+- Policy & regulation viser siste 30 dager, region- og typefilter, sider på inntil 100 poster og
+  kildestatus. Tre kildefeil på rad løftes øverst. «Show more» åpner neste side.
+- Morgenrapporten bruker inntil 40 nye poster fra siste døgn, med `all`-kilder først, og viser
+  inntil ti lenker. Ingen fullteksthenting, ekstra søk eller AI-kall i innhentingen.
+
+## D30 – Nyhetssidens stil og skript ligger i egne filer
+
+**Implementert på oppgavegren 5. november 2026; ikke produksjonsvalidert.**
+- `news.html` beholder HTML-oppsettet. Sidestilen ligger i `news.css`, og JavaScript
+  er delt etter område i `news-*.js`, med samme kode og rekkefølge som før.
+- Vanlige skripttagger beholder globale funksjoner og eksisterende HTML-handlinger.
+  De nye filene har `?v=1`. `/static/` sender `Cache-Control: no-store` gjennom
+  en liten middleware rundt eksisterende `StaticFiles`, slik at filene hentes på nytt
+  etter utrulling. Dette gjelder også de øvrige statiske filene.
+
+## D31 – Politikk-API-er og konsultasjonsfrister
+
+**Implementert på oppgavegren 6. november 2026; ikke produksjonsvalidert.**
+- Have your say, Folketinget og Tweede Kamer bruker egne adaptere valgt etter URL, med høyst
+  500 poster per kjøring. Registerets endepunkt beholdes. Stortinget hentes fortsatt bare av Storting-fanen.
+- Have your say beholder åpne perioder uansett alder; andre initiativer krever en periodedato
+  innen 30 dager. Ingen temafiltrering av det allerede energiavgrensede EU-endepunktet.
+- `policy_items.deadline` og innholdstype oppdateres ved ny EU-henting, også når perioden lukkes.
+  Åpne frister vises utover 30-dagersvinduet. Consultations sorterer nærmeste åpne frist først.
+- Frister innen sju dager får temaets varselfarge; morgenrapporten inkluderer frist og prioriterer
+  konsultasjoner med frist innen 14 dager foran øvrige poster.
+
+## D32 – Globale politikksøk med rotasjon
+
+**Implementert på oppgavegren 6. november 2026; ikke produksjonsvalidert.**
+- Åtte eksisterende kildegrupper søkes daglig, før seks nye grupper for Sør-Europa,
+  Norden, Baltikum, Asia-Pacific, Americas og Middle East.
+- De nye gruppene kjøres i tre faste par etter dagnummer i året modulo 3 (0, 1, 2).
+  To ekstra søk per rapport gir 60 på 30 dager ved daglig kjøring, innen eksisterende D17-budsjett.
+- Kjente kommende kilder fra forrige rapport kontrolleres også utenom søkedagen,
+  uten søkeforbruk. Uten kjente kilder får gruppen `not_scheduled`, uten advarsel.
+- Domene- og evidenskontroll beholdes, inkludert skillet mellom EU-rett og norsk gjennomføring.

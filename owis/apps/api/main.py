@@ -11,13 +11,25 @@ from owis.modules.news.presentation.api import router as news_router
 from owis.core.sources.api import router as source_config_router
 from owis.modules.opportunities.presentation.api import router as opportunities_router
 from owis.modules.einnsyn.api import router as einnsyn_router
+from owis.modules.policy.api import router as policy_router
 
 app = FastAPI(title="Offshore Wind Intelligence API", version="0.1.0")
 app.middleware("http")(require_login)
+
+
+@app.middleware("http")
+async def static_cache_control(request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 app.include_router(news_router)
 app.include_router(source_config_router)
 app.include_router(opportunities_router)
 app.include_router(einnsyn_router)
+app.include_router(policy_router)
 
 web_dir = Path("owis/apps/web")
 if web_dir.exists():
@@ -52,13 +64,15 @@ def on_startup() -> None:
     app.state.morning_stop = start_scheduler()
     from owis.modules.news.processing.fetch_scheduler import start_scheduler as start_fetch_scheduler
     app.state.fetch_stop = start_fetch_scheduler()
+    from owis.modules.policy.collector import start_scheduler as start_policy_scheduler
+    app.state.policy_stop = start_policy_scheduler()
     from owis.modules.einnsyn import api as einnsyn_api, public_sources
     app.state.public_stop = public_sources.start_scheduler(einnsyn_api.notion_rows)
 
 
 @app.on_event('shutdown')
 def on_shutdown():
-    for name in ('morning_stop', 'fetch_stop', 'public_stop'):
+    for name in ('morning_stop', 'fetch_stop', 'public_stop', 'policy_stop'):
         stop = getattr(app.state, name, None)
         if stop:
             stop.set()
@@ -76,7 +90,7 @@ def news_page():
 
 @app.get("/opportunities", include_in_schema=False)
 def opportunities_page():
-    return FileResponse(web_dir / "opportunities.html")
+    return FileResponse(web_dir / "opportunities.html", headers={"Cache-Control": "no-store"})
 
 
 @app.get("/einnsyn", include_in_schema=False)

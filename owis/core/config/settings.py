@@ -22,12 +22,12 @@ OPPORTUNITIES_PROFILES_PATH = os.getenv(
 )
 OPPORTUNITIES_ENABLED_SOURCES = [
     s.strip().upper()
-    for s in os.getenv("OWI_OPP_ENABLED_SOURCES", "TED,DOFFIN,WORLDBANK").split(",")
+    for s in os.getenv("OWI_OPP_ENABLED_SOURCES", "TED,DOFFIN,WORLDBANK,UK_FTS,UK_CF,CANADABUYS").split(",")
     if s.strip()
 ]
 OPPORTUNITIES_ACTIVE_PROFILES = [
     p.strip().upper()
-    for p in os.getenv("OWI_OPP_ACTIVE_PROFILES", "AGR,MAV").split(",")
+    for p in os.getenv("OWI_OPP_ACTIVE_PROFILES", "AGR,MAV,OWIS").split(",")
     if p.strip()
 ]
 OPPORTUNITIES_DAYS_BACK = int(os.getenv("OWI_OPP_DAYS_BACK", "30"))

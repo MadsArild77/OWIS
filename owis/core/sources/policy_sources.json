@@ -2330,7 +2330,7 @@
       "follow": "inherit",
       "interval_minutes": 360,
       "selector": "",
-      "notes": "",
+      "notes": "Feeden var tom ved kontroll 6. november 2026, selv om den hadde innhold 3. november.",
       "enabled": true
     },
     {
@@ -2687,8 +2687,8 @@
       "follow": "inherit",
       "interval_minutes": 720,
       "selector": "",
-      "notes": "Tabell-API med XML i hver rad. Trenger egen adapter.",
-      "enabled": true
+      "notes": "Tabell-API med XML i hver rad. Trenger egen adapter. Pauset til API-et har egen adapter.",
+      "enabled": false
     },
     {
       "id": "fi-valtioneuvosto-uutiset",
@@ -2789,8 +2789,8 @@
       "follow": "inherit",
       "interval_minutes": 720,
       "selector": "",
-      "notes": "Åpent API. Valgperioden (term10) står i adressen.",
-      "enabled": true
+      "notes": "Åpent API. Valgperioden (term10) står i adressen. Pauset til API-et har egen adapter.",
+      "enabled": false
     },
     {
       "id": "pl-klimat-news",
@@ -3011,8 +3011,8 @@
       "follow": "inherit",
       "interval_minutes": 720,
       "selector": "a[href^=\"/pt/destaques/\"]",
-      "notes": "",
-      "enabled": true
+      "notes": "Lenkene i listen heter bare «ler mais», så titlene kan ikke leses uten egen adapter. Pauset.",
+      "enabled": false
     },
     {
       "id": "pt-government-noticias",

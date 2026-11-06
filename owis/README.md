@@ -86,23 +86,52 @@ written back, so Notion stays the source of truth. Set:
 Share the three databases with the Notion integration behind `NOTION_API_KEY`.
 Without this the page shows what is missing.
 
-## Opportunities DealEngine bridge config
+## Opportunities: anbudskilder
 
-The opportunities module uses local profiles and DealEngine-style source adapters (TED, Doffin, World Bank).
+Opportunities samler TED (EU/EØS), Doffin (Norge), Verdensbanken, Find a Tender
+og Contracts Finder (Storbritannia) og CanadaBuys. Alle seks kan leses uten nøkkel.
+Kjøring bruker eksisterende `POST /api/opportunities/run/fetch-process`.
 
-Optional environment variables:
+Innstillinger (standardverdier):
 
-- `OWI_OPP_ENABLED_SOURCES=TED,DOFFIN,WORLDBANK`
-- `OWI_OPP_ACTIVE_PROFILES=AGR,MAV`
+- `OWI_OPP_ENABLED_SOURCES=TED,DOFFIN,WORLDBANK,UK_FTS,UK_CF,CANADABUYS`
+- `OWI_OPP_ACTIVE_PROFILES=AGR,MAV,OWIS`
 - `OWI_OPP_DAYS_BACK=30`
 - `OWI_OPPORTUNITIES_PROFILES=owis/modules/opportunities/registry/profiles.yaml`
-- `TED_API_KEY=...` (optional)
+- `TED_API_KEY` er valgfri.
 
-Optional Notion export variables:
+OWIS-profilen «Offshore wind market» fanger havvindord uten ekstra kvalifikator.
+AGR/MAV beholder sine kvalifikatorer. Eksisterende miljøvariabler overstyrer
+standardene; legg til OWIS og de nye kildene der de allerede er satt.
 
-- `OWI_OPP_NOTION_EXPORT_ENABLED=true`
-- `NOTION_API_KEY=...`
-- `NOTION_OPPORTUNITIES_DB_ID=...` or `OWI_NOTION_OPPORTUNITIES_DB_ID=...`
+UK-kildene og CanadaBuys fortsetter fra starten av siste vellykkede kjøring.
+Første gang brukes `OWI_OPP_DAYS_BACK`. Et eksplisitt `days_back` i kjøringskallet
+kjører dette tidsvinduet på nytt. CanadaBuys har publiseringsdato uten klokkeslett,
+så hele startdagen tas med. Samme `ocid` i begge UK-kilder lagres bare én gang.
+UK-data følger alle sider og bruker siste release per `ocid` i svarene; avsluttede
+og kansellerte konkurranser tas ikke inn. Delvis henting vises som feil og flytter
+ikke startpunktet for neste kjøring.
+
+`GET /api/opportunities/sources` viser alle seks kildene med `OK`,
+`Failed: <kort grunn>` eller `Not run yet`, start/sluttid, `fetched`, `new` og
+`filtered`. `fetched` teller leste rader før filtrering og kan inkludere overlapp
+mellom søk. `new` teller nye rårader. `filtered` inkluderer dato/type/profilfilter
+og duplikater. Nye rårader som avvises av profilen inngår i både `new` og `filtered`.
+Visning i selve Opportunities-siden kommer i kort 008.
+
+Frist fra kilden går foran fritekst. `deadline_source` viser `source` eller `text`;
+utsatt/manglende frist uten teksttreff gir tom verdi. Anslått verdi og valuta
+lagres når kilden leverer strukturerte verdier. TED bruker prosedyreverdien og
+tidligste oppgitte delkontraktfrist. Verdensbanken og CanadaBuys har ikke et
+strukturert verdifelt i de kontrollerte svarene; ingen beløp gjettes fra tekst.
+Doffins søketreff har ikke CPV per treff i de kontrollerte svarene. CPV brukes
+som søkefilter, men samlede søkefasetter settes ikke på enkeltkunngjøringer.
+Gamle lagrede rader får ikke beregnet nye felt i migrasjonen.
+
+Notion-eksporten er uendret og er av som standard:
+
+- `OWI_OPP_NOTION_EXPORT_ENABLED=false`
+- `NOTION_API_KEY`, `NOTION_OPPORTUNITIES_DB_ID` (eller `OWI_NOTION_OPPORTUNITIES_DB_ID`)
 - `OWI_NOTION_VERSION=2022-06-28`
 
 ## Tests

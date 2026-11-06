@@ -1,0 +1,51 @@
+{
+  "@odata.context": "https://gegevensmagazijn.tweedekamer.nl/OData/v4/2.0/$metadata#Zaak",
+  "value": [
+    {
+      "Id": "8aa4345b-74ed-4664-84c2-761e02fdb800",
+      "Nummer": "2025Z22734",
+      "Soort": "Wetgeving",
+      "Titel": "Implementatie van Richtlijn (EU) 2024/1203 van het Europees Parlement en de Raad van 11 april 2024 inzake de bescherming van het milieu door middel van het strafrecht en tot vervanging van de Richtlijnen 2008/99/EG en 2009/123/EG (Implementatiewet herziene Europese richtlijn milieucriminaliteit) ",
+      "Citeertitel": "Implementatiewet herziene Europese richtlijn milieucriminaliteit",
+      "Alias": null,
+      "Status": "Vrijgegeven",
+      "Onderwerp": "Implementatie van Richtlijn (EU) 2024/1203 van het Europees Parlement en de Raad van 11 april 2024 inzake de bescherming van het milieu door middel van het strafrecht en tot vervanging van de Richtlijnen 2008/99/EG en 2009/123/EG (Implementatiewet herziene Europese richtlijn milieucriminaliteit) ",
+      "GestartOp": "2025-12-30T00:00:00+01:00",
+      "Organisatie": "Tweede Kamer",
+      "Grondslagvoorhang": null,
+      "Termijn": null,
+      "Vergaderjaar": "2025-2026",
+      "Volgnummer": 0,
+      "HuidigeBehandelstatus": null,
+      "Afgedaan": true,
+      "GrootProject": false,
+      "GewijzigdOp": "2026-11-05T23:00:04.753+01:00",
+      "ApiGewijzigdOp": "2026-11-05T22:00:07.2704467Z",
+      "Verwijderd": false,
+      "Kabinetsappreciatie": null
+    },
+    {
+      "Id": "43fdc389-7bb5-4f15-b53b-b61bd095d831",
+      "Nummer": "2026Z24221",
+      "Soort": "Brief regering",
+      "Titel": null,
+      "Citeertitel": null,
+      "Alias": null,
+      "Status": "Vrijgegeven",
+      "Onderwerp": "Traject robuustheid omgevingsdiensten ",
+      "GestartOp": "2026-11-05T00:00:00+01:00",
+      "Organisatie": "Tweede Kamer",
+      "Grondslagvoorhang": null,
+      "Termijn": null,
+      "Vergaderjaar": "2026-2027",
+      "Volgnummer": -1,
+      "HuidigeBehandelstatus": null,
+      "Afgedaan": false,
+      "GrootProject": false,
+      "GewijzigdOp": "2026-11-05T20:13:53.93+01:00",
+      "ApiGewijzigdOp": "2026-11-05T19:14:10.5600591Z",
+      "Verwijderd": false,
+      "Kabinetsappreciatie": null
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
+from typing import Literal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from owis.core.config.settings import (
@@ -19,6 +20,7 @@ from owis.modules.opportunities.collectors.dealengine_fetchers import (
     fetch_dealengine_style_notices_with_report,
 )
 from owis.modules.opportunities.processing.pipeline import process_raw_item
+from owis.modules.opportunities.collectors.open_data import SOURCE_NAMES
 from owis.modules.opportunities.registry.profile_loader import load_profile_bundle
 from owis.modules.opportunities.storage.repository import OpportunitiesRepository
 
@@ -40,6 +42,57 @@ class ExportNotionRequest(BaseModel):
     limit: int = 50
     mode: str = "high_relevance"
     dry_run: bool = False
+
+
+class ItemStateRequest(BaseModel):
+    state: Literal["saved", "hidden", "none"]
+
+
+@router.post("/item/{item_id}/state")
+def item_state(item_id: int, payload: ItemStateRequest):
+    init_db()
+    if not repo.set_state(item_id, payload.state):
+        raise HTTPException(status_code=404, detail="Opportunity item not found")
+    return {"id": item_id, "state": payload.state}
+
+
+@router.get("/list")
+def list_opportunities(
+    view: Literal["open", "closing-soon", "new", "saved", "hidden"] = "open",
+    profile: list[str] = Query(default=[]), region: str = "", source: str = "",
+    fit: str = "", q: str = "", limit: int = Query(default=100, ge=1, le=1000),
+):
+    init_db()
+    return repo.list_items(view=view, profiles=profile, region=region, source=source, fit=fit, q=q, limit=limit)
+
+
+@router.get("/profiles")
+def profiles():
+    # A nonempty list of blanks disables company filtering in the loader.
+    bundle = load_profile_bundle(active_profiles=[" "])
+    return {"profiles": [{"company": company, **profile}
+                         for company, rows in bundle["by_company"].items() for profile in rows],
+            "defaults": {"days_back": OPPORTUNITIES_DAYS_BACK,
+                         "sources": OPPORTUNITIES_ENABLED_SOURCES,
+                         "profiles": OPPORTUNITIES_ACTIVE_PROFILES}}
+
+
+@router.get("/sources")
+def sources():
+    init_db()
+    runs = repo.latest_source_runs()
+    result = []
+    for source, name in SOURCE_NAMES.items():
+        run = runs.get(source)
+        status = "Not run yet" if run is None else ("OK" if run["status"] == "ok" else f"Failed: {run.get('error') or 'Unknown error'}")
+        result.append({"source": source, "name": name, "status": status,
+                       "enabled": source in OPPORTUNITIES_ENABLED_SOURCES,
+                       "started_at": run["started_at"] if run else None,
+                       "completed_at": run["completed_at"] if run else None,
+                       "fetched": run["fetched"] if run else 0,
+                       "new": run["new_items"] if run else 0,
+                       "filtered": run["filtered"] if run else 0})
+    return result
 
 
 @router.get("/latest")
@@ -131,6 +184,9 @@ def run_fetch_process(payload: RunOpportunitiesRequest):
         for source in (payload.sources or OPPORTUNITIES_ENABLED_SOURCES)
         if source.strip()
     ]
+    unknown_sources = set(selected_sources) - SOURCE_NAMES.keys()
+    if unknown_sources:
+        raise HTTPException(status_code=400, detail="Unknown opportunity source")
     days_back = payload.days_back if payload.days_back and payload.days_back > 0 else OPPORTUNITIES_DAYS_BACK
 
     profile_bundle = load_profile_bundle(active_profiles=selected_profiles)
@@ -140,39 +196,52 @@ def run_fetch_process(payload: RunOpportunitiesRequest):
             detail="No active opportunity profiles loaded. Check OWI_OPPORTUNITIES_PROFILES and profile names.",
         )
 
+    now_iso = datetime.now(timezone.utc).isoformat()
     fetched_items, source_report = fetch_dealengine_style_notices_with_report(
         profile_bundle=profile_bundle,
         enabled_sources=selected_sources,
         days_back=days_back,
         ted_api_key=TED_API_KEY,
+        since_by_source={} if payload.days_back else repo.successful_source_starts(),
+        until=now_iso,
     )
 
-    now_iso = datetime.now(timezone.utc).isoformat()
+    reports = {entry["source"]: entry for entry in source_report}
+    new_notice_ids = set()
     inserted = 0
     for item in fetched_items:
         if not item.get("fetched_at"):
             item["fetched_at"] = now_iso
         if repo.upsert_raw_item(item):
             inserted += 1
+            new_notice_ids.add(item["id"])
+            entry = reports.get(item["source"])
+            if entry is not None:
+                entry["new_items"] = entry.get("new_items", 0) + 1
+        else:
+            entry = reports.get(item["source"])
+            if entry is not None:
+                entry["filtered"] = entry.get("filtered", 0) + 1
 
-    raws = repo.list_unprocessed_raw(limit=300)
     processed = 0
     rejected = 0
+    while raws := repo.list_unprocessed_raw(limit=300):
+        for raw in raws:
+            result = process_raw_item(raw, profile_bundle=profile_bundle, active_profiles=selected_profiles)
+            if result is None:
+                repo.mark_raw_rejected(raw["id"])
+                rejected += 1
+                entry = reports.get(raw["source_name"])
+                if entry is not None and raw["notice_id"] in new_notice_ids:
+                    entry["filtered"] = entry.get("filtered", 0) + 1
+                continue
+            repo.save_processed_item(result)
+            repo.mark_raw_processed(raw["id"])
+            processed += 1
 
-    for raw in raws:
-        result = process_raw_item(
-            raw,
-            profile_bundle=profile_bundle,
-            active_profiles=selected_profiles,
-        )
-        if result is None:
-            repo.mark_raw_rejected(raw["id"])
-            rejected += 1
-            continue
-
-        repo.save_processed_item(result)
-        repo.mark_raw_processed(raw["id"])
-        processed += 1
+    completed_at = datetime.now(timezone.utc).isoformat()
+    for entry in source_report:
+        repo.save_source_run(entry, started_at=now_iso, completed_at=completed_at)
 
     notion_export: dict | None = None
     if payload.export_notion:

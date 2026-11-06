@@ -5,10 +5,12 @@ from typing import Any
 
 import httpx
 
+from .open_data import date_only, number, fetch_error, report, fetch_uk_notices, fetch_canadabuys_notices
+
 
 TED_API_ENDPOINT = "https://api.ted.europa.eu/v3/notices/search"
-DOFFIN_SEARCH_URL = "https://betaapi.doffin.no/public/v2/search"
-WORLDBANK_API_ENDPOINT = "https://search.worldbank.org/api/v2/procurementnotices"
+DOFFIN_SEARCH_URL = "https://api.doffin.no/webclient/api/v2/search-api/search"
+WORLDBANK_API_ENDPOINT = "https://search.worldbank.org/api/v2/procnotices"
 
 TED_FIELDS = [
     "publication-number",
@@ -19,6 +21,10 @@ TED_FIELDS = [
     "classification-cpv",
     "notice-type",
     "links",
+    "deadline-receipt-tender-date-lot",
+    "deadline-receipt-request",
+    "estimated-value-proc",
+    "estimated-value-cur-proc",
 ]
 
 EXCLUDED_TED_PREFIXES = ("CAN", "CORR", "VEAT", "BUS", "UNN")
@@ -101,9 +107,17 @@ def _normalize_ted(raw: dict[str, Any]) -> dict[str, Any]:
     if not source_url and pub_number:
         source_url = f"https://ted.europa.eu/en/notice/-/detail/{pub_number}"
 
+    deadlines = raw.get("deadline-receipt-tender-date-lot") or raw.get("deadline-receipt-request") or []
+    if isinstance(deadlines, str):
+        deadlines = [deadlines]
+    dates = [date_only(value) for value in deadlines]
+    deadline = min((value for value in dates if value), default=None)
     description = f"{title} {buyer}".strip().lower()
     return {
         "id": f"TED-{pub_number}",
+        "deadline_raw": deadline,
+        "estimated_value": number(_extract_first_value(raw.get("estimated-value-proc"))),
+        "currency": _extract_first_value(raw.get("estimated-value-cur-proc")) or None,
         "source": "TED",
         "title": title,
         "buyer": buyer,
@@ -129,8 +143,8 @@ def _normalize_doffin(raw: dict[str, Any]) -> dict[str, Any]:
             buyer = str(first).strip()
 
     pub_date = str(raw.get("publicationDate") or raw.get("issueDate") or "")
-    clean_date = pub_date[:10] if len(pub_date) >= 10 else ""
-    source_url = str(raw.get("doffinClassicUrl") or "").strip()
+    clean_date = date_only(pub_date) or ""
+    source_url = ""
     if not source_url and notice_id:
         source_url = f"https://doffin.no/notices/{notice_id}"
 
@@ -140,6 +154,9 @@ def _normalize_doffin(raw: dict[str, Any]) -> dict[str, Any]:
     description = f"{title} {buyer} {raw.get('description') or ''}".strip().lower()
     return {
         "id": f"DOFFIN-{notice_id}",
+        "deadline_raw": raw.get("deadline"),
+        "estimated_value": number((raw.get("estimatedValue") or {}).get("amount")),
+        "currency": (raw.get("estimatedValue") or {}).get("currencyCode"),
         "source": "DOFFIN",
         "title": title,
         "buyer": buyer,
@@ -154,14 +171,16 @@ def _normalize_doffin(raw: dict[str, Any]) -> dict[str, Any]:
 def _normalize_worldbank(raw: dict[str, Any]) -> dict[str, Any]:
     notice_id = str(raw.get("id") or raw.get("procno") or raw.get("noticeId") or "").strip()
     title = str(
-        raw.get("project_name")
+        raw.get("bid_description")
+        or raw.get("project_name")
         or raw.get("notice_title")
         or raw.get("title")
         or raw.get("projectname")
         or ""
     ).strip()
     buyer = str(
-        raw.get("borrower")
+        raw.get("contact_organization")
+        or raw.get("borrower")
         or raw.get("contact_agency")
         or raw.get("contact_agency_name")
         or raw.get("agencyname")
@@ -175,28 +194,36 @@ def _normalize_worldbank(raw: dict[str, Any]) -> dict[str, Any]:
         or raw.get("country")
         or ""
     ).strip()
-    country = _map_worldbank_country(country_raw)
+    country_names = {"Norway": "NOR", "Denmark": "DNK", "United Kingdom": "GBR",
+                     "France": "FRA", "Poland": "POL", "Germany": "DEU", "Netherlands": "NLD",
+                     "India": "IND", "Turkiye": "TUR", "Vietnam": "VNM", "Brazil": "BRA",
+                     "St. Kitts and Nevis": "KNA", "Canada": "CAN", "South Africa": "ZAF"}
+    country = _map_worldbank_country(country_raw) if country_raw else country_names.get(raw.get("project_ctry_name"), "")
 
     pub_date = str(
-        raw.get("submission_date")
+        raw.get("noticedate")
+        or raw.get("submission_date")
         or raw.get("notice_date")
         or raw.get("ddate")
         or raw.get("publisheddate")
         or ""
     ).strip()
-    clean_date = pub_date[:10] if len(pub_date) >= 10 else ""
+    clean_date = date_only(pub_date) or ""
 
     source_url = str(raw.get("url") or raw.get("link") or raw.get("href") or "").strip()
     if not source_url and notice_id:
-        source_url = "https://projects.worldbank.org/en/projects-operations/procurement"
+        source_url = f"https://projects.worldbank.org/en/projects-operations/procurement-detail/{notice_id}"
 
     description = (
-        f"{title} {buyer} "
-        f"{raw.get('procurement_description') or raw.get('description') or raw.get('project_desc') or ''}"
+        f"{title} {buyer} {raw.get('project_name') or ''} "
+        f"{raw.get('bid_description') or raw.get('procurement_description') or raw.get('description') or raw.get('project_desc') or ''}"
     ).strip().lower()
 
     return {
         "id": f"WB-{notice_id}",
+        "deadline_raw": raw.get("submission_deadline_date"),
+        "estimated_value": None,
+        "currency": None,
         "source": "WORLDBANK",
         "title": title,
         "buyer": buyer,
@@ -214,39 +241,38 @@ def fetch_ted_notices(
     countries: list[str],
     ted_api_key: str = "",
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    cpv_codes = profile_bundle.get("all_cpv_codes") or []
-    if not cpv_codes:
-        return [], {"source": "TED", "items": 0, "status": "skipped", "error": "no_cpv_codes"}
-
-    valid_cpv = [code for code in cpv_codes if len(str(code)) == 8]
-    if not valid_cpv:
-        return [], {"source": "TED", "items": 0, "status": "skipped", "error": "no_valid_cpv_codes"}
-
+    valid_cpv = [str(code) for code in profile_bundle.get("all_cpv_codes", []) if len(str(code)) == 8]
+    clauses = [f"classification-cpv IN ({' '.join(valid_cpv)})"] if valid_cpv else []
+    for term in (profile_bundle.get("keywords_by_company") or {}).get("OWIS", []):
+        escaped = str(term).replace('"', '')
+        clauses.append(f'FT ~ "{escaped}"')
+    if not clauses:
+        return [], {"source": "TED", "items": 0, "filtered": 0, "status": "error", "error": "No search terms"}
     date_from = (datetime.now(timezone.utc) - timedelta(days=max(days_back, 1))).strftime("%Y%m%d")
-    country_query = " ".join(countries)
-    cpv_query = " ".join(valid_cpv)
-    query = (
-        f"classification-cpv IN ({cpv_query}) "
-        f"AND buyer-country IN ({country_query}) "
-        f"AND PD >= {date_from}"
-    )
+    query = f"({' OR '.join(clauses)}) AND buyer-country IN ({' '.join(countries)}) AND PD >= {date_from}"
 
     headers: dict[str, str] = {"Content-Type": "application/json", "Accept": "application/json"}
     if ted_api_key:
         headers["X-API-Key"] = ted_api_key
 
     items: list[dict[str, Any]] = []
+    fetched = 0
     error: str | None = None
 
     try:
         with httpx.Client(timeout=30) as client:
-            for page in range(1, 6):
+            for page in range(1, 151):
                 payload = {"query": query, "fields": TED_FIELDS, "page": page, "limit": 100}
                 resp = client.post(TED_API_ENDPOINT, headers=headers, json=payload)
                 resp.raise_for_status()
                 data = resp.json()
-                batch = data.get("notices") or []
+                if data.get("timedOut") or not isinstance(data.get("notices"), list):
+                    raise ValueError("Incomplete TED search response")
+                batch = data["notices"]
+                fetched += len(batch)
                 if not batch:
+                    if fetched < int(data.get("totalNoticeCount") or 0):
+                        raise ValueError("Incomplete TED results")
                     break
                 for raw in batch:
                     notice_type = str(raw.get("notice-type") or "").upper()
@@ -255,89 +281,81 @@ def fetch_ted_notices(
                     normalized = _normalize_ted(raw)
                     if normalized["id"] != "TED-":
                         items.append(normalized)
+                if fetched >= int(data.get("totalNoticeCount") or 0):
+                    break
+            else:
+                raise ValueError("TED result limit reached; narrow date window")
     except Exception as exc:
-        error = f"{exc.__class__.__name__}: {exc}"
+        error = fetch_error(exc)
 
     report = {
         "source": "TED",
-        "items": len(items),
+        "items": fetched,
+        "filtered": fetched - len(items),
         "status": "ok" if error is None else "error",
         "error": error,
     }
     return items, report
 
 
-def _doffin_search_paginated(client: httpx.Client, base_params: list[tuple[str, str]]) -> list[dict[str, Any]]:
+def _doffin_search_paginated(client: httpx.Client, base_params: dict[str, Any]) -> list[dict[str, Any]]:
     all_hits: list[dict[str, Any]] = []
-    for page in range(1, 8):
-        params = [*base_params, ("page", str(page)), ("numHitsPerPage", "100")]
-        resp = client.get(DOFFIN_SEARCH_URL, params=params, headers={"Accept": "application/json"})
+    page = 1
+    while True:
+        payload = {**base_params, "page": page, "numHitsPerPage": 100}
+        resp = client.post(DOFFIN_SEARCH_URL, json=payload, headers={"Accept": "application/json"})
         resp.raise_for_status()
         data = resp.json()
-
-        hits = data.get("hits") or []
-        if isinstance(hits, dict):
-            hits = [hits] if hits.get("id") else []
-        if not isinstance(hits, list) or not hits:
-            break
-
+        if not isinstance(data.get("hits"), list) or "numHitsTotal" not in data:
+            raise ValueError("Missing Doffin search results")
+        hits = data["hits"]
         all_hits.extend(hits)
+        total = int(data["numHitsTotal"])
+        if len(all_hits) >= total:
+            return all_hits
+        accessible = int(data.get("numHitsAccessible") or total)
+        if not hits or len(all_hits) >= accessible:
+            raise ValueError("Doffin result limit reached; narrow date window")
+        page += 1
 
-        total = int(data.get("numHitsAccessible") or data.get("numHitsTotal") or 0)
-        if total and len(all_hits) >= total:
-            break
-    return all_hits
 
-
-def fetch_doffin_notices(
-    profile_bundle: dict[str, Any],
-    days_back: int,
-) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+def fetch_doffin_notices(profile_bundle: dict[str, Any], days_back: int) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     date_from = (datetime.now(timezone.utc) - timedelta(days=max(days_back, 1))).strftime("%Y-%m-%d")
-
+    facets = {"publicationDate": {"from": date_from, "to": None},
+              "type": {"checkedItems": RELEVANT_DOFFIN_TYPES}}
+    queries = []
     cpv_codes = profile_bundle.get("all_cpv_codes") or []
-    qualifiers = profile_bundle.get("all_qualifiers") or []
-
-    base = [("issueDateFrom", date_from), ("status", "ACTIVE")]
-    for notice_type in RELEVANT_DOFFIN_TYPES:
-        base.append(("type", notice_type))
-
-    raw_rows: list[dict[str, Any]] = []
-    error: str | None = None
-
+    if cpv_codes:
+        queries.append({"sortBy": "PUBLICATION_DATE_DESC", "facets": {**facets, "cpvCodesId": {"checkedItems": cpv_codes}}})
+    terms = set(profile_bundle.get("all_qualifiers") or [])
+    for keywords in (profile_bundle.get("keywords_by_company") or {}).values():
+        terms.update(keywords)
+    for term in sorted(terms):
+        queries.append({"sortBy": "PUBLICATION_DATE_DESC", "facets": facets, "searchString": term})
+    rows = {}
+    error = None
+    fetched = 0
     try:
         with httpx.Client(timeout=30) as client:
-            if cpv_codes:
-                cpv_params = [*base, *[("cpvCode", str(code)) for code in cpv_codes]]
-                raw_rows.extend(_doffin_search_paginated(client, cpv_params))
-
-            for kw in qualifiers[:12]:
-                kw_params = [*base, ("searchString", str(kw))]
-                raw_rows.extend(_doffin_search_paginated(client, kw_params))
+            for query in queries:
+                for raw in _doffin_search_paginated(client, query):
+                    fetched += 1
+                    if raw.get("id"):
+                        rows[raw["id"]] = raw
     except Exception as exc:
-        error = f"{exc.__class__.__name__}: {exc}"
-
-    dedup: dict[str, dict[str, Any]] = {}
-    for row in raw_rows:
-        rid = str(row.get("id") or "").strip()
-        if rid and rid not in dedup:
-            dedup[rid] = row
-
-    items = [_normalize_doffin(row) for row in dedup.values()]
-    report = {
-        "source": "DOFFIN",
-        "items": len(items),
-        "status": "ok" if error is None else "error",
-        "error": error,
-    }
-    return items, report
+        error = fetch_error(exc)
+    items = [_normalize_doffin(row) for row in rows.values()
+             if (row.get("type") in RELEVANT_DOFFIN_TYPES or set(row.get("allTypes") or []).intersection(RELEVANT_DOFFIN_TYPES))
+             and (date_only(row.get("publicationDate") or row.get("issueDate")) or "") >= date_from
+             and row.get("status") not in {"AWARDED", "CANCELLED", "EXPIRED"}]
+    return items, report("DOFFIN", fetched, fetched - len(items), error)
 
 
 def _extract_worldbank_notices(data: Any) -> list[dict[str, Any]]:
     if isinstance(data, list):
         return [x for x in data if isinstance(x, dict)]
     if isinstance(data, dict):
-        for key in ["procurementnotices", "notices", "results", "items", "data"]:
+        for key in ["procnotices", "procurementnotices", "notices", "results", "items", "data"]:
             if key not in data:
                 continue
             value = data[key]
@@ -350,24 +368,34 @@ def _extract_worldbank_notices(data: Any) -> list[dict[str, Any]]:
 
 def _worldbank_keyword_search(client: httpx.Client, keyword: str, date_from: str) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    for offset in range(0, 600, 100):
+    offset = 0
+    while True:
         params = {
             "format": "json",
             "rows": 100,
             "os": offset,
-            "q": keyword,
-            "strdate": date_from,
+            "qterm": keyword,
+            "srt": "noticedate",
+            "order": "desc",
         }
         resp = client.get(WORLDBANK_API_ENDPOINT, params=params)
         resp.raise_for_status()
         data = resp.json()
+        if not isinstance(data.get("procnotices"), list) or "total" not in data:
+            raise ValueError("Missing World Bank search results")
         batch = _extract_worldbank_notices(data)
         if not batch:
+            if offset < int(data.get("total") or 0):
+                raise ValueError("Incomplete World Bank results")
             break
         rows.extend(batch)
-        total = int(data.get("total") or data.get("totalrows") or 0)
-        if total and offset + 100 >= total:
+        dates = [date_only(row.get("noticedate") or row.get("submission_date")) for row in batch]
+        if all(dates) and min(dates) < date_from:
             break
+        total = int(data.get("total") or data.get("totalrows") or 0)
+        if offset + len(batch) >= total:
+            break
+        offset += len(batch)
     return rows
 
 
@@ -382,7 +410,7 @@ def fetch_worldbank_notices(
     if keywords_by_company:
         merged: set[str] = set()
         for terms in keywords_by_company.values():
-            for term in list(terms)[:5]:
+            for term in terms:
                 merged.add(str(term))
         search_terms = sorted(merged)
     else:
@@ -400,7 +428,7 @@ def fetch_worldbank_notices(
             for term in search_terms:
                 raw_rows.extend(_worldbank_keyword_search(client, term, date_from))
     except Exception as exc:
-        error = f"{exc.__class__.__name__}: {exc}"
+        error = fetch_error(exc)
 
     dedup: dict[str, dict[str, Any]] = {}
     for row in raw_rows:
@@ -408,10 +436,11 @@ def fetch_worldbank_notices(
         if rid and rid not in dedup:
             dedup[rid] = row
 
-    items = [_normalize_worldbank(row) for row in dedup.values()]
+    items = [item for row in dedup.values() if (item := _normalize_worldbank(row))["publication_date"] >= date_from]
     report = {
         "source": "WORLDBANK",
-        "items": len(items),
+        "items": len(raw_rows),
+        "filtered": len(raw_rows) - len(items),
         "status": "ok" if error is None else "error",
         "error": error,
     }
@@ -423,8 +452,12 @@ def fetch_dealengine_style_notices_with_report(
     enabled_sources: list[str],
     days_back: int,
     ted_api_key: str = "",
+    since_by_source: dict[str, str] | None = None,
+    until: str | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     countries = [
+        "FRA",
+        "POL",
         "NOR",
         "DNK",
         "GBR",
@@ -465,10 +498,26 @@ def fetch_dealengine_style_notices_with_report(
         items.extend(wb_items)
         reports.append(wb_report)
 
+    for source in ["UK_FTS", "UK_CF", "CANADABUYS"]:
+        if source not in source_set:
+            continue
+        since = (since_by_source or {}).get(source)
+        if source == "CANADABUYS":
+            batch, source_report = fetch_canadabuys_notices(days_back, since, until)
+        else:
+            batch, source_report = fetch_uk_notices(source, days_back, since, until)
+        items.extend(batch)
+        reports.append(source_report)
+
     dedup: dict[str, dict[str, Any]] = {}
     for item in items:
         notice_id = str(item.get("id") or "").strip()
         if notice_id and notice_id not in dedup:
             dedup[notice_id] = item
+        elif notice_id:
+            for source_report in reports:
+                if source_report["source"] == item["source"]:
+                    source_report["filtered"] = source_report.get("filtered", 0) + 1
+                    break
 
     return list(dedup.values()), reports
