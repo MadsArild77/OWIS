@@ -154,6 +154,7 @@ def test_railway_startup_rejects_ephemeral_database(setup,monkeypatch):
     from owis.apps.api.main import on_startup
     monkeypatch.setenv('RAILWAY_ENVIRONMENT_ID','test-environment')
     monkeypatch.delenv('RAILWAY_VOLUME_MOUNT_PATH',raising=False)
+    monkeypatch.setenv('OWI_ACCESS_PASSWORD','test-secret')
     with pytest.raises(RuntimeError,match='persistent volume'):on_startup()
 
 

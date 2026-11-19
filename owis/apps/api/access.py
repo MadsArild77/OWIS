@@ -1,8 +1,8 @@
 """Optional shared-password protection for the whole app.
 
 Set OWI_ACCESS_PASSWORD to require HTTP Basic login on every route except the
-health check. Without it the app stays open, as before, and logs a warning on
-hosted environments so an unprotected deployment is visible in the logs.
+health check. Locally the app stays open without it. On Railway the app refuses
+to start without a password, unless OWI_ALLOW_OPEN_ACCESS=true says so on purpose.
 """
 import base64
 import logging
@@ -23,9 +23,14 @@ def credentials():
     return os.getenv('OWI_ACCESS_USER', 'owis'), password
 
 
-def warn_if_open():
-    if credentials() is None and os.getenv('RAILWAY_ENVIRONMENT_ID'):
+def check_hosted_access():
+    if credentials() is not None or not os.getenv('RAILWAY_ENVIRONMENT_ID'):
+        return
+    if os.getenv('OWI_ALLOW_OPEN_ACCESS', 'false').lower() in {'1', 'true', 'yes'}:
         logger.warning('OWI_ACCESS_PASSWORD is not set: OWIS is publicly accessible without login.')
+        return
+    raise RuntimeError('Railway requires OWI_ACCESS_PASSWORD before starting OWIS '
+                       '(set OWI_ALLOW_OPEN_ACCESS=true to run it open on purpose).')
 
 
 def _authorised(header, expected):

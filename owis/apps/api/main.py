@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from owis.apps.api.access import require_login, warn_if_open
+from owis.apps.api.access import check_hosted_access, require_login
 from owis.core.storage.db import init_db
 from owis.modules.news.presentation.api import router as news_router
 from owis.core.sources.api import router as source_config_router
@@ -42,7 +42,7 @@ def on_startup() -> None:
     from datetime import datetime, timezone
     from owis.core.storage import db
     from owis.scripts.backup_database import backup, prune_startup_backups
-    warn_if_open()
+    check_hosted_access()
     database=Path(db.DB_PATH).resolve()
     if os.getenv('RAILWAY_ENVIRONMENT_ID'):
         mount=os.getenv('RAILWAY_VOLUME_MOUNT_PATH')
