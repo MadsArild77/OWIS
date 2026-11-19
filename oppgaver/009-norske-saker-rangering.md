@@ -23,11 +23,11 @@ Saker om olje, gass og cyberangrep mot Equinor ble liggende som other_energy. De
 
 ## Ferdig når
 - [ ] `OFFSHORE_WIND` i `signal.py` får i tillegg: `"tetraspar"`, `"metcentre"`, `"seatwirl"`, `"wind catching"`, `"flytende vindturbin*"`, `"havvindturbin*"`, `"vindturbin* til havs"`.
-- [ ] `RELATED["Wind"]` får i tillegg: `"turbin*"`, `"vindturbin*"`, `"vindkraftverk*"`.
+- [ ] `RELATED["Wind"]` får i tillegg: `"turbin*"`, `"vindturbin*"`, `"vindkraftverk*"`, `"wind industry"`, `"wind sector"`, `"global wind"`. (GWEC-saken «Increasing wind in the clean energy mix cuts the cost of electricity» og «COP31: Global Wind Industry Unites…» ble i dag regnet som other_energy.)
 - [ ] `RELATED["Grid"]` får i tillegg: `"nettselskap*"`, `"nettleie*"`, `"effekttariff*"`, `"nettariff*"`.
 - [ ] `RELATED["Power market"]` får i tillegg: `"kraftselskap*"`, `"kraftverk*"`, `"vannkraft*"`, `"kraftavtale*"`, `"strømstøtte*"`.
 - [ ] `RELATED["Electrification"]` får i tillegg: `"batterier"`, `"batteriene"`, `"batterilager*"`, `"batteripark*"`, `"batterifabrikk*"`, `"batterigigant*"`, `"gigantbatteri*"`, `"storbatteri*"`, `"battery storage"`, `"energilager*"`. Ikke bare `"batteri*"`: det traff «Nasams-batteri» (luftvern) i testen.
-- [ ] `RELATED["Energy policy"]` får i tillegg: `"nve"`, `"rme"`, `"energilov*"`, `"energikoordinator*"`, `"netto null"`, `"net zero"`, `"karbontoll*"`, `"cbam"`.
+- [ ] `RELATED["Energy policy"]` får i tillegg: `"nve"`, `"rme"`, `"energilov*"`, `"energikoordinator*"`, `"netto null"`, `"net zero"`, `"karbontoll*"`, `"cbam"`, `"clean energy"`, `"energy transition"`, `"energiomstilling*"`.
 - [ ] Nytt område `RELATED["Renewables"]` (etter `"Hydrogen"`): `"fornybar*"`, `"renewable*"`, `"grønn kraft"`, `"green power"`.
 - [ ] `SCORING_VERSION` økes (f.eks. `"2026-11-19.1"`), slik at lagrede saker får ny poengsum ved neste oppstart (`rescore.py` gjør dette allerede).
 - [ ] Ny test i `owis/tests/test_signal_scoring.py` med disse ekte overskriftene og utdragene fra Energiwatch:
@@ -35,6 +35,7 @@ Saker om olje, gass og cyberangrep mot Equinor ble liggende som other_energy. De
   - «Haugaland Kraft kjøper aksjepost for 716 millioner» / «Kraftselskapet på Haugalandet tar opp lån for å kjøpe tilbake aksjene til en av de mindre eierne.» → `adjacent_energy`.
   - «Elvia lanserer ny effekttariff – batterier kan bli vinnere» → `adjacent_energy`.
   - «Skriver ned Wind Catching Systems med 6,9 millioner» → `offshore_wind`.
+  - «COP31: Global Wind Industry Unites Behind Declaration to Accelerate Clean Energy» → ikke `other_energy`.
   - «DSB fant 19 avvik hos nettselskapet Fjellnett» → `adjacent_energy`.
   - «Odal Vindkraftverk får utrede inntil 20 nye turbiner» → `adjacent_energy` (som i dag).
   - Vakt mot for mye: «Luftforsvaret har oppgradert Nasams-batteri: – Et viktig løft» → fortsatt `other_energy`.
