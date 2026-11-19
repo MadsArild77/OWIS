@@ -1,5 +1,6 @@
 {
   "version": 1,
+  "jurisdictions": [],
   "organisations": [
     {
       "id": "no-regjeringen",
@@ -1551,5 +1552,6 @@
       "people": [],
       "enabled": true
     }
-  ]
+  ],
+  "sources": []
 }
