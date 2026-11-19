@@ -4,6 +4,7 @@ Search is discovery, not exhaustive monitoring. Preserve the evidence and do not
 place excerpt-only or undated findings in the confirmed-date calendar.
 """
 import json
+import os
 import re
 from datetime import date, timedelta
 from urllib.parse import urlsplit
@@ -153,6 +154,15 @@ def previous_sources(today):
             if not event.get('event_date') or event['event_date'] >= today.isoformat()]
 
 
+def search_days():
+    """Weekdays (0 = Monday) when the policy outlook searches; other days only recheck known sources (D34)."""
+    try:
+        days = {int(d) for d in os.getenv('OWI_POLICY_SEARCH_WEEKDAYS', '0').split(',') if d.strip()} & set(range(7))
+    except ValueError:
+        days = set()
+    return days or {0}
+
+
 def collect(today):
     state = capabilities()
     if not state['available']:
@@ -160,9 +170,12 @@ def collect(today):
     events, coverage, warnings = [], [], []
     seen = set()
     known = previous_sources(today)
+    days = search_days()
+    # Daily search rotates the global pairs by day of the year, weekly search by ISO week.
+    turn = today.timetuple().tm_yday if len(days) == 7 else today.isocalendar()[1]
     for index, (region, domains, keywords) in enumerate(REGIONS):
-        # Keep the original eight groups daily; rotate consecutive new pairs.
-        scheduled = index < 8 or (index - 8) // 2 == today.timetuple().tm_yday % 3
+        # The original eight groups on every search day; the new groups in rotating pairs.
+        scheduled = today.weekday() in days and (index < 8 or (index - 8) // 2 == turn % 3)
         row = {'region': region, 'domains': domains, 'status': 'completed', 'sources_read': 0}
         sources = []
         try:
