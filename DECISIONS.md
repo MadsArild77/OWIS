@@ -451,7 +451,7 @@ beslutningen med lenke til den nye.
 
 ## D28 – Opportunities samles i OWIS med åpne anbudskilder
 
-**Implementert på oppgavegren 5. november 2026; ikke produksjonsvalidert.**
+**Implementert 5. november 2026, flettet til main; ikke produksjonsvalidert.**
 - Opportunities samler TED (EU/EØS), Doffin (Norge), Verdensbanken, Find a Tender
   og Contracts Finder (Storbritannia) og CanadaBuys. Ingen nye betalte tjenester.
 - OWIS-profilen «Offshore wind market» gir markedsinnsikt på havvindord uten
@@ -474,7 +474,7 @@ beslutningen med lenke til den nye.
 
 ## D29 – Overvåkede politikkilder hentes separat fra nyhetene
 
-**Implementert på oppgavegren 5. november 2026; ikke produksjonsvalidert.**
+**Implementert 5. november 2026, flettet til main; ikke produksjonsvalidert.**
 - Aktive politikkilder uten `news`, med RSS/Atom eller HTML-liste, hentes ved `OWI_FETCH_HOURS`.
   Jobben følger eksisterende `OWI_SCHEDULED_FETCH_ENABLED`, har egen tråd og egne databasekrav
   mot dobbeltkjøring, og inngår ikke i nyhetsjobbens tidsgrense.
@@ -489,7 +489,7 @@ beslutningen med lenke til den nye.
 
 ## D30 – Nyhetssidens stil og skript ligger i egne filer
 
-**Implementert på oppgavegren 5. november 2026; ikke produksjonsvalidert.**
+**Implementert 5. november 2026, flettet til main; ikke produksjonsvalidert.**
 - `news.html` beholder HTML-oppsettet. Sidestilen ligger i `news.css`, og JavaScript
   er delt etter område i `news-*.js`, med samme kode og rekkefølge som før.
 - Vanlige skripttagger beholder globale funksjoner og eksisterende HTML-handlinger.
@@ -499,7 +499,7 @@ beslutningen med lenke til den nye.
 
 ## D31 – Politikk-API-er og konsultasjonsfrister
 
-**Implementert på oppgavegren 6. november 2026; ikke produksjonsvalidert.**
+**Implementert 6. november 2026, flettet til main; ikke produksjonsvalidert.**
 - Have your say, Folketinget og Tweede Kamer bruker egne adaptere valgt etter URL, med høyst
   500 poster per kjøring. Registerets endepunkt beholdes. Stortinget hentes fortsatt bare av Storting-fanen.
 - Have your say beholder åpne perioder uansett alder; andre initiativer krever en periodedato
@@ -511,7 +511,7 @@ beslutningen med lenke til den nye.
 
 ## D32 – Globale politikksøk med rotasjon
 
-**Implementert på oppgavegren 6. november 2026; ikke produksjonsvalidert.**
+**Implementert 6. november 2026, flettet til main; ikke produksjonsvalidert.**
 - Åtte eksisterende kildegrupper søkes daglig, før seks nye grupper for Sør-Europa,
   Norden, Baltikum, Asia-Pacific, Americas og Middle East.
 - De nye gruppene kjøres i tre faste par etter dagnummer i året modulo 3 (0, 1, 2).
@@ -519,3 +519,16 @@ beslutningen med lenke til den nye.
 - Kjente kommende kilder fra forrige rapport kontrolleres også utenom søkedagen,
   uten søkeforbruk. Uten kjente kilder får gruppen `not_scheduled`, uten advarsel.
 - Domene- og evidenskontroll beholdes, inkludert skillet mellom EU-rett og norsk gjennomføring.
+
+## D33 – Railway starter ikke uten passord, og databasen tåler samtidige skrivinger
+
+**Vedtatt og implementert 19. november 2026 (kort 009); ikke produksjonsvalidert.**
+- Innlogging (D10) er aktiv i Railway, bekreftet av Mads 19. november. For at et nytt
+  miljø eller en fjernet variabel ikke skal åpne appen, nekter OWIS å starte på Railway
+  uten `OWI_ACCESS_PASSWORD`. Railway beholder da forrige versjon i drift.
+  `OWI_ALLOW_OPEN_ACCESS=true` åpner bevisst, med advarsel i loggen. Lokalt er appen åpen som før.
+- SQLite bruker WAL-modus, slik at lesing fortsetter mens en jobb skriver, og hver
+  forbindelse venter opptil 30 sekunder på lås i stedet for å feile med «database is locked».
+  Bakgrunnsjobbene (innhenting, politikk, morgenrapport, offentlige kilder) og nettsiden
+  skriver til samme fil. WAL lagres i databasefilen og gir to ekstra filer (`-wal`, `-shm`)
+  ved siden av den på volumet. Sikkerhetskopien tar med innhold som ennå bare ligger i `-wal`.
