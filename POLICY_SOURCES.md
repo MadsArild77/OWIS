@@ -17,8 +17,12 @@ og importeres i **Settings → Regulatory → Import**.
   ble gjort, ble de bare lagret i registeret. RSS/Atom og HTML-lister hentes nå av en egen bakgrunnsjobb
   ved `OWI_FETCH_HOURS`, med kildeintervall, temafilter og pauseregler. Postene vises under
   **Policy & regulation → From monitored sources** og tas med i morgenrapporten. Kort 005 legger til API-adaptere for Have your say, Folketinget og Tweede Kamer.
-- Kildene følger **alt** når organisasjonen er sentral for havvind (for eksempel Energidepartementet, DG ENER, DESNZ, BSH, BOEM og Litauens
-  energidepartement), og ellers **bare tematreff**. Temaordene står på organisasjonen på landets eget språk og arves av kildene.
+- Kildene følger **alt** når organisasjonen er sentral for havvind (Energidepartementet, Stortingets spørsmål til
+  energiministeren, Have your say og The Crown Estate), og ellers **bare tematreff**. Temaordene står på organisasjonen
+  på landets eget språk og arves av kildene. Fra 20. november 2026 (D34) er generelle ord som energi, energy, Energie,
+  energía, udbud og tender fjernet, og DG ENER, DESNZ, BSH, BOEM, Riksdagens näringsutskott og Litauens
+  energidepartement følger tema. Endringen importeres med `oppgaver/010-politikktemaer-import.json`;
+  `oppgaver/010-politikktemaer-tilbake.json` setter organisasjonene tilbake.
 
 ## Kilder per område
 

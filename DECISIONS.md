@@ -534,3 +534,25 @@ beslutningen med lenke til den nye.
   ved siden av den på volumet. Sikkerhetskopien tar med innhold som ennå bare ligger i `-wal`.
 - Have your say hentes 25 initiativer per side i stedet for 100. EU brukte 14 sekunder på
   100, lenger enn tidsgrensen på 12, så kilden feilet hver gang i produksjon.
+
+## D34 – Ny morgenrapport, strammere politikk- og anbudsfiltre og daglig anbudshenting
+
+**Vedtatt av Mads 20. november 2026 (kort 010); ikke produksjonsvalidert.**
+- **Morgenrapporten:** AI-en fikk før bare de første 24 000 tegnene, og nyhetene fylte nesten alt. Trender
+  manglet alle 30 dager, og politikkavsnittet var tomt 25 av 30 dager. Nå ligger politikk, hendelser og
+  tidligere dager først, nyhetene sist, innenfor 60 000 tegn. Lavest rangerte saker faller ut først.
+- **Format:** dagens viktigste, tre punkter i korte trekk, saker gruppert i fire temaer med konkret
+  «So what», frister de neste 14 dagene og nye anbud fra dataene, og resten sammenfoldet. Eldre rapporter
+  vises som før.
+- **Politikksøket** kjøres mandager (`OWI_POLICY_SEARCH_WEEKDAYS=0`). Det brukte rundt 200 av 1000 søk i
+  måneden og fant en datert hendelse bare 4 av 30 dager. Andre dager kontrolleres kjente kilder uten søk.
+- **Politikktemaer:** generelle ord som energi/energy/Energie/energía og innkjøpsord som udbud/tender er fjernet,
+  sju organisasjoner går fra «følg alt» til «følg tema», og Crown Estate følger alt. Simulert på 624 saker i
+  produksjon: 226 saker igjen, og andelen om vind, nett, hydrogen, CCS eller kraftmarked går fra 25 % til 66 %.
+  Energidepartementet og Stortingets spørsmål til energiministeren følges fortsatt i sin helhet.
+- **MAV-profilen** krever at havvind er nevnt (offshore wind, floating wind, havvind osv.); «renewable»,
+  «maritime», «port» og «wind» alene er ikke nok. HR, nettsider, programvare, avfall, catering og turisme utelukkes.
+- **Anbud** hentes og behandles daglig kl. 04:30 Europe/Oslo (`OWI_OPP_SCHEDULED_FETCH_ENABLED`, `OWI_OPP_FETCH_TIME`).
+  Før hver kjøring vurderes listede anbud mot gjeldende profiler; de som ikke lenger passer, tas ut av lista,
+  unntatt lagrede.
+
