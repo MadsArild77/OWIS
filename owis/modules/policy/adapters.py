@@ -5,6 +5,9 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from owis.core.sources import probe
 
+# Have your say needs about 14 s for 100 initiatives, longer than the read timeout; 25 answers in about 4 s.
+HYS_PAGE_SIZE = 25
+
 
 def adapter(url):
     parts = urlsplit(url)
@@ -38,7 +41,7 @@ def records(source, now=None, preview=False):
     cutoff = now - timedelta(days=30)
     count, page = 0, 0
     while count < 500:
-        size = min(100, 500 - count)
+        size = min(HYS_PAGE_SIZE if kind == 'hys' else 100, 500 - count)
         params = {'page': page, 'size': size} if kind == 'hys' else {
             '$skip': count, '$top': size,
             '$orderby': ('opdateringsdato' if kind == 'ft' else 'GewijzigdOp') + ' desc'}
