@@ -6,8 +6,12 @@ Oppdatert 19. november 2026. [Dokumentasjon](DOCUMENTATION.md) · [Beslutninger]
 
 Kort 009 er implementert på grenen `claude/009-drift-og-database` 19. november 2026:
 Railway nekter å starte uten passord, og databasen bruker WAL med 30 sekunders ventetid
-på lås. Se D33. Kort 002–008 er flettet til main; flere av dem er fortsatt ikke kontrollert
-mot ekte kilder eller i nettleser (se hvert kort og D29–D32).
+på lås, og Have your say hentes i mindre sider så frister kommer inn. Se D33.
+
+Produksjonen ble kontrollert 20. november: nyheter, morgenrapport og politikkinnhenting virker,
+Opportunities virker i nettleser. Gjenstår: for mye støy i politikklisten, ingen automatisk
+anbudshenting, og pressemeldinger fra Kommisjonen feiler. Detaljer i
+`oppgaver/009-drift-og-database.svar.md`.
 
 Kort 006 er flettet til main (implementert 6. november 2026): seks nye søkegrupper for
 flytende havvind og globale markeder, med to ekstra søk per dag i datostyrt rotasjon.

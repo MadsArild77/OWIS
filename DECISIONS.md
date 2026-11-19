@@ -532,3 +532,5 @@ beslutningen med lenke til den nye.
   Bakgrunnsjobbene (innhenting, politikk, morgenrapport, offentlige kilder) og nettsiden
   skriver til samme fil. WAL lagres i databasefilen og gir to ekstra filer (`-wal`, `-shm`)
   ved siden av den på volumet. Sikkerhetskopien tar med innhold som ennå bare ligger i `-wal`.
+- Have your say hentes 25 initiativer per side i stedet for 100. EU brukte 14 sekunder på
+  100, lenger enn tidsgrensen på 12, så kilden feilet hver gang i produksjon.
