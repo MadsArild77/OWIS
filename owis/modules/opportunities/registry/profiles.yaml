@@ -32,30 +32,52 @@ profiles:
   - company: MAV
     name: Strategy & Advisory
     category: Advisory
+    # Advisory work counts only when the notice is about offshore wind (D34).
     keywords:
       - advisory
       - strategy
       - due diligence
       - market analysis
+      - market study
+      - feasibility study
       - project development
+      - consenting
+      - permitting
+      - support scheme
+      - tender design
     aliases:
       - transaction support
       - commercial advisory
     qualifier:
-      - offshore
-      - wind
-      - renewable
-      - port
-      - maritime
+      - offshore wind
+      - floating wind
+      - offshore renewable
+      - wind farm
+      - havvind
+      - havvindpark
+      - éolien en mer
+      - eólica marina
+      - Windenergie auf See
+      - Offshore-Wind
+      - wind op zee
+      - havsbaserad vindkraft
+      - seabed lease
     negative_keywords:
       - classroom
       - farming
       - medical equipment
       - office cleaning
+      - human resources
+      - website
+      - software development
+      - waste
+      - catering
+      - tourism
     cpv_codes:
       - '79411100'
       - '79400000'
       - '90713000'
+
   - company: OWIS
     name: Offshore wind market
     category: Offshore Wind
