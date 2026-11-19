@@ -156,7 +156,6 @@
         "strømnett",
         "kraftsystem",
         "kraftmarked",
-        "energi",
         "elektrifisering",
         "hydrogen",
         "CO2-håndtering",
@@ -164,7 +163,10 @@
         "maritim",
         "konsesjon",
         "Utsira",
-        "Sørlige Nordsjø"
+        "Sørlige Nordsjø",
+        "flytende havvind",
+        "havenergi",
+        "energiloven"
       ],
       "people": [],
       "enabled": true
@@ -193,7 +195,6 @@
         "strømnett",
         "kraftsystem",
         "kraftmarked",
-        "energi",
         "elektrifisering",
         "hydrogen",
         "CO2-håndtering",
@@ -201,7 +202,10 @@
         "maritim",
         "konsesjon",
         "Utsira",
-        "Sørlige Nordsjø"
+        "Sørlige Nordsjø",
+        "flytende havvind",
+        "havenergi",
+        "energiloven"
       ],
       "people": [],
       "enabled": true
@@ -219,7 +223,6 @@
         "strømnett",
         "kraftsystem",
         "kraftmarked",
-        "energi",
         "elektrifisering",
         "hydrogen",
         "CO2-håndtering",
@@ -227,7 +230,10 @@
         "maritim",
         "konsesjon",
         "Utsira",
-        "Sørlige Nordsjø"
+        "Sørlige Nordsjø",
+        "flytende havvind",
+        "havenergi",
+        "energiloven"
       ],
       "people": [],
       "enabled": true
@@ -245,7 +251,6 @@
         "strømnett",
         "kraftsystem",
         "kraftmarked",
-        "energi",
         "elektrifisering",
         "hydrogen",
         "CO2-håndtering",
@@ -253,7 +258,10 @@
         "maritim",
         "konsesjon",
         "Utsira",
-        "Sørlige Nordsjø"
+        "Sørlige Nordsjø",
+        "flytende havvind",
+        "havenergi",
+        "energiloven"
       ],
       "people": [],
       "enabled": true
@@ -282,7 +290,6 @@
         "strømnett",
         "kraftsystem",
         "kraftmarked",
-        "energi",
         "elektrifisering",
         "hydrogen",
         "CO2-håndtering",
@@ -290,7 +297,10 @@
         "maritim",
         "konsesjon",
         "Utsira",
-        "Sørlige Nordsjø"
+        "Sørlige Nordsjø",
+        "flytende havvind",
+        "havenergi",
+        "energiloven"
       ],
       "people": [],
       "enabled": true
@@ -308,7 +318,6 @@
         "strømnett",
         "kraftsystem",
         "kraftmarked",
-        "energi",
         "elektrifisering",
         "hydrogen",
         "CO2-håndtering",
@@ -316,7 +325,10 @@
         "maritim",
         "konsesjon",
         "Utsira",
-        "Sørlige Nordsjø"
+        "Sørlige Nordsjø",
+        "flytende havvind",
+        "havenergi",
+        "energiloven"
       ],
       "people": [],
       "enabled": true
@@ -345,7 +357,6 @@
         "strømnett",
         "kraftsystem",
         "kraftmarked",
-        "energi",
         "elektrifisering",
         "hydrogen",
         "CO2-håndtering",
@@ -353,7 +364,10 @@
         "maritim",
         "konsesjon",
         "Utsira",
-        "Sørlige Nordsjø"
+        "Sørlige Nordsjø",
+        "flytende havvind",
+        "havenergi",
+        "energiloven"
       ],
       "people": [],
       "enabled": true
@@ -382,15 +396,17 @@
         "grid",
         "interconnector",
         "electricity market",
-        "energy",
         "renewable",
         "hydrogen",
         "carbon capture",
         "CCS",
-        "maritime",
         "seabed",
         "North Sea",
-        "transmission"
+        "transmission",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
       ],
       "people": [],
       "enabled": true
@@ -401,7 +417,7 @@
       "parent_id": "eu-commission",
       "name": "DG Energy (ENER)",
       "kind": "authority",
-      "follow": "all",
+      "follow": "topics",
       "topics": [],
       "people": [],
       "enabled": true
@@ -419,15 +435,17 @@
         "grid",
         "interconnector",
         "electricity market",
-        "energy",
         "renewable",
         "hydrogen",
         "carbon capture",
         "CCS",
-        "maritime",
         "seabed",
         "North Sea",
-        "transmission"
+        "transmission",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
       ],
       "people": [],
       "enabled": true
@@ -445,15 +463,17 @@
         "grid",
         "interconnector",
         "electricity market",
-        "energy",
         "renewable",
         "hydrogen",
         "carbon capture",
         "CCS",
-        "maritime",
         "seabed",
         "North Sea",
-        "transmission"
+        "transmission",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
       ],
       "people": [],
       "enabled": true
@@ -471,15 +491,17 @@
         "grid",
         "interconnector",
         "electricity market",
-        "energy",
         "renewable",
         "hydrogen",
         "carbon capture",
         "CCS",
-        "maritime",
         "seabed",
         "North Sea",
-        "transmission"
+        "transmission",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
       ],
       "people": [],
       "enabled": true
@@ -497,15 +519,17 @@
         "grid",
         "interconnector",
         "electricity market",
-        "energy",
         "renewable",
         "hydrogen",
         "carbon capture",
         "CCS",
-        "maritime",
         "seabed",
         "North Sea",
-        "transmission"
+        "transmission",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
       ],
       "people": [],
       "enabled": true
@@ -523,15 +547,17 @@
         "grid",
         "interconnector",
         "electricity market",
-        "energy",
         "renewable",
         "hydrogen",
         "carbon capture",
         "CCS",
-        "maritime",
         "seabed",
         "North Sea",
-        "transmission"
+        "transmission",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
       ],
       "people": [],
       "enabled": true
@@ -542,8 +568,25 @@
       "parent_id": null,
       "name": "Department for Energy Security and Net Zero",
       "kind": "ministry",
-      "follow": "all",
-      "topics": [],
+      "follow": "topics",
+      "topics": [
+        "offshore wind",
+        "wind",
+        "grid",
+        "interconnector",
+        "electricity market",
+        "renewable",
+        "hydrogen",
+        "carbon capture",
+        "CCS",
+        "seabed",
+        "North Sea",
+        "transmission",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
+      ],
       "people": [],
       "enabled": true
     },
@@ -560,15 +603,17 @@
         "grid",
         "interconnector",
         "electricity market",
-        "energy",
         "renewable",
         "hydrogen",
         "carbon capture",
         "CCS",
-        "maritime",
         "seabed",
         "North Sea",
-        "transmission"
+        "transmission",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
       ],
       "people": [],
       "enabled": true
@@ -579,22 +624,24 @@
       "parent_id": null,
       "name": "The Crown Estate",
       "kind": "authority",
-      "follow": "topics",
+      "follow": "all",
       "topics": [
         "offshore wind",
         "wind",
         "grid",
         "interconnector",
         "electricity market",
-        "energy",
         "renewable",
         "hydrogen",
         "carbon capture",
         "CCS",
-        "maritime",
         "seabed",
         "North Sea",
-        "transmission"
+        "transmission",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
       ],
       "people": [],
       "enabled": true
@@ -612,15 +659,17 @@
         "grid",
         "interconnector",
         "electricity market",
-        "energy",
         "renewable",
         "hydrogen",
         "carbon capture",
         "CCS",
-        "maritime",
         "seabed",
         "North Sea",
-        "transmission"
+        "transmission",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
       ],
       "people": [],
       "enabled": true
@@ -638,15 +687,17 @@
         "grid",
         "interconnector",
         "electricity market",
-        "energy",
         "renewable",
         "hydrogen",
         "carbon capture",
         "CCS",
-        "maritime",
         "seabed",
         "North Sea",
-        "transmission"
+        "transmission",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
       ],
       "people": [],
       "enabled": true
@@ -686,11 +737,9 @@
         "elnet",
         "energiø",
         "elmarked",
-        "energi",
         "brint",
         "CCS",
-        "Nordsøen",
-        "udbud"
+        "Nordsøen"
       ],
       "people": [],
       "enabled": true
@@ -708,11 +757,9 @@
         "elnet",
         "energiø",
         "elmarked",
-        "energi",
         "brint",
         "CCS",
-        "Nordsøen",
-        "udbud"
+        "Nordsøen"
       ],
       "people": [],
       "enabled": true
@@ -730,11 +777,9 @@
         "Netzausbau",
         "Stromnetz",
         "Strommarkt",
-        "Energie",
         "Wasserstoff",
         "Nordsee",
         "Ostsee",
-        "Ausschreibung",
         "Flächenentwicklungsplan"
       ],
       "people": [],
@@ -753,11 +798,9 @@
         "Netzausbau",
         "Stromnetz",
         "Strommarkt",
-        "Energie",
         "Wasserstoff",
         "Nordsee",
         "Ostsee",
-        "Ausschreibung",
         "Flächenentwicklungsplan"
       ],
       "people": [],
@@ -769,8 +812,18 @@
       "parent_id": null,
       "name": "Bundesamt für Seeschifffahrt und Hydrographie (BSH)",
       "kind": "authority",
-      "follow": "all",
-      "topics": [],
+      "follow": "topics",
+      "topics": [
+        "Offshore-Wind",
+        "Windenergie auf See",
+        "Netzausbau",
+        "Stromnetz",
+        "Strommarkt",
+        "Wasserstoff",
+        "Nordsee",
+        "Ostsee",
+        "Flächenentwicklungsplan"
+      ],
       "people": [],
       "enabled": true
     },
@@ -787,11 +840,9 @@
         "Netzausbau",
         "Stromnetz",
         "Strommarkt",
-        "Energie",
         "Wasserstoff",
         "Nordsee",
         "Ostsee",
-        "Ausschreibung",
         "Flächenentwicklungsplan"
       ],
       "people": [],
@@ -820,10 +871,8 @@
         "wind op zee",
         "stroomnet",
         "netcongestie",
-        "energie",
         "waterstof",
         "Noordzee",
-        "tender",
         "CCS",
         "elektriciteitsmarkt"
       ],
@@ -842,10 +891,8 @@
         "wind op zee",
         "stroomnet",
         "netcongestie",
-        "energie",
         "waterstof",
         "Noordzee",
-        "tender",
         "CCS",
         "elektriciteitsmarkt"
       ],
@@ -866,7 +913,6 @@
         "elnät",
         "stamnät",
         "elmarknad",
-        "energi",
         "vätgas",
         "Östersjön",
         "Västerhavet",
@@ -890,7 +936,6 @@
         "elnät",
         "stamnät",
         "elmarknad",
-        "energi",
         "vätgas",
         "Östersjön",
         "Västerhavet",
@@ -906,7 +951,7 @@
       "parent_id": "se-riksdagen",
       "name": "Näringsutskottet",
       "kind": "committee",
-      "follow": "all",
+      "follow": "topics",
       "topics": [],
       "people": [],
       "enabled": true
@@ -925,7 +970,6 @@
         "elnät",
         "stamnät",
         "elmarknad",
-        "energi",
         "vätgas",
         "Östersjön",
         "Västerhavet",
@@ -949,7 +993,6 @@
         "elnät",
         "stamnät",
         "elmarknad",
-        "energi",
         "vätgas",
         "Östersjön",
         "Västerhavet",
@@ -973,7 +1016,6 @@
         "elnät",
         "stamnät",
         "elmarknad",
-        "energi",
         "vätgas",
         "Östersjön",
         "Västerhavet",
@@ -995,11 +1037,14 @@
         "tuulivoima",
         "sähköverkko",
         "sähkömarkkina",
-        "energia",
         "vety",
         "offshore wind",
         "Itämeri",
-        "Pohjanlahti"
+        "Pohjanlahti",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
       ],
       "people": [],
       "enabled": true
@@ -1016,11 +1061,14 @@
         "tuulivoima",
         "sähköverkko",
         "sähkömarkkina",
-        "energia",
         "vety",
         "offshore wind",
         "Itämeri",
-        "Pohjanlahti"
+        "Pohjanlahti",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
       ],
       "people": [],
       "enabled": true
@@ -1037,11 +1085,14 @@
         "tuulivoima",
         "sähköverkko",
         "sähkömarkkina",
-        "energia",
         "vety",
         "offshore wind",
         "Itämeri",
-        "Pohjanlahti"
+        "Pohjanlahti",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
       ],
       "people": [],
       "enabled": true
@@ -1071,10 +1122,8 @@
         "wiatr",
         "sieć przesyłowa",
         "rynek energii",
-        "energia",
         "wodór",
-        "Bałtyk",
-        "aukcja"
+        "Bałtyk"
       ],
       "people": [],
       "enabled": true
@@ -1093,10 +1142,8 @@
         "wiatr",
         "sieć przesyłowa",
         "rynek energii",
-        "energia",
         "wodór",
-        "Bałtyk",
-        "aukcja"
+        "Bałtyk"
       ],
       "people": [],
       "enabled": true
@@ -1115,10 +1162,8 @@
         "wiatr",
         "sieć przesyłowa",
         "rynek energii",
-        "energia",
         "wodór",
-        "Bałtyk",
-        "aukcja"
+        "Bałtyk"
       ],
       "people": [],
       "enabled": true
@@ -1137,10 +1182,8 @@
         "wiatr",
         "sieć przesyłowa",
         "rynek energii",
-        "energia",
         "wodór",
-        "Bałtyk",
-        "aukcja"
+        "Bałtyk"
       ],
       "people": [],
       "enabled": true
@@ -1157,11 +1200,9 @@
         "meretuulepark",
         "tuuleenergia",
         "elektrivõrk",
-        "energia",
         "vesinik",
         "offshore",
-        "Läänemeri",
-        "vähempakkumine"
+        "Läänemeri"
       ],
       "people": [],
       "enabled": true
@@ -1178,11 +1219,9 @@
         "meretuulepark",
         "tuuleenergia",
         "elektrivõrk",
-        "energia",
         "vesinik",
         "offshore",
-        "Läänemeri",
-        "vähempakkumine"
+        "Läänemeri"
       ],
       "people": [],
       "enabled": true
@@ -1199,7 +1238,6 @@
         "vēja enerģija",
         "vēja parks",
         "elektrotīkls",
-        "enerģētika",
         "ūdeņradis",
         "offshore",
         "ELWIND",
@@ -1220,7 +1258,6 @@
         "vēja enerģija",
         "vēja parks",
         "elektrotīkls",
-        "enerģētika",
         "ūdeņradis",
         "offshore",
         "ELWIND",
@@ -1235,8 +1272,15 @@
       "parent_id": null,
       "name": "Energetikos ministerija",
       "kind": "ministry",
-      "follow": "all",
-      "topics": [],
+      "follow": "topics",
+      "topics": [
+        "offshore wind",
+        "vėjo",
+        "jūrinio vėjo",
+        "Litgrid",
+        "hydrogen",
+        "vandenilio"
+      ],
       "people": [],
       "enabled": true
     },
@@ -1251,10 +1295,8 @@
         "éolien en mer",
         "éolien flottant",
         "éolien",
-        "appel d'offres",
         "réseau électrique",
         "raccordement",
-        "énergie",
         "hydrogène",
         "façade maritime",
         "PPE"
@@ -1273,10 +1315,8 @@
         "éolien en mer",
         "éolien flottant",
         "éolien",
-        "appel d'offres",
         "réseau électrique",
         "raccordement",
-        "énergie",
         "hydrogène",
         "façade maritime",
         "PPE"
@@ -1306,9 +1346,6 @@
         "eólica marina",
         "eólica flotante",
         "eólica",
-        "subasta",
-        "red eléctrica",
-        "energía",
         "hidrógeno",
         "POEM",
         "Canarias",
@@ -1328,9 +1365,6 @@
         "eólica marina",
         "eólica flotante",
         "eólica",
-        "subasta",
-        "red eléctrica",
-        "energía",
         "hidrógeno",
         "POEM",
         "Canarias",
@@ -1352,7 +1386,6 @@
         "eólica flutuante",
         "leilão",
         "rede elétrica",
-        "energia",
         "hidrogénio",
         "offshore",
         "espaço marítimo"
@@ -1373,7 +1406,6 @@
         "eólica flutuante",
         "leilão",
         "rede elétrica",
-        "energia",
         "hidrogénio",
         "offshore",
         "espaço marítimo"
@@ -1394,10 +1426,8 @@
         "eolico",
         "FER 2",
         "rete elettrica",
-        "energia",
         "idrogeno",
-        "offshore",
-        "asta"
+        "offshore"
       ],
       "people": [],
       "enabled": true
@@ -1415,10 +1445,8 @@
         "eolico",
         "FER 2",
         "rete elettrica",
-        "energia",
         "idrogeno",
-        "offshore",
-        "asta"
+        "offshore"
       ],
       "people": [],
       "enabled": true
@@ -1438,7 +1466,11 @@
         "ενέργεια",
         "δίκτυο",
         "υδρογόνο",
-        "διαγωνισμός"
+        "διαγωνισμός",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
       ],
       "people": [],
       "enabled": true
@@ -1460,8 +1492,13 @@
       "parent_id": null,
       "name": "Bureau of Ocean Energy Management (BOEM)",
       "kind": "authority",
-      "follow": "all",
-      "topics": [],
+      "follow": "topics",
+      "topics": [
+        "offshore wind",
+        "wind energy",
+        "wind lease",
+        "renewable energy"
+      ],
       "people": [],
       "enabled": true
     },
@@ -1478,15 +1515,17 @@
         "grid",
         "interconnector",
         "electricity market",
-        "energy",
         "renewable",
         "hydrogen",
         "carbon capture",
         "CCS",
-        "maritime",
         "seabed",
         "North Sea",
-        "transmission"
+        "transmission",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
       ],
       "people": [],
       "enabled": true
@@ -1504,15 +1543,17 @@
         "grid",
         "interconnector",
         "electricity market",
-        "energy",
         "renewable",
         "hydrogen",
         "carbon capture",
         "CCS",
-        "maritime",
         "seabed",
         "North Sea",
-        "transmission"
+        "transmission",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
       ],
       "people": [],
       "enabled": true
@@ -1530,15 +1571,17 @@
         "grid",
         "interconnector",
         "electricity market",
-        "energy",
         "renewable",
         "hydrogen",
         "carbon capture",
         "CCS",
-        "maritime",
         "seabed",
         "North Sea",
-        "transmission"
+        "transmission",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
       ],
       "people": [],
       "enabled": true
@@ -1556,15 +1599,17 @@
         "grid",
         "interconnector",
         "electricity market",
-        "energy",
         "renewable",
         "hydrogen",
         "carbon capture",
         "CCS",
-        "maritime",
         "seabed",
         "North Sea",
-        "transmission"
+        "transmission",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
       ],
       "people": [],
       "enabled": true
@@ -1582,15 +1627,17 @@
         "grid",
         "interconnector",
         "electricity market",
-        "energy",
         "renewable",
         "hydrogen",
         "carbon capture",
         "CCS",
-        "maritime",
         "seabed",
         "North Sea",
-        "transmission"
+        "transmission",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
       ],
       "people": [],
       "enabled": true
@@ -1608,15 +1655,17 @@
         "grid",
         "interconnector",
         "electricity market",
-        "energy",
         "renewable",
         "hydrogen",
         "carbon capture",
         "CCS",
-        "maritime",
         "seabed",
         "North Sea",
-        "transmission"
+        "transmission",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
       ],
       "people": [],
       "enabled": true
@@ -1634,15 +1683,17 @@
         "grid",
         "interconnector",
         "electricity market",
-        "energy",
         "renewable",
         "hydrogen",
         "carbon capture",
         "CCS",
-        "maritime",
         "seabed",
         "North Sea",
-        "transmission"
+        "transmission",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
       ],
       "people": [],
       "enabled": true
@@ -1660,15 +1711,17 @@
         "grid",
         "interconnector",
         "electricity market",
-        "energy",
         "renewable",
         "hydrogen",
         "carbon capture",
         "CCS",
-        "maritime",
         "seabed",
         "North Sea",
-        "transmission"
+        "transmission",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
       ],
       "people": [],
       "enabled": true
@@ -1686,15 +1739,17 @@
         "grid",
         "interconnector",
         "electricity market",
-        "energy",
         "renewable",
         "hydrogen",
         "carbon capture",
         "CCS",
-        "maritime",
         "seabed",
         "North Sea",
-        "transmission"
+        "transmission",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
       ],
       "people": [],
       "enabled": true
@@ -1712,15 +1767,17 @@
         "grid",
         "interconnector",
         "electricity market",
-        "energy",
         "renewable",
         "hydrogen",
         "carbon capture",
         "CCS",
-        "maritime",
         "seabed",
         "North Sea",
-        "transmission"
+        "transmission",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
       ],
       "people": [],
       "enabled": true
@@ -1738,15 +1795,17 @@
         "grid",
         "interconnector",
         "electricity market",
-        "energy",
         "renewable",
         "hydrogen",
         "carbon capture",
         "CCS",
-        "maritime",
         "seabed",
         "North Sea",
-        "transmission"
+        "transmission",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
       ],
       "people": [],
       "enabled": true
@@ -1764,15 +1823,17 @@
         "grid",
         "interconnector",
         "electricity market",
-        "energy",
         "renewable",
         "hydrogen",
         "carbon capture",
         "CCS",
-        "maritime",
         "seabed",
         "North Sea",
-        "transmission"
+        "transmission",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
       ],
       "people": [],
       "enabled": true
@@ -1790,15 +1851,17 @@
         "grid",
         "interconnector",
         "electricity market",
-        "energy",
         "renewable",
         "hydrogen",
         "carbon capture",
         "CCS",
-        "maritime",
         "seabed",
         "North Sea",
-        "transmission"
+        "transmission",
+        "floating wind",
+        "permitting",
+        "Contracts for Difference",
+        "auction"
       ],
       "people": [],
       "enabled": true
