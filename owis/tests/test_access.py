@@ -1,6 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from owis.apps.api.access import check_hosted_access
 from owis.apps.api.main import app
 from owis.core.storage import db
 from owis.scripts.backup_database import prune_startup_backups
@@ -47,3 +48,26 @@ def test_prune_startup_backups_keeps_newest(tmp_path):
     left = sorted(p.name for p in tmp_path.glob('startup-*.db'))
     assert len(left) == 14 and left[0] == 'startup-2026-09-07.db'
     assert (tmp_path / 'owi-manual.db').exists()
+
+
+def test_hosted_start_refused_without_password(tmp_path, monkeypatch):
+    monkeypatch.setattr(db, 'DB_PATH', str(tmp_path / 'hosted.db'))
+    monkeypatch.setenv('RAILWAY_ENVIRONMENT_ID', 'test-env')
+    monkeypatch.setenv('RAILWAY_VOLUME_MOUNT_PATH', str(tmp_path))
+    monkeypatch.delenv('OWI_ACCESS_PASSWORD', raising=False)
+    monkeypatch.delenv('OWI_ALLOW_OPEN_ACCESS', raising=False)
+    with pytest.raises(RuntimeError, match='OWI_ACCESS_PASSWORD'):
+        with TestClient(app):
+            pass
+
+
+def test_hosted_access_with_password_or_explicit_opt_out(monkeypatch):
+    monkeypatch.setenv('RAILWAY_ENVIRONMENT_ID', 'test-env')
+    monkeypatch.setenv('OWI_ACCESS_PASSWORD', 'test-secret')
+    check_hosted_access()
+    monkeypatch.delenv('OWI_ACCESS_PASSWORD')
+    monkeypatch.setenv('OWI_ALLOW_OPEN_ACCESS', 'true')
+    check_hosted_access()
+    monkeypatch.delenv('RAILWAY_ENVIRONMENT_ID')
+    monkeypatch.delenv('OWI_ALLOW_OPEN_ACCESS')
+    check_hosted_access()

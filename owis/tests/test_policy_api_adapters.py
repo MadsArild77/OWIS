@@ -105,16 +105,16 @@ def test_maximum_500_and_endpoint_preserved(monkeypatch, name):
     if name == 'eu-hys-ener':
         page = data['initiativeResultDtoPage']
         page.update(last=False, totalPages=100)
-        page['content'] = [page['content'][0]] * 100
+        page['content'] = [page['content'][0]] * adapters.HYS_PAGE_SIZE
     else:
         data['value'] = [data['value'][0]] * 100
     calls = mock_pages(monkeypatch, [data])
     assert len(list(adapters.records(source(name), NOW))) == 500
-    assert len(calls) == 5
+    assert len(calls) == (500 // adapters.HYS_PAGE_SIZE if name == 'eu-hys-ener' else 5)
     assert all(urlsplit(u).path == urlsplit(URLS[name]).path for u in calls)
     queries = [parse_qs(urlsplit(u).query) for u in calls]
     if name == 'eu-hys-ener':
-        assert queries[-1]['page'] == ['4']
+        assert queries[-1]['page'] == [str(500 // adapters.HYS_PAGE_SIZE - 1)]
         assert all(q['topic'] == ['ENER'] for q in queries)
     else:
         assert queries[-1]['$skip'] == ['400']
@@ -180,3 +180,13 @@ def test_deadline_priority_migration_and_morning(monkeypatch):
     assert sent[0]['monitored_policy'][0]['deadline'] == recent[0]['deadline']
     storage.ensure()
     assert len(rows()) == 3
+
+
+def test_hys_asks_for_small_pages(monkeypatch):
+    data = fixture('eu-hys-ener')
+    calls = mock_pages(monkeypatch, [data])
+    list(adapters.records(source('eu-hys-ener'), NOW, preview=True))
+    assert parse_qs(urlsplit(calls[0]).query)['size'] == [str(adapters.HYS_PAGE_SIZE)]
+    calls = mock_pages(monkeypatch, [fixture('dk-ft-sager')])
+    list(adapters.records(source('dk-ft-sager'), NOW, preview=True))
+    assert parse_qs(urlsplit(calls[0]).query)['$top'] == ['100']

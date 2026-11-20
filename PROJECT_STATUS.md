@@ -1,22 +1,31 @@
 # OWIS – utviklingsstatus
 
-Oppdatert 5. oktober 2026. [Dokumentasjon](DOCUMENTATION.md) · [Beslutninger](DECISIONS.md) · [Plan](IMPLEMENTATION_PLAN.md)
+Oppdatert 19. november 2026. [Dokumentasjon](DOCUMENTATION.md) · [Beslutninger](DECISIONS.md) · [Plan](IMPLEMENTATION_PLAN.md)
 
 ## Gjeldende status
 
-Kort 006 er implementert på oppgavegren 6. november 2026: seks nye søkegrupper for
+Kort 009 er implementert på grenen `claude/009-drift-og-database` 19. november 2026:
+Railway nekter å starte uten passord, og databasen bruker WAL med 30 sekunders ventetid
+på lås, og Have your say hentes i mindre sider så frister kommer inn. Se D33.
+
+Produksjonen ble kontrollert 20. november: nyheter, morgenrapport og politikkinnhenting virker,
+Opportunities virker i nettleser. Gjenstår: for mye støy i politikklisten, ingen automatisk
+anbudshenting, og pressemeldinger fra Kommisjonen feiler. Detaljer i
+`oppgaver/009-drift-og-database.svar.md`.
+
+Kort 006 er flettet til main (implementert 6. november 2026): seks nye søkegrupper for
 flytende havvind og globale markeder, med to ekstra søk per dag i datostyrt rotasjon.
 Kjente kilder kontrolleres også utenom søkedagen. Se D32. Ingen ekte søk er kjørt.
 
-Kort 005 er implementert på oppgavegren 6. november 2026: API-adaptere for Have your say,
+Kort 005 er flettet til main (implementert 6. november 2026): API-adaptere for Have your say,
 Folketinget og Tweede Kamer, frister i politikklisten og prioritering i morgenrapporten.
 Offentlige API-svar er kontrollert og lagret som testutdrag. Ingen produksjonsinnhenting er kjørt.
 
-Kort 002 er implementert på oppgavegren 5. november 2026: nyhetssidens stil og JavaScript
+Kort 002 er flettet til main (implementert 5. november 2026): nyhetssidens stil og JavaScript
 ligger i egne filer, uten endret utseende eller funksjoner. Statiske filer sendes med
 `Cache-Control: no-store`. Se D30 og `oppgaver/002-del-opp-nyhetssiden.svar.md`.
 
-Kort 004 er implementert på oppgavegren 5. november 2026: politikkilder med RSS/Atom og HTML-lister
+Kort 004 er flettet til main (implementert 5. november 2026): politikkilder med RSS/Atom og HTML-lister
 hentes separat, med temaarv, intervaller og kjøringslogg. Egen liste i Policy & regulation og siste døgn
 i morgenrapporten. API-adaptere følger i kort 005; import og produksjonskontroll er ikke utført her. Se D29.
 
@@ -35,12 +44,12 @@ hvilken versjon eller konfigurasjon som kjører i produksjon.
 | Morgenrapport og politikk | Grunnversjon implementert | Siste døgn, kommende milepæler, radar og valgfri 06-kjøring; [MORNING_REPORT.md](MORNING_REPORT.md) |
 | Jurisdiksjoner og kilder (trinn 1) | Ferdig og flettet til main | Felles register, organisasjoner, test og import/eksport; [SOURCE_CONFIGURATION.md](SOURCE_CONFIGURATION.md) |
 | Settings | Ferdig på main | Separate News- og Regulatory-faner; News er standard |
-| Tilgang og drift | Innlogging i kode; ikke aktivert | Krever `OWI_ACCESS_PASSWORD` i Railway; se [D10](DECISIONS.md) og [teknisk README](owis/README.md) |
+| Tilgang og drift | Innlogging aktiv i Railway (bekreftet 19. november) | Railway nekter å starte uten `OWI_ACCESS_PASSWORD` fra kort 009; se [D10, D33](DECISIONS.md) og [teknisk README](owis/README.md) |
 | Grensesnitt | Ny nyhetsside med sidemeny, søk, leserute og lyst/mørkt tema | Se [D11 og D12](DECISIONS.md) |
 | Felles innhentingsmotor (trinn 2) | Ikke startet | Betinget henting, endringskontroll og versjoner |
 | Norge-adaptere (trinn 3) | Ikke startet | Regjeringens kalender/høringer og Stortingets komiteer, med prioritering |
 | Morgenrapport og drift (trinn 4) | Videre integrasjon gjenstår | Koble ny motor og adaptere til rapporten, kontrollere dekning og drift |
-| Opportunities | Kort 007 og 008 implementert på oppgavegren | Seks åpne kilder, filterbar anbudsliste, lesepanel og lagret/skjult i databasen; D28. Settings på Opportunities. Nettlesersjekk og produksjonskontroll gjenstår. |
+| Opportunities | Kort 007 og 008 flettet til main | Seks åpne kilder, filterbar anbudsliste, lesepanel og lagret/skjult i databasen; D28. Settings på Opportunities. Ingen automatisk henting; anbud hentes ved Fetch tenders. Nettlesersjekk og produksjonskontroll gjenstår. |
 | Lyd/NotebookLM | Åpent forslag | Ingen automatisk integrasjon implementert |
 
 ## Sist gjennomførte validering

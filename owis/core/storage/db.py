@@ -4,12 +4,15 @@ from pathlib import Path
 
 from owis.core.config.settings import DB_PATH
 
+# Background jobs and web requests write to the same file; wait for a lock instead of failing at once.
+BUSY_TIMEOUT_SECONDS = 30
+
 
 @contextmanager
 def get_conn():
     db_path = Path(DB_PATH)
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, timeout=BUSY_TIMEOUT_SECONDS)
     conn.row_factory = sqlite3.Row
     try:
         with conn:
@@ -20,6 +23,8 @@ def get_conn():
 
 def init_db() -> None:
     with get_conn() as conn:
+        # WAL lets readers continue while a job writes; the setting is stored in the file.
+        conn.execute("PRAGMA journal_mode=WAL")
         conn.executescript('''
             CREATE TABLE IF NOT EXISTS source_config_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS source_jurisdictions (id TEXT PRIMARY KEY, payload TEXT NOT NULL);

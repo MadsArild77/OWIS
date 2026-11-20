@@ -176,8 +176,10 @@ Importer tries RSS autodiscovery first; if no feed is found, source is added as 
 Set `OWI_ACCESS_PASSWORD` to require a login on every page and API route.
 The browser asks for a username and password; the username is `owis` unless
 `OWI_ACCESS_USER` is set. `/health` stays open for the Railway health check.
-Without `OWI_ACCESS_PASSWORD` the app is open to anyone with the URL, and a
-warning is logged on Railway at startup.
+Without `OWI_ACCESS_PASSWORD` the app is open locally. On Railway it refuses to
+start, so a new environment or a removed variable cannot expose the app; the
+previous deployment keeps running. Set `OWI_ALLOW_OPEN_ACCESS=true` only to run
+a hosted environment open on purpose (a warning is then logged).
 
 ## Automatic collection, matching and coverage search
 
