@@ -99,6 +99,11 @@ def test_cowi_profile_matches_engineering_for_offshore_wind_grid_and_ports(title
     ('Engineering services for road maintenance programme', 'SWE'),
     ('Software development for port community system', 'NLD'),
     ('Cleaning services for offshore wind O&M base', 'GBR'),
+    # Matched in production on 20 November 2026: works contracts and World Bank notices without a country.
+    ('Bygg- og grunnentreprise Tjeldbergodden transformatorstasjon', 'NOR'),
+    ('E0019EBE - Skur Dokkeskjærskaien - rivingsarbeider og ny trafostasjon', 'NOR'),
+    ('154/33 kV SELİMPAŞA Gas Insulated Switchgear Substation (GIS) transmission', ''),
+    ('Design, Supply and Installation of high voltage substations for transmission', ''),
 ])
 def test_cowi_profile_skips_other_work_and_other_countries(title, country):
     assert not cowi(title, country)
@@ -109,3 +114,15 @@ def test_profile_countries_are_optional_and_default_profiles_include_cowi():
     bundle = load_profile_bundle(active_profiles=['AGR', 'COWI'])
     assert bundle['by_company']['AGR'][0]['countries'] == []
     assert 'COWI' in settings.OPPORTUNITIES_ACTIVE_PROFILES or 'OWI_OPP_ACTIVE_PROFILES' in __import__('os').environ
+
+
+def test_listed_tenders_are_checked_against_profiles_at_startup(monkeypatch):
+    monkeypatch.setenv('OWI_OPP_SCHEDULED_FETCH_ENABLED', 'true')
+    started, calls = [], []
+    monkeypatch.setattr(schedule, 'Thread', lambda target, **kw: type('T', (), {'start': lambda self: started.append(target)})())
+    monkeypatch.setattr(schedule, 'reclassify', lambda: calls.append('reclassify'))
+    monkeypatch.setattr(schedule, 'tick', lambda: calls.append('tick'))
+    stop = schedule.start_scheduler()
+    stop.set()
+    started[0]()
+    assert calls == ['reclassify']

@@ -170,9 +170,9 @@ def classify_notice(
 
     for profile_name in active_profiles:
         company_profiles = profile_bundle.get("by_company", {}).get(profile_name, [])
-        # A profile with countries only applies to notices from those countries (or with no country given).
+        # A profile with countries only applies to notices from those countries; World Bank notices often have none.
         company_profiles = [profile for profile in company_profiles
-                            if not profile.get("countries") or not country or country in profile["countries"]]
+                            if not profile.get("countries") or country in profile["countries"]]
         if not company_profiles:
             continue
 

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -235,6 +237,17 @@ def _normalize_worldbank(raw: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _post_with_retry(client: httpx.Client, url: str, **kwargs: Any) -> httpx.Response:
+    # TED answers 429 when many pages are read in a row; wait as told, at most a minute per try.
+    for attempt in range(4):
+        response = client.post(url, **kwargs)
+        if response.status_code != 429 or attempt == 3:
+            return response
+        wait = response.headers.get("Retry-After", "")
+        time.sleep(min(int(wait), 60) if wait.isdigit() else 15)
+    return response
+
+
 def fetch_ted_notices(
     profile_bundle: dict[str, Any],
     days_back: int,
@@ -263,7 +276,7 @@ def fetch_ted_notices(
         with httpx.Client(timeout=30) as client:
             for page in range(1, 151):
                 payload = {"query": query, "fields": TED_FIELDS, "page": page, "limit": 100}
-                resp = client.post(TED_API_ENDPOINT, headers=headers, json=payload)
+                resp = _post_with_retry(client, TED_API_ENDPOINT, headers=headers, json=payload)
                 resp.raise_for_status()
                 data = resp.json()
                 if data.get("timedOut") or not isinstance(data.get("notices"), list):
