@@ -111,12 +111,14 @@ profiles:
     category: Engineering
     # Engineering and consultancy for offshore wind, grid, ports and consenting in the Nordics and North Sea (D35).
     countries: [NOR, SWE, DNK, FIN, ISL, GBR, DEU, NLD, BEL]
+    # Services only: the object (substation, port) is a qualifier, so one word cannot satisfy both.
     keywords:
       - owner's engineer
       - owners engineer
       - technical advisor
       - engineering services
       - engineering consultancy
+      - consultancy services
       - design services
       - concept design
       - detailed design
@@ -126,26 +128,19 @@ profiles:
       - geotechnical
       - cable route
       - foundation design
-      - substation
-      - converter station
-      - grid connection
-      - transmission line
-      - power line
-      - HVDC
       - environmental impact assessment
       - EIA
       - impact assessment
       - environmental monitoring
       - consenting
       - permitting
-      - quay
-      - marine structures
     aliases:
       - rådgivende ingeniør
+      - rådgivning
       - prosjektering
+      - forprosjekt
+      - mulighetsstudie
       - konsekvensutredning
-      - transformatorstasjon
-      - kraftledning
       - ingeniørtjenester
     qualifier:
       - offshore wind
@@ -187,6 +182,10 @@ profiles:
       - cleaning
       - software
       - human resources
+      - entreprise
+      - rivingsarbeid
+      - supply and installation
+      - construction works
     cpv_codes:
       - '71311000'
       - '71313000'

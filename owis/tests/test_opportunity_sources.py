@@ -357,3 +357,15 @@ def test_uk_rate_limit_waits_and_retries(mock_http, monkeypatch):
     items, report = open_data.fetch_uk_notices("UK_CF", 30)
     assert waits == [7]
     assert report["status"] == "ok"
+
+
+def test_ted_waits_and_retries_when_rate_limited(mock_http, monkeypatch):
+    data = fixture("ted")
+    data["totalNoticeCount"] = len(data["notices"])
+    answers = [httpx.Response(429, headers={"Retry-After": "7"}), httpx.Response(200, json=data)]
+    waits = []
+    monkeypatch.setattr(fetchers.time, "sleep", waits.append)
+    mock_http(lambda request: answers.pop(0))
+    items, report = fetchers.fetch_ted_notices({"keywords_by_company": {"OWIS": ["havvindpark"]}}, 30, ["NOR"])
+    assert report["status"] == "ok" and items
+    assert waits == [7]

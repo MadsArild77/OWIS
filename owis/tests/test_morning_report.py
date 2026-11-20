@@ -493,3 +493,15 @@ def test_deadlines_and_new_tenders_come_from_the_data(monkeypatch):
     assert [(r['date'], r['kind'], r['title']) for r in rows] == [
         ('2026-10-05', 'Council vote', 'Council vote'), ('2026-10-08', 'Consultation', 'Soon'), ('2026-10-10', 'Tender', 'TenneT survey')]
     assert [t['title'] for t in morning.new_tenders(NOW)] == ['TenneT survey']
+
+
+def test_generic_so_what_is_left_out(monkeypatch):
+    stories = [{'id': 1, 'title': 'A', 'summary': 's', 'signal_score': 9, 'sources': [{'source_name': 'X'}]}]
+    monkeypatch.setattr(morning.AIClient, '__init__', lambda self: None)
+    monkeypatch.setattr(morning.AIClient, 'enabled', True, raising=False)
+    monkeypatch.setattr(morning.AIClient, '_post_json_prompt', lambda *a, **k: {'headline': 'H', 'sections': {'europe': [
+        {'headline': 'Consent', 'so_what': "This consent is crucial for advancing Scotland's floating wind industry.", 'story_ids': [1]},
+        {'headline': 'Turbines', 'so_what': 'FID moves to 2028, so tower and cable orders follow next year.', 'story_ids': [1]}]}})
+    items = morning.write_brief(stories)['sections'][0]['items']
+    assert items[0]['why_it_matters'] == ''
+    assert items[1]['why_it_matters'].startswith('FID moves to 2028')

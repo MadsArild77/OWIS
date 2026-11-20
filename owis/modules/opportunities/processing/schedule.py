@@ -81,6 +81,11 @@ def start_scheduler() -> Event:
     stop = Event()
 
     def loop():
+        # A deploy can change the profiles; clean the list right away instead of at the next run.
+        try:
+            reclassify()
+        except Exception:
+            logger.exception("Checking listed tenders against the profiles failed")
         while not stop.is_set():
             try:
                 tick()

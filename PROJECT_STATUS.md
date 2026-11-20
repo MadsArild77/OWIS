@@ -4,6 +4,9 @@ Oppdatert 19. november 2026. [Dokumentasjon](DOCUMENTATION.md) · [Beslutninger]
 
 ## Gjeldende status
 
+Kort 009 og 010 er flettet til main og rullet ut 20. november 2026. Første rapport i nytt format ble laget samme
+morgen. Kort 011 retter COWI-profilen, TED-hentingen og «So what» etter den kjøringen (D36).
+
 Kort 010 er implementert på grenen `claude/010-morgenrapport-og-filtre` 20. november 2026: ny morgenrapport
 med temaer, frister og nye anbud, AI-input som ikke kuttes, ukentlig politikksøk, strammere politikktemaer
 og MAV-profil, og daglig anbudshenting kl. 04:30. Se D34. Politikktemaene må importeres i Settings for å gjelde

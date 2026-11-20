@@ -161,7 +161,8 @@ BRIEF_PROMPT = (
     "sentence on the concrete consequence: for whom, what changes, by when; empty if the input does not support one; "
     "never generic phrases such as 'crucial for climate goals' or 'boosts renewable capacity'), story_ids (ids from "
     "stories) and policy_ids (ids from monitored_policy)) and "
-    "watch (0-3 lines, each a concrete next step to follow: a decision, deadline or award, with its date if known)."
+    "watch (2-3 lines, each a concrete next step to follow: a decision, deadline or award, with its date if known; "
+    "fewer only if the input has none). Put items about Norway or Norwegian companies under norway."
 )
 TREND_PROMPT = (
     " The input also has earlier_stories from the previous days (id, title, date, score). Compare them with "
@@ -214,6 +215,10 @@ def _fallback_brief(stories, max_items):
                                  for s in stories[:max_items]]}
 
 
+# A "so what" with these words says nothing concrete; it is left out rather than shown.
+GENERIC = re.compile(r'\b(crucial|vital|pivotal|climate (goals|targets)|renewable energy (capacity|goals)|significant step|'
+                     r'plays? a key role|energy transition goals)\b', re.IGNORECASE)
+
 SECTIONS = [('norway', 'Norway & North Sea'), ('europe', 'Europe & markets'),
             ('supply_chain', 'Supply chain & contracts'), ('policy', 'Policy & regulation')]
 
@@ -254,7 +259,8 @@ def write_brief(stories, events=(), earlier=(), monitored_policy=()):
         for item in items(raw.get(key)):
             if isinstance(item, dict) and text(item.get('headline')) and len(developments) < max_items:
                 row = {'headline': text(item['headline']), 'what_happened': text(item.get('what')),
-                       'why_it_matters': text(item.get('so_what')), 'story_ids': ids(item),
+                       'why_it_matters': '' if GENERIC.search(text(item.get('so_what'))) else text(item.get('so_what')),
+                       'story_ids': ids(item),
                        'policy': [policy[p] for p in dict.fromkeys(items(item.get('policy_ids'))) if isinstance(p, str) and p in policy]}
                 rows.append(row)
                 developments.append(row)
