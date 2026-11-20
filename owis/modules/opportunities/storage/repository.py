@@ -167,6 +167,22 @@ class OpportunitiesRepository:
             ).fetchall()
             return [dict(row) for row in rows]
 
+    def processed_raw_items(self) -> list[dict[str, Any]]:
+        """Raw notices that currently have a processed item, with the reader's saved/hidden state."""
+        with get_conn() as conn:
+            self._ensure_states(conn)
+            rows = conn.execute("""SELECT r.*, COALESCE(s.state, 'none') AS state
+                FROM opportunity_raw_items r
+                JOIN opportunity_processed_items p ON p.raw_item_id = r.id
+                LEFT JOIN opportunity_item_states s ON s.raw_item_id = r.id""").fetchall()
+            return [dict(row) for row in rows]
+
+    def remove_processed(self, raw_id: int) -> None:
+        """Take a notice out of the list when it no longer matches a profile; the raw notice is kept."""
+        with get_conn() as conn:
+            conn.execute("DELETE FROM opportunity_processed_items WHERE raw_item_id = ?", (raw_id,))
+            conn.execute("UPDATE opportunity_raw_items SET status = 'rejected' WHERE id = ?", (raw_id,))
+
     def mark_raw_processed(self, raw_id: int) -> None:
         with get_conn() as conn:
             conn.execute(

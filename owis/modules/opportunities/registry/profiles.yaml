@@ -32,30 +32,52 @@ profiles:
   - company: MAV
     name: Strategy & Advisory
     category: Advisory
+    # Advisory work counts only when the notice is about offshore wind (D34).
     keywords:
       - advisory
       - strategy
       - due diligence
       - market analysis
+      - market study
+      - feasibility study
       - project development
+      - consenting
+      - permitting
+      - support scheme
+      - tender design
     aliases:
       - transaction support
       - commercial advisory
     qualifier:
-      - offshore
-      - wind
-      - renewable
-      - port
-      - maritime
+      - offshore wind
+      - floating wind
+      - offshore renewable
+      - wind farm
+      - havvind
+      - havvindpark
+      - éolien en mer
+      - eólica marina
+      - Windenergie auf See
+      - Offshore-Wind
+      - wind op zee
+      - havsbaserad vindkraft
+      - seabed lease
     negative_keywords:
       - classroom
       - farming
       - medical equipment
       - office cleaning
+      - human resources
+      - website
+      - software development
+      - waste
+      - catering
+      - tourism
     cpv_codes:
       - '79411100'
       - '79400000'
       - '90713000'
+
   - company: OWIS
     name: Offshore wind market
     category: Offshore Wind
@@ -83,3 +105,97 @@ profiles:
       - hospital
     qualifier: []
     cpv_codes: []
+
+  - company: COWI
+    name: COWI engineering & consulting
+    category: Engineering
+    # Engineering and consultancy for offshore wind, grid, ports and consenting in the Nordics and North Sea (D35).
+    countries: [NOR, SWE, DNK, FIN, ISL, GBR, DEU, NLD, BEL]
+    keywords:
+      - owner's engineer
+      - owners engineer
+      - technical advisor
+      - engineering services
+      - engineering consultancy
+      - design services
+      - concept design
+      - detailed design
+      - front end engineering
+      - FEED
+      - feasibility study
+      - geotechnical
+      - cable route
+      - foundation design
+      - substation
+      - converter station
+      - grid connection
+      - transmission line
+      - power line
+      - HVDC
+      - environmental impact assessment
+      - EIA
+      - impact assessment
+      - environmental monitoring
+      - consenting
+      - permitting
+      - quay
+      - marine structures
+    aliases:
+      - rådgivende ingeniør
+      - prosjektering
+      - konsekvensutredning
+      - transformatorstasjon
+      - kraftledning
+      - ingeniørtjenester
+    qualifier:
+      - offshore wind
+      - floating wind
+      - wind farm
+      - offshore renewable
+      - havvind
+      - havvindpark
+      - havsbaserad vindkraft
+      - havmølle
+      - Windenergie auf See
+      - Offshore-Wind
+      - wind op zee
+      - offshore
+      - transmission
+      - HVDC
+      - substation
+      - grid connection
+      - transformatorstasjon
+      - Statnett
+      - Energinet
+      - Svenska kraftnät
+      - Fingrid
+      - TenneT
+      - 50Hertz
+      - Amprion
+      - National Grid
+      - port
+      - harbour
+      - havn
+    negative_keywords:
+      - school
+      - hospital
+      - kindergarten
+      - residential
+      - road maintenance
+      - railway
+      - catering
+      - cleaning
+      - software
+      - human resources
+    cpv_codes:
+      - '71311000'
+      - '71313000'
+      - '71313400'
+      - '71320000'
+      - '71322000'
+      - '71323100'
+      - '71241000'
+      - '71356200'
+      - '71541000'
+      - '90711000'
+

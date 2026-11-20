@@ -27,7 +27,7 @@ OPPORTUNITIES_ENABLED_SOURCES = [
 ]
 OPPORTUNITIES_ACTIVE_PROFILES = [
     p.strip().upper()
-    for p in os.getenv("OWI_OPP_ACTIVE_PROFILES", "AGR,MAV,OWIS").split(",")
+    for p in os.getenv("OWI_OPP_ACTIVE_PROFILES", "AGR,MAV,OWIS,COWI").split(",")
     if p.strip()
 ]
 OPPORTUNITIES_DAYS_BACK = int(os.getenv("OWI_OPP_DAYS_BACK", "30"))

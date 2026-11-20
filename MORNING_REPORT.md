@@ -8,23 +8,27 @@
 genereres manuelt, gjenåpnes fra de siste 30 rapportdagene og kopieres som tekst
 med kilder. Politikkfanen bruker nyeste rapport og har regionfilter.
 
-Rapporten inneholder:
+Rapporten inneholder, fra rapportene etter 20. november 2026 (D34):
 
-- Sammendrag øverst: én hovedoverskrift, et kort overblikk, de viktigste
-  utviklingene (hva skjedde, hvorfor det betyr noe, kilder), politikk og hva man
-  bør følge med på. Skrives av AI ut fra de innsamlede sakene; uten AI vises de
-  høyest rangerte sakene uten skrevet sammendrag.
-- Trender: når databasen har saker fra dagene før (inntil sju dager), sammenlignes
-  de med siste døgn, og inntil tre trender som flere saker på ulike dager støtter,
-  vises med kilder.
-- Siste 24 timer (sammenfoldet liste): publiseringstidspunkt i intervallet `[start − 24 timer, start)`.
-  Artikler uten tidssone eller med bare en dato utelates med synlig dekningstall.
-  Inntil 30 saker vises, rangert etter eksisterende relevansscore. Manuelle
-  sammenslåinger grupperes; full automatisk hendelsesdeduplisering er ikke innført.
-- I dag og neste 90 dager: kildestøttede politiske milepæler og frister.
-- På radaren: relevante forslag og funn uten bekreftet dato, inkludert funn
-  som bare bygger på søkeutdrag.
-- Kildedekning og feil. Ingen treff er ikke det samme som ingen hendelser.
+- **Dagens viktigste** på én linje og **i korte trekk** med tre punkter.
+- Saker gruppert i **Norway & North Sea**, **Europe & markets**, **Supply chain & contracts**
+  og **Policy & regulation**, høyst åtte til sammen. Hver sak har hva som skjedde, hva det betyr
+  («So what») og kilder. Politikksaker fra overvåkede kilder lenkes direkte.
+- **Trender** fra de siste sju dagene når flere saker på ulike dager støtter dem.
+- **Deadlines & events · next 14 days:** konsultasjonsfrister fra overvåkede kilder, daterte
+  hendelser fra politikksøket og anbudsfrister fra Opportunities. Hentes fra dataene, ikke skrevet av AI.
+- **New tenders · last 24 hours:** anbud som ble koblet til en profil siden forrige rapport.
+- **Watch next:** inntil tre konkrete neste steg.
+- Sammenfoldet nederst: alle saker siste døgn (inntil 30, etter relevans), politikkutsikten
+  (i dag, neste 90 dager og på radaren, bare når den har innhold), nye poster fra overvåkede
+  kilder og dekning og advarsler. Advarslene fra politikksøket er slått sammen til én linje per type.
+
+Eldre rapporter vises i det gamle formatet. AI-en får politikk, hendelser og tidligere dager først
+og nyhetene sist, innenfor 60 000 tegn; blir det for langt, faller de lavest rangerte sakene ut.
+Før D34 ble alt etter 24 000 tegn kuttet, slik at politikk og trender sjelden kom med.
+Uten AI vises de høyest rangerte sakene uten skrevet sammendrag. Siste døgn betyr publiseringstid i
+`[start − 24 timer, start)`; artikler uten tidssone eller med bare en dato utelates med synlig dekningstall.
+Ingen treff er ikke det samme som ingen hendelser.
 
 Faglig avgrensning: energi/havvind, maritim næring og nett/elektrifisering.
 Norge og EU prioriteres før Norden og øvrige europeiske land. Det er et målrettet
@@ -33,6 +37,10 @@ Kildegruppene vedlikeholdes i `owis/modules/news/processing/governance.py` og vi
 i rapporten. De omfatter myndigheter og parlamenter i Norge og EU, Sverige,
 Danmark, Finland, Island, Storbritannia, Tyskland, Nederland, Frankrike, Belgia,
 Irland, Polen, Spania, Italia, Portugal, Sveits, Østerrike, Tsjekkia og Baltikum.
+
+Politikksøket kjøres bare mandager (`OWI_POLICY_SEARCH_WEEKDAYS`, standard `0`). De andre dagene
+kontrolleres bare kjente kilder fra forrige rapport, uten søk. Ved ukentlig søk roteres de globale
+parene etter ISO-uke, ved daglig søk etter dagnummer.
 
 Seks ekstra søkegrupper dekker flytende havvind i Sør-Europa, Norden, Baltikum,
 Asia-Pacific, Americas og Middle East. De følger faste par: Sør-Europa/Norden,

@@ -385,3 +385,111 @@ def test_trends_use_earlier_days_and_are_cited(monkeypatch):
     assert 'earlier_stories' in seen['prompt'] and [s['id'] for s in seen['input']['earlier_stories']] == [old]
     assert result['brief']['trends'][0]['story_ids'] == [old, new]
     assert [s['id'] for s in result['trend_stories']] == [old]
+
+
+def test_brief_input_keeps_policy_trends_and_all_stories_at_full_size():
+    stories = [dict(id=i, title='T' * 120, summary='s' * 900, why_it_matters='w' * 400, signal_score=80,
+                    sources=[{'source_name': 'Recharge'}, {'source_name': 'Europower'}]) for i in range(30)]
+    policy = [dict(title='P' * 160, organisation='Energidepartementet', jurisdiction='Norway', content_type='consultation',
+                   published_at=NOW.isoformat(), first_seen_at=NOW.isoformat(), deadline=NOW.isoformat()) for _ in range(40)]
+    earlier = [dict(id=100 + i, title='E' * 120, published_at=NOW.isoformat(), signal_score=70) for i in range(60)]
+    events = [dict(title='V' * 120, jurisdiction='EU', event_date='2026-10-05', kind='vote', legal_status='proposal',
+                   summary='x' * 400) for _ in range(10)]
+    text = morning.brief_input(stories, events, earlier, policy)
+    data = json.loads(text)
+    assert len(text) <= morning.BRIEF_INPUT_CHARS
+    assert len(data['stories']) == 30 and len(data['monitored_policy']) == 40
+    assert len(data['earlier_stories']) == 60 and len(data['policy_events']) == 10
+
+
+def test_brief_input_drops_lowest_stories_rather_than_policy(monkeypatch):
+    monkeypatch.setattr(morning, 'BRIEF_INPUT_CHARS', 3000)
+    stories = [dict(id=i, title='T' * 100, summary='s' * 400, signal_score=90 - i, sources=[]) for i in range(30)]
+    policy = [dict(title='Havvind consultation', deadline='2026-10-20')]
+    data = json.loads(morning.brief_input(stories, (), [], policy))
+    assert data['monitored_policy'][0]['title'] == 'Havvind consultation'
+    assert 0 < len(data['stories']) < 30 and data['stories'][0]['id'] == 0
+
+
+def test_policy_warnings_are_condensed():
+    lines = morning.condense_policy_warnings([
+        'Norway: limited source coverage; missing text or excerpt-only results.',
+        'Europe: 1 findings omitted because the evidence could not be validated.',
+        'Europe: limited source coverage; missing text or excerpt-only results.',
+        'Europe: 2 findings omitted because the evidence could not be validated.',
+        'Europe: limited source coverage; missing text or excerpt-only results.',
+        'Nordics: policy search or analysis failed for this source group.',
+        'EU: discovery failed; only previously known sources could be rechecked.'])
+    assert lines == ['EU: discovery failed; only previously known sources could be rechecked.',
+                     'Policy search failed for: Nordics.',
+                     'Policy search left out 3 findings that could not be checked against the source (Europe).',
+                     'Policy search had only excerpts or no text for some sources: Norway, Europe.']
+
+
+@pytest.mark.parametrize('day,searches', [(date(2026, 11, 23), 10), (date(2026, 11, 24), 0), (date(2026, 11, 29), 0)])
+def test_policy_search_runs_on_mondays_by_default(monkeypatch, day, searches):
+    monkeypatch.delenv('OWI_POLICY_SEARCH_WEEKDAYS')
+    monkeypatch.setattr(governance, 'capabilities', lambda: {'available': True})
+    monkeypatch.setattr(governance, 'previous_sources', lambda today: [])
+    calls = []
+    monkeypatch.setattr(governance, 'search', lambda query, purpose: calls.append(query) or [])
+    result = governance.collect(day)
+    assert len(calls) == searches
+    if not searches:
+        assert {row['status'] for row in result['coverage']} == {'not_scheduled'}
+        assert result['warnings'] == []
+
+
+def test_weekly_search_rotates_global_pairs_by_week(monkeypatch):
+    monkeypatch.setenv('OWI_POLICY_SEARCH_WEEKDAYS', '0')
+    monkeypatch.setattr(governance, 'capabilities', lambda: {'available': True})
+    monkeypatch.setattr(governance, 'previous_sources', lambda today: [])
+    monkeypatch.setattr(governance, 'search', lambda query, purpose: [])
+    pairs = set()
+    for monday in (date(2026, 11, 23), date(2026, 11, 30), date(2026, 12, 7)):
+        coverage = governance.collect(monday)['coverage']
+        pairs.add(tuple(i for i, row in enumerate(coverage) if i >= 8 and row['status'] != 'not_scheduled'))
+    assert pairs == {(8, 9), (10, 11), (12, 13)}
+
+
+def test_brief_groups_items_by_section_and_links_policy(monkeypatch):
+    stories = [{'id': 1, 'title': 'A', 'summary': 's', 'signal_score': 9, 'sources': [{'source_name': 'X'}]}]
+    policy = [{'title': 'Grid package consultation', 'url': 'https://ec.europa.eu/x', 'content_type': 'consultation'}]
+    seen = {}
+    def answer(self, prompt, text, **kw):
+        seen['input'] = json.loads(text)
+        return {'headline': 'Netherlands opens 2 GW tender', 'in_brief': ['One', 'Two', 'Three', 'Four'],
+                'sections': {'europe': [{'headline': 'NL tender', 'what': 'w', 'so_what': 'Bidders must ...', 'story_ids': [1, 7]}],
+                             'policy': [{'headline': 'EU grid package', 'what': 'w', 'policy_ids': ['p0', 'p0', 'p9']}],
+                             'norway': [], 'unknown': [{'headline': 'ignored'}]},
+                'watch': ['Award 5 Dec']}
+    monkeypatch.setattr(morning.AIClient, '__init__', lambda self: None)
+    monkeypatch.setattr(morning.AIClient, 'enabled', True, raising=False)
+    monkeypatch.setattr(morning.AIClient, '_post_json_prompt', answer)
+    brief = morning.write_brief(stories, monitored_policy=policy)
+    assert seen['input']['monitored_policy'][0]['id'] == 'p0'
+    assert [s['key'] for s in brief['sections']] == ['europe', 'policy']
+    assert brief['sections'][0]['items'][0] == {'headline': 'NL tender', 'what_happened': 'w', 'why_it_matters': 'Bidders must ...',
+                                                'story_ids': [1], 'policy': []}
+    assert brief['sections'][1]['items'][0]['policy'] == [{'title': 'Grid package consultation', 'url': 'https://ec.europa.eu/x'}]
+    assert brief['in_brief'] == ['One', 'Two', 'Three'] and len(brief['key_developments']) == 2
+
+
+def test_deadlines_and_new_tenders_come_from_the_data(monkeypatch):
+    from owis.modules.policy import storage
+    from owis.modules.opportunities.storage.repository import OpportunitiesRepository
+    monkeypatch.setattr(storage, 'items', lambda now, **kw: [
+        dict(content_type='consultation', deadline='2026-10-08T23:59:59+00:00', title='Soon', organisation='DG ENER', url='https://a'),
+        dict(content_type='consultation', deadline='2026-11-30T23:59:59+00:00', title='Later', organisation='DG ENER', url='https://b'),
+        dict(content_type='regulation', deadline=None, title='No date', url='https://c')])
+    tenders = [dict(id=1, title='TenneT survey', buyer='TenneT', country='NLD', deadline='2026-10-10', fit='Medium',
+                    profile_name='AGR', source_url='https://t', processed_at=(NOW - timedelta(hours=2)).isoformat()),
+               dict(id=2, title='Old match', buyer='B', country='GBR', deadline='2027-01-10', fit='Low',
+                    profile_name='MAV', source_url='https://o', processed_at=(NOW - timedelta(days=3)).isoformat())]
+    monkeypatch.setattr(OpportunitiesRepository, 'list_items', lambda self, **kw: {'items': tenders})
+    events = [dict(title='Council vote', event_date='2026-10-05', kind='council_vote', jurisdiction='EU',
+                   source={'url': 'https://e'}), dict(title='Undated', event_date=None)]
+    rows = morning.deadlines(NOW, events)
+    assert [(r['date'], r['kind'], r['title']) for r in rows] == [
+        ('2026-10-05', 'Council vote', 'Council vote'), ('2026-10-08', 'Consultation', 'Soon'), ('2026-10-10', 'Tender', 'TenneT survey')]
+    assert [t['title'] for t in morning.new_tenders(NOW)] == ['TenneT survey']

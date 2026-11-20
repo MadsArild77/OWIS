@@ -125,6 +125,75 @@
       </article>`;
     }
 
+    function storySources(stories) {
+      const byId = new Map();
+      for (const story of stories || []) {
+        byId.set(story.id, story);
+        for (const source of story.sources) byId.set(source.id, story);
+      }
+      return ids => {
+        const seen = new Set();
+        return (ids || []).map(id => byId.get(id)).filter(Boolean).flatMap(story => story.sources)
+          .filter(source => !seen.has(source.article_url) && seen.add(source.article_url))
+          .map(source => reportSourceLink(source.article_url, source.source_name));
+      };
+    }
+
+    function shortDate(value) {
+      const date = new Date(value + 'T12:00:00Z');
+      return isNaN(date) ? escapeHtml(value) : escapeHtml(date.toLocaleDateString('en-GB', {day:'numeric', month:'short', timeZone:'UTC'}));
+    }
+
+    function sectionBriefHtml(brief, stories) {
+      const sourcesFor = storySources(stories);
+      const item = row => {
+        const links = [...sourcesFor(row.story_ids), ...(row.policy || []).map(link => reportSourceLink(link.url, link.title))];
+        return `<li><strong>${escapeHtml(row.headline)}</strong>
+          ${row.what_happened ? `<p>${escapeHtml(row.what_happened)}</p>` : ''}
+          ${row.why_it_matters ? `<p><em>So what:</em> ${escapeHtml(readableText(row.why_it_matters))}</p>` : ''}
+          ${links.length ? `<p class="brief-sources">${links.join(' · ')}</p>` : ''}</li>`;
+      };
+      return `<p class="muted">Top story</p><p class="brief-headline">${escapeHtml(brief.headline)}</p>
+        ${brief.in_brief && brief.in_brief.length ? `<h4>In brief</h4><ul>${brief.in_brief.map(row => `<li>${escapeHtml(row)}</li>`).join('')}</ul>` : ''}
+        ${brief.sections.map(section => `<h4>${escapeHtml(section.title)}</h4><ol>${section.items.map(item).join('')}</ol>`).join('')}
+        ${brief.trends && brief.trends.length ? `<h4>Trends from the past days</h4><ul>${brief.trends.map(row => `<li>
+          <strong>${escapeHtml(row.headline)}</strong>${row.detail ? ` — ${escapeHtml(row.detail)}` : ''}
+          ${row.story_ids.length ? `<p class="brief-sources">${sourcesFor(row.story_ids).join(' · ')}</p>` : ''}</li>`).join('')}</ul>` : ''}`;
+    }
+
+    function deadlinesHtml(rows) {
+      return `<h4>Deadlines &amp; events · next 14 days</h4>${rows.length ? `<ul>${rows.map(row => `<li>
+        <strong>${shortDate(row.date)}</strong> · ${escapeHtml(row.kind)} · ${reportSourceLink(row.url, row.title)}${row.where ? ` <span class="muted">· ${escapeHtml(row.where)}</span>` : ''}</li>`).join('')}</ul>`
+        : '<p class="muted">No consultation, event or tender deadlines found for the next 14 days.</p>'}`;
+    }
+
+    function tendersHtml(rows) {
+      return `<h4>New tenders · last 24 hours</h4>${rows.length ? `<ul>${rows.map(row => `<li>${reportSourceLink(row.source_url, row.title)}
+        <span class="muted">· ${escapeHtml([row.buyer, row.country].filter(Boolean).join(', '))}${row.deadline ? ` · deadline ${shortDate(row.deadline.slice(0, 10))}` : ''} · ${escapeHtml(row.fit || '')} fit (${escapeHtml(row.profile_name || '')})</span></li>`).join('')}</ul>`
+        : '<p class="muted">No new matching tenders since the previous report.</p>'}
+        <p><a href="/opportunities">All tenders in Opportunities</a></p>`;
+    }
+
+    function renderSectionReport(state, report) {
+      const brief = report.brief;
+      const stories = [...report.news, ...(report.trend_stories || [])];
+      const outlook = report.today.length + report.upcoming.length + report.watchlist.length;
+      const monitored = report.monitored_policy || [];
+      return `<p class="muted">${escapeHtml(new Date(report.report_date + 'T12:00:00Z').toLocaleDateString('en-GB', {weekday:'long', day:'numeric', month:'long', timeZone:'UTC'}))} · Window ${osloTime(report.window_start)} – ${osloTime(report.window_end)} (Oslo)</p>
+        ${state.status !== 'completed' ? '<p>Showing the previous saved result while the new attempt is running or failed.</p>' : ''}
+        <article class="research-panel brief">
+          ${brief && brief.sections ? sectionBriefHtml(brief, stories) : brief ? briefHtml(brief, stories) : '<p>No collected stories with a confirmed publication timestamp in this window.</p>'}
+          ${deadlinesHtml(report.deadlines || [])}
+          ${tendersHtml(report.new_tenders || [])}
+          ${brief && brief.watch && brief.watch.length ? `<h4>Watch next</h4><ul>${brief.watch.map(row => `<li>${escapeHtml(row)}</li>`).join('')}</ul>` : ''}
+          <p class="muted">${brief && brief.ai ? 'AI-written summary of the collected stories; dates and tenders come from the sources. Check the sources before acting.' : 'AI is not enabled: showing the highest-ranked stories without a written summary.'}</p>
+        </article>
+        ${storyList(report.news, `All stories from the last 24 hours (${report.news.length} of ${report.news_total}, ranked by relevance)`)}
+        ${outlook ? `<details><summary>Policy outlook from official sources (${outlook})</summary>${policySection('Today', report.today)}${policySection('Next 90 days', report.upcoming)}${policySection('On the radar · date not confirmed', report.watchlist)}</details>` : ''}
+        ${monitored.length ? `<details><summary>New from monitored policy sources (${monitored.length})</summary>${monitored.map(monitoredRow).join('')}<p><a href="#governance">Policy &amp; regulation — view all monitored items</a></p></details>` : ''}
+        <details><summary>Coverage &amp; warnings (${report.warnings.length})</summary>${coverageHtml(report)}</details>`;
+    }
+
     function storyList(stories, title) {
       if (!stories || !stories.length) return '';
       return `<details><summary>${escapeHtml(title)}</summary>${stories.map(item => `<article class="research-panel"><h4>${escapeHtml(item.title)}</h4><p>${escapeHtml(item.summary)}</p><p><strong>Why it matters · analysis:</strong> ${escapeHtml(readableText(item.why_it_matters))}</p><p>${item.sources.map(source => reportSourceLink(source.article_url, source.source_name)).join(' · ')}</p></article>`).join('')}</details>`;
@@ -141,6 +210,7 @@
       const report = state.result;
       const root = document.getElementById('morningBody');
       if (!report) { root.innerHTML = ''; return; }
+      if (report.deadlines) { root.innerHTML = renderSectionReport(state, report); return; }
       root.innerHTML = `<p class="muted">${escapeHtml(report.report_date)} · Window ${osloTime(report.window_start)} – ${osloTime(report.window_end)} (Oslo).</p>
         ${state.status !== 'completed' ? '<p>Showing the previous saved result while the new attempt is running or failed.</p>' : ''}
         <h3>Summary</h3>
@@ -198,6 +268,25 @@
         if (brief.policy.length) lines.push('', 'Policy & regulation:', ...brief.policy.map(row => `- ${row}`));
         if (brief.watch.length) lines.push('', 'Watch next:', ...brief.watch.map(row => `- ${row}`));
       };
+      if (report.deadlines) {
+        const brief = report.brief;
+        if (brief) {
+          lines.push('', 'TOP STORY', brief.headline);
+          if (brief.in_brief?.length) lines.push('', 'IN BRIEF', ...brief.in_brief.map(row => `- ${row}`));
+          for (const section of brief.sections || []) {
+            lines.push('', section.title.toUpperCase());
+            for (const item of section.items) lines.push('', item.headline, item.what_happened, item.why_it_matters ? `So what: ${item.why_it_matters}` : '', ...(item.policy || []).map(link => `${link.title}: ${link.url}`));
+          }
+          if (!brief.sections) brief.key_developments.forEach((item, index) => lines.push('', `${index + 1}. ${item.headline}`, item.what_happened, `Why it matters: ${item.why_it_matters}`));
+        }
+        lines.push('', 'DEADLINES & EVENTS · NEXT 14 DAYS', ...(report.deadlines.length ? report.deadlines.map(row => `- ${row.date} · ${row.kind} · ${row.title}${row.where ? ` (${row.where})` : ''} ${row.url}`) : ['None found.']));
+        lines.push('', 'NEW TENDERS · LAST 24 HOURS', ...(report.new_tenders.length ? report.new_tenders.map(row => `- ${row.title} · ${[row.buyer, row.country].filter(Boolean).join(', ')}${row.deadline ? ` · deadline ${row.deadline.slice(0, 10)}` : ''} ${row.source_url}`) : ['None.']));
+        if (brief?.watch?.length) lines.push('', 'WATCH NEXT', ...brief.watch.map(row => `- ${row}`));
+        lines.push('', 'ALL STORIES');
+        for (const item of report.news) lines.push('', item.title, ...item.sources.map(source => `${source.source_name}: ${source.article_url}`));
+        lines.push('', 'COVERAGE', report.coverage_note, ...report.warnings);
+        return lines.filter(line => line !== undefined).join('\n');
+      }
       briefText('SUMMARY', report.brief);
       lines.push('', 'LAST 24 HOURS');
       for (const item of report.news) lines.push('', item.title, item.summary, `Analysis: ${item.why_it_matters}`, ...item.sources.map(source => `${source.source_name}: ${source.article_url}`));
