@@ -19,6 +19,9 @@
 - **Anbud** hentes og behandles kl. 04:30 Oslo-tid (`owis/modules/opportunities/processing/schedule.py`), én gang
   per dag med krav i databasen. Før hentingen tas anbud som ikke lenger passer profilene ut av lista (unntatt lagrede).
 
+- **COWI-profil** (D35): ingeniør- og rådgivningsanbud innen havvind, nett, havn og miljø/konsesjon i Norden og
+  Nordsjøen. Profiler kan nå begrenses til land med `countries`.
+
 ## Slik kan Mads se det
 Etter utrulling: neste morgenrapport (06:00) har det nye formatet, eller trykk Generate / refresh. Opportunities
 oppdateres hver morgen etter 04:30, og de urelevante MAV-treffene forsvinner ved første kjøring. Politikklista
@@ -32,6 +35,6 @@ blir kortere når importfila er lastet inn.
 - Simuleringen av temaene brukte et grovt ordsøk for «relevant»; tallene (624 → 226, 25 % → 66 %) er anslag.
 
 ## Testresultat
-394 bestått på Python 3.13 og 3.11. Nye tester: AI-input med full størrelse og kutt, sammenslåtte advarsler,
+405 bestått på Python 3.13 og 3.11. Nye tester: AI-input med full størrelse og kutt, sammenslåtte advarsler,
 seksjoner og politikklenker, frister og nye anbud, ukentlig søk og rotasjon, MAV mot fem ekte feiltreff og to
-riktige treff, opprydding som beholder lagrede anbud, og daglig kjøring etter 04:30.
+riktige treff, opprydding som beholder lagrede anbud, daglig kjøring etter 04:30, og COWI-profilen mot fem riktige og fem gale anbud.

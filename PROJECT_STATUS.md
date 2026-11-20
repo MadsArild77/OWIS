@@ -7,7 +7,7 @@ Oppdatert 19. november 2026. [Dokumentasjon](DOCUMENTATION.md) · [Beslutninger]
 Kort 010 er implementert på grenen `claude/010-morgenrapport-og-filtre` 20. november 2026: ny morgenrapport
 med temaer, frister og nye anbud, AI-input som ikke kuttes, ukentlig politikksøk, strammere politikktemaer
 og MAV-profil, og daglig anbudshenting kl. 04:30. Se D34. Politikktemaene må importeres i Settings for å gjelde
-i produksjon.
+i produksjon. Samme gren har ny COWI-profil for anbud (D35).
 
 Kort 009 er implementert på grenen `claude/009-drift-og-database` 19. november 2026:
 Railway nekter å starte uten passord, og databasen bruker WAL med 30 sekunders ventetid

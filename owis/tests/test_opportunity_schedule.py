@@ -74,3 +74,38 @@ def test_runs_once_a_day_after_the_configured_oslo_time(monkeypatch):
     assert len(calls) == 2
     monkeypatch.setenv('OWI_OPP_SCHEDULED_FETCH_ENABLED', 'false')
     assert not schedule.tick(datetime(2026, 11, 22, 4, 0, tzinfo=timezone.utc))
+
+
+def cowi(title, country):
+    bundle = load_profile_bundle(active_profiles=['COWI'])
+    result = pipeline.classify_notice({'description': title.lower(), 'country': country}, bundle, ['COWI'])
+    return bool(result)
+
+
+@pytest.mark.parametrize('title,country', [
+    ('Statnett – prosjektering av ny transformatorstasjon og kraftledning i Rogaland', 'NOR'),
+    ("Owner's engineer services for the Muir Mhor offshore wind farm", 'GBR'),
+    ('Environmental impact assessment for Energinet export cable landfall', 'DNK'),
+    ('Concept design of HVDC converter station for offshore grid connection', 'DEU'),
+    ('Detailed design of new quay for offshore wind base at the port of Esbjerg', 'DNK'),
+])
+def test_cowi_profile_matches_engineering_for_offshore_wind_grid_and_ports(title, country):
+    assert cowi(title, country)
+
+
+@pytest.mark.parametrize('title,country', [
+    ("Owner's engineer for floating offshore wind farm in Brittany", 'FRA'),  # outside the Nordics and North Sea
+    ('Detailed design of school building and sports hall', 'NOR'),
+    ('Engineering services for road maintenance programme', 'SWE'),
+    ('Software development for port community system', 'NLD'),
+    ('Cleaning services for offshore wind O&M base', 'GBR'),
+])
+def test_cowi_profile_skips_other_work_and_other_countries(title, country):
+    assert not cowi(title, country)
+
+
+def test_profile_countries_are_optional_and_default_profiles_include_cowi():
+    from owis.core.config import settings
+    bundle = load_profile_bundle(active_profiles=['AGR', 'COWI'])
+    assert bundle['by_company']['AGR'][0]['countries'] == []
+    assert 'COWI' in settings.OPPORTUNITIES_ACTIVE_PROFILES or 'OWI_OPP_ACTIVE_PROFILES' in __import__('os').environ

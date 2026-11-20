@@ -556,3 +556,17 @@ beslutningen med lenke til den nye.
   Før hver kjøring vurderes listede anbud mot gjeldende profiler; de som ikke lenger passer, tas ut av lista,
   unntatt lagrede.
 
+## D35 – COWI-profil for anbud
+
+**Vedtatt av Mads 20. november 2026; ikke produksjonsvalidert.**
+- Ny anbudsprofil **COWI** («COWI engineering & consulting») for rådgivning og prosjektering innen havvind,
+  nett og stasjoner, havn og maritime konstruksjoner, og miljø og konsesjon.
+- Et anbud må nevne en tjeneste (for eksempel owner's engineer, design, prosjektering, geoteknikk, transformatorstasjon,
+  konsekvensutredning) **og** et område (havvind, offshore, nett/TSO som Statnett, Energinet og TenneT, eller havn).
+  Skole, sykehus, bolig, veivedlikehold, jernbane, renhold, catering, programvare og HR utelukkes.
+- Profilen gjelder bare anbud fra Norge, Sverige, Danmark, Finland, Island, UK, Tyskland, Nederland og Belgia.
+  Profiler kan nå ha `countries`; uten feltet gjelder de alle land som før.
+- Ti CPV-koder for ingeniør- og miljørådgivning legges til TED-søket. COWI er med i standardprofilene;
+  er `OWI_OPP_ACTIVE_PROFILES` satt i Railway, må COWI legges til der.
+- Tjenester og geografi er Claudes antakelse fordi spørsmålet ble stående ubesvart; justeres i `profiles.yaml`.
+

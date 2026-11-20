@@ -72,6 +72,7 @@ def load_profile_bundle(active_profiles: list[str] | None = None) -> dict[str, A
         aliases = _clean_list(row.get("aliases"))
         qualifiers = _clean_list(row.get("qualifier"))
         negatives = _clean_list(row.get("negative_keywords"))
+        countries = [code.upper() for code in _clean_list(row.get("countries"))]
         cpv_codes = _clean_cpv(_clean_list(row.get("cpv_codes")))
 
         merged_keywords: list[str] = []
@@ -85,6 +86,7 @@ def load_profile_bundle(active_profiles: list[str] | None = None) -> dict[str, A
             "keywords": merged_keywords,
             "qualifier": qualifiers,
             "negative_keywords": negatives,
+            "countries": countries,
             "cpv_eu": cpv_codes,
         }
 
