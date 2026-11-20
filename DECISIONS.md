@@ -570,3 +570,16 @@ beslutningen med lenke til den nye.
   er `OWI_OPP_ACTIVE_PROFILES` satt i Railway, må COWI legges til der.
 - Tjenester og geografi er Claudes antakelse fordi spørsmålet ble stående ubesvart; justeres i `profiles.yaml`.
 
+## D36 – Rettelser etter første produksjonskjøring 20. november 2026
+
+**Implementert 20. november 2026 (kort 011).**
+- **COWI:** profiler med `countries` gjelder bare anbud med kjent land i lista; Verdensbankens anbud uten land
+  slapp før gjennom (Tyrkia, Mongolia). Tjenesteordene (keywords) er nå bare tjenester; anlegg som substation,
+  transformatorstasjon og havn er bare område (qualifier), så ett ord ikke lenger er nok. Entrepriser, riving,
+  «supply and installation» og «construction works» utelukkes. Fire av fem første COWI-treff var slike.
+- **TED** venter og prøver igjen ved HTTP 429 (som Contracts Finder), inntil fire forsøk og høyst ett minutt per pause.
+  Første kjøring stoppet etter 1800 anbud.
+- **Opprydding ved oppstart:** listede anbud kontrolleres mot profilene når appen starter, ikke bare før kjøringen kl. 04:30.
+- **Morgenrapporten:** «So what» med tomme fraser (crucial, vital, climate goals o.l.) vises ikke; AI-en bes om
+  2–3 punkter i «Watch next» og om å legge norske saker under Norway & North Sea.
+
